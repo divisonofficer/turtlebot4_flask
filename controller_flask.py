@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response
 import threading
 from flask_socketio import SocketIO
 from controller import Controller
 import json
-
+import time
 import rclpy
+from cv_bridge import CvBridge
+import cv2
 
 
 app = Flask(__name__)
@@ -33,21 +35,61 @@ def get_resource(resource):
 def index():
     return render_template('index.html')
 
-
+frameTime = time.time()
 
 def raw_callback(x):
-    x['pixels'] = x['pixels'].tolist()
-    socketio.emit('preview_image_response', {'image_data': json.dumps(x)})
+    global frameTime
+    '''
+    sensor_msgs.msg.Image to Serealized Data
+    '''
+    beginTime = time.time()
+    x = {
+        'width': x.width,
+        'height': x.height,
+        'data' : x.data.tolist(),
+    }
+    endTime = time.time()
+    
+    timeTaken = endTime - beginTime
+    frameTimeTaken = endTime - frameTime
+    x['timeTaken'] = frameTimeTaken
+    frameTime = endTime
+    socketio.emit('preview_image_response', json.dumps(x))
+    
+    
+output_frame = None
+lock = threading.Lock()
+def cv_raw_callback(msg):
+    bridge = CvBridge()
+    cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+    global output_frame
+    output_frame = cv_image
 
 def create_ros_subscriber():
-    node = controller.con_subscribe_camera_preview(None, raw_callback)
+    node = controller.con_subscribe_camera_preview(None, cv_raw_callback)
     # Spin in a separate thread
     def spin():
         rclpy.spin(node)
 
     thread = threading.Thread(target=spin)
     thread.start()
-    
+
+@app.route("/preview_video_feed")
+def preview_video_feed():
+    return Response(generate(),
+                    mimetype = "multipart/x-mixed-replace; boundary=frame")
+
+def generate():
+    global output_frame, lock
+    while True:
+        with lock:
+            if output_frame is None:
+                continue
+            (flag, encodedImage) = cv2.imencode(".jpg", output_frame)
+            if not flag:
+                continue
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+
     
 if __name__ == '__main__':
     create_ros_subscriber()

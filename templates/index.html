@@ -7,26 +7,59 @@
     <!-- jquery-->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script type="text/javascript">
+        let widthDown = 250;
+        let heightDown = 250;
+        let canvas;
+        let pretime = performance.now();
 
+        const updateDownSize = () => {
+            widthDown = $('#widthDown').val();
+            // guard 24 ~ 250
+            if(widthDown < 24){
+                widthDown = 24;
+                $('#widthDown').val(24);
+            }else if(widthDown > 250){
+                widthDown = 250;
+                $('#widthDown').val(250);
+            }
+            heightDown = $('#heightDown').val();
+            // guard 24 ~ 250
+            if(heightDown < 24){
+                heightDown = 24;
+                $('#heightDown').val(24);
+            }else if(heightDown > 250){
+                heightDown = 250;
+                $('#heightDown').val(250);
+            }
+        }
 
         const renderImage = (imageDataArray, width, height) => {
-            const canvas = document.getElementById('imageCanvas');
-            canvas.width = width;
-            canvas.height = height;
             const ctx = canvas.getContext('2d');
-            const imageData = ctx.createImageData(width, height);
-            const len = width * height;
+            const imageData = ctx.createImageData(widthDown, heightDown);
+            const timeBegin = performance.now();
+            const len = widthDown * heightDown;
             for(let i = 0 ; i < len; i++){
-                for(let j = 0; j < 4; j++){
-                    imageData.data[i * 4 + j] = j < 3 ? imageDataArray[i * 3 + j]: 255;
-                }
+                let Xidx = Math.floor((i % widthDown) * width / widthDown);
+                let Yidx = Math.floor(i / widthDown * height / heightDown);
+                let idx = Math.floor(Xidx + width * Yidx);
+                imageData.data[i * 4 + 0] = imageDataArray[idx * 3 + 2];
+                imageData.data[i * 4 + 1] = imageDataArray[idx * 3 + 1];
+                imageData.data[i * 4 + 2] = imageDataArray[idx * 3 + 0];
+                imageData.data[i * 4 + 3] = 255;
             }
             ctx.putImageData(imageData, 0, 0);
+            const timeEnd = performance.now();
+            console.log('Rendering time: ' + (timeEnd - timeBegin) + 'ms');
+            console.log('Frame time: ' + (timeEnd - pretime) + 'ms');
+            pretime = timeEnd;
         }
 
 
         document.addEventListener('DOMContentLoaded', () => {
             const socket = io();
+            canvas = $('#imageCanvas')[0];
+            canvas.width = 250;
+            canvas.height = 250;
 
             socket.on('connect', () => {
                 console.log('Connected to WebSocket server');
@@ -35,16 +68,28 @@
             });
 
             socket.on('preview_image_response', (data) => {
-                // json from string data.image_data
-                const imageData = JSON.parse(data.image_data);
-                renderImage(imageData.pixels, imageData.width, imageData.height);
+                // json from string data.image_data         
+                data = JSON.parse(data);
+                console.log('Server RenderTime', data.timeTaken * 1000);
+                renderImage(data.data, data.width, data.height);
                 // Process the received image data here
             });
         });
     </script>
+    <style>
+        #imageCanvas{
+            object-fit: contain;
+        }
+    </style>
 </head>
 <body>
     <h1>Preview Image WebSocket Example</h1>
     <canvas id="imageCanvas"></canvas>
+    <div>
+        <label for="widthDown">Width</label>
+        <input type="number" id="widthDown" value="250" min="24" max="250" oninput="updateDownSize()">
+        <label for="heightDown">Height</label>
+        <input type="number" id="heightDown" value="250" min="24" max="250" oninput="updateDownSize()">
+    </div>
 </body>
 </html>

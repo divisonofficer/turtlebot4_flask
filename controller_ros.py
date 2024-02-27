@@ -13,13 +13,6 @@ def ros_camera_preview_raw(callback):
     '''
     ros2 topic echo /oakd/rgb/preview/image_raw sensor_msgs/msg/Image
     '''
-    
-    callback_mapper = lambda x: {
-        "width": x.width,
-        "height": x.height,
-        "pixels": x.data,
-    }
-    
-    response = subscribe_topic("/oakd/rgb/preview/image_raw", "sensor_msgs/msg/Image", lambda x: callback(callback_mapper(x)))
+    response = subscribe_topic("/oakd/rgb/preview/image_raw", "sensor_msgs/msg/Image", callback)
     log('info', f"Response: {response}")
     return response
