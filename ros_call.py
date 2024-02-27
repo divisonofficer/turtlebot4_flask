@@ -37,7 +37,7 @@ class SimpleSubscriber(Node):
 
 def subscribe_topic(topic_name, topic_type, callback):
     topic_type = service_type_resolution(topic_type)
-    return SimpleSubscriber(topic_type, ROBOT_NAMESPACE+topic_name, callback)
+    return SimpleSubscriber(topic_type, topic_name, callback)
 
 def call_ros2_service(service_name, service_type, request_data = None):
     node = rclpy.create_node('flask_ros2_service_client')

@@ -1,7 +1,7 @@
 from controller_ros import *
 import sys
 import rclpy
-
+from camera_function.preview_lowbit_convert import preview_lowbit_convert
 
 class Controller:
     def __init__(self):
@@ -30,7 +30,17 @@ class Controller:
         
         command_function = self.command_map[command]["function"]
         if "callback" in self.command_map[command]:
-            return command_function(self, args, lambda x: print(x))
+            callback = lambda x: print(x)
+            def callback_a(x):
+                x = preview_lowbit_convert(x)
+                for i in range(len(x)):
+                    for j in range(len(x[i])):
+                        print(x[i][j], end = '')
+                    print()
+            if '-a' in args:
+                callback = callback_a
+            
+            return command_function(self, args, callback)
         return command_function(self, args)
         
     command_map = {
@@ -64,7 +74,7 @@ if __name__ == '__main__':
     command = args[1]
     if not controller.command_exists(command):
         print(f"Unknown command: {command}")
-        print_help()
+        print_help(controller)
         sys.exit(1)
 
 
