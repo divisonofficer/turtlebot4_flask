@@ -1,6 +1,4 @@
 import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import threading
 import cv2
@@ -24,6 +22,7 @@ def create_ros_subscriber(controller):
 
 def generate_preview():
     global output_frame, lock
+    print("Generating preview")
     while True:
         with lock:
             if output_frame is None:
