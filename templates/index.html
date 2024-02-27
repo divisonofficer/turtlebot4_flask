@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview Image WebSocket</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <!-- jquery-->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript">
+
+
+        const renderImage = (imageDataArray, width, height) => {
+            const canvas = document.getElementById('imageCanvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(width, height);
+            const len = width * height;
+            for(let i = 0 ; i < len; i++){
+                for(let j = 0; j < 4; j++){
+                    imageData.data[i * 4 + j] = j < 3 ? imageDataArray[i * 3 + j]: 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connected to WebSocket server');
+                // Request the preview image data
+                socket.emit('request_preview_image');
+            });
+
+            socket.on('preview_image_response', (data) => {
+                // json from string data.image_data
+                const imageData = JSON.parse(data.image_data);
+                renderImage(imageData.pixels, imageData.width, imageData.height);
+                // Process the received image data here
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Preview Image WebSocket Example</h1>
+    <canvas id="imageCanvas"></canvas>
+</body>
+</html>

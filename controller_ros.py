@@ -17,7 +17,7 @@ def ros_camera_preview_raw(callback):
     callback_mapper = lambda x: {
         "width": x.width,
         "height": x.height,
-        "pixels": np.array(x.data).reshape(x.height, x.width, 3)
+        "pixels": x.data,
     }
     
     response = subscribe_topic("/oakd/rgb/preview/image_raw", "sensor_msgs/msg/Image", lambda x: callback(callback_mapper(x)))
