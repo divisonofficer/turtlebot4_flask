@@ -8,11 +8,25 @@ class Controller:
         rclpy.init(args=None)
     
     def con_stop_motor(self, args = None):
+        '''
+        post stop motor
+        '''
         return ros_lidar_stop_motor()
         
         
     def con_subscribe_camera_preview(self, args = None, callback = None):
+        '''
+        get subscription of camera preview
+        '''
         return ros_camera_preview_raw(callback) 
+
+    def con_subscribe_camera_info(self, args = None, callback = None):
+        '''
+        get subscription of camera info
+        '''
+        return ros_camera_info(callback)
+
+
 
 
 
