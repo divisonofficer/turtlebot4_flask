@@ -2,7 +2,7 @@ from ros_call import call_ros2_service, subscribe_topic
 from logger import log
 import numpy as np
 
-from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 
 
 def ros_lidar_stop_motor():
@@ -14,13 +14,20 @@ def ros_lidar_stop_motor():
     return response
 
 
+def ros_camera_color(callback):
+    """
+    ros2 topic echo /oakd/rgb/preview/image_raw sensor_msgs/msg/Image
+    """
+    response = subscribe_topic("/color/image", Image, callback)
+    log("info", f"Response: {response}")
+    return response
+
+
 def ros_camera_preview_raw(callback):
     """
     ros2 topic echo /oakd/rgb/preview/image_raw sensor_msgs/msg/Image
     """
-    response = subscribe_topic(
-        "/oakd/rgb/preview/image_raw", "sensor_msgs/msg/Image", callback
-    )
+    response = subscribe_topic("/oakd/rgb/preview/image_raw", Image, callback)
     log("info", f"Response: {response}")
     return response
 
@@ -45,7 +52,7 @@ def ros_camera_info(callback):
         }
 
     response = subscribe_topic(
-        "/oakd/rgb/preview/camera_info",
+        "/color/camera_info",
         CameraInfo,
         lambda info: callback(toDict(info)),
     )

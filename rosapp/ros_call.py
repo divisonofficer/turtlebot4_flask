@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Empty, SetBool, Trigger
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo, CompressedImage
 import threading
 from rclpy.executors import MultiThreadedExecutor
 
@@ -10,6 +10,8 @@ service_type_map = {
     "std_srvs/srv/SetBool": SetBool,
     "std_srvs/srv/Trigger": Trigger,
     "sensor_msgs/msg/Image": Image,
+    "sensor_msgs/msg/CameraInfo": CameraInfo,
+    "sensor_msgs/msg/CompressedImage": CompressedImage,
 }
 
 ROBOT_NAMESPACE = ""  # "cgbot1/"

@@ -1,4 +1,4 @@
-import { Container, HStack, Text, VStack } from "@chakra-ui/react";
+import { Container, HStack, Radio, RadioGroup, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { subscribe } from "../connect/socket/subscribe";
 import { CameraInfo } from "../data/CameraInfo";
@@ -10,7 +10,7 @@ const ControlPannel = () => {
     const [cameraStatus, setCameraStatus] = useState<CameraInfo>();
 
     useEffect(() => {
-        return subscribe('/camera/info', [
+        return subscribe('/ros/camera/info', [
             {
                 eventName: 'camera_info',
                 callback: (data: CameraInfo) => {
@@ -36,7 +36,7 @@ const ControlPannel = () => {
                         {
                             key: 'd',
                             value: cameraStatus.d,
-                            shape: [8, 1],
+                            shape: [cameraStatus.d.length, 1],
                         },
                         {
                             key: 'k',
@@ -60,7 +60,7 @@ const ControlPannel = () => {
                             width: '100%',
                             background: 'green',
                         }}>
-                            <Text fontSize="lg" key={index}>{key}</Text>
+                            <Text fontSize="lg" key={index}>{key} {value.length} items</Text>
                         </Container>
 
                         {
@@ -98,9 +98,12 @@ const ControlPannel = () => {
 };
 
 
-
+type PreviewSource = "/ros/camera/preview" | "/ros/camera/color";
 
 const CameraPage = () => {
+
+    const [previewSource, setPreviewSource] = useState<PreviewSource>("/ros/camera/preview");
+
     return <HStack style={{
         width: '100vw',
         height: '100vh',
@@ -111,7 +114,15 @@ const CameraPage = () => {
             height: '100%',
         }}>
             <Text>Camera Preview</Text>
-            <img src="/preview_video_feed" alt="" />
+            <img src={previewSource} alt="" style={{
+                width: '100rem',
+                height: '100rem',
+
+            }} />
+            <RadioGroup onChange={(e) => setPreviewSource(e as PreviewSource)} value={previewSource}>
+                <Radio value="/ros/camera/preview">Preview</Radio>
+                <Radio value="/ros/camera/color">Color</Radio>
+            </RadioGroup>
         </VStack>
         <ControlPannel />
     </HStack>
