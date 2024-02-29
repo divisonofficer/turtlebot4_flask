@@ -38,6 +38,9 @@ class Controller:
     def manual_service_call(self, service_name, service_type, request_data=None):
         return call_ros2_service(service_name, service_type, request_data)
 
+    def manual_topic_subscription(self, topic_name, topic_type, callback):
+        return subscribe_topic(topic_name, topic_type, callback)
+
     def run_command(self, command, args=None):
         if not self.command_exists(command):
             print(f"Unknown command: {command}")

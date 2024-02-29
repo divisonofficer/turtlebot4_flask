@@ -2,19 +2,42 @@ import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Empty, SetBool, Trigger
 from sensor_msgs.msg import Image, CameraInfo, CompressedImage
-import threading
 from rclpy.executors import MultiThreadedExecutor
-
-service_type_map = {
-    "std_srvs/srv/Empty": Empty,
-    "std_srvs/srv/SetBool": SetBool,
-    "std_srvs/srv/Trigger": Trigger,
-    "sensor_msgs/msg/Image": Image,
-    "sensor_msgs/msg/CameraInfo": CameraInfo,
-    "sensor_msgs/msg/CompressedImage": CompressedImage,
-}
+from service_type_map import service_type_map
+from array import array
 
 ROBOT_NAMESPACE = ""  # "cgbot1/"
+
+
+import numpy as np
+
+
+def ros2_message_to_dictionary(message):
+    """
+    Convert a ROS2 message to a Python dictionary, making it serializable to JSON.
+    This function handles nested messages, arrays of messages, NumPy arrays,
+    Python array.array, and simple data types.
+    """
+    if hasattr(message, "get_fields_and_field_types"):  # It's a ROS2 message
+        output = {}
+        for field in message.get_fields_and_field_types():
+            value = getattr(message, field)
+            output[field] = ros2_message_to_dictionary(
+                value
+            )  # Recursive conversion for nested types
+        return output
+    elif isinstance(message, list) or isinstance(message, np.ndarray):
+        # Convert each element in the list or NumPy array, which might be a ROS2 message or a basic data type
+        return [ros2_message_to_dictionary(element) for element in message]
+    elif isinstance(message, array):  # Check if it's an instance of array.array
+        # Convert array.array to list
+        return message.tolist()
+    else:
+        # For basic data types that are directly serializable (int, float, string, etc.)
+        return message
+
+
+# Example usage remains the same
 
 
 def service_type_resolution(service_type):
@@ -39,25 +62,6 @@ class SimpleSubscriber(Node):
             10,
         )
         self.subscription  # prevent unused variable warning
-
-
-def executor_thread(nodes: list[Node]):
-    executor = MultiThreadedExecutor()
-    for node in nodes:
-        executor.add_node(node)
-
-    def spin():
-        try:
-            executor.spin()
-        finally:
-            executor.shutdown()
-            for node in nodes:
-                node.destroy_node()
-            rclpy.shutdown()
-        # Spin in a separate thread
-
-    thread = threading.Thread(target=spin)
-    thread.start()
 
 
 def subscribe_topic(topic_name, topic_type, callback):

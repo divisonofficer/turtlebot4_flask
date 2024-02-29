@@ -1,15 +1,18 @@
 from flask import Flask, request, jsonify, render_template, Response
 from flask_socketio import SocketIO
 from controller import Controller
-import time
-from ros_call import executor_thread
 from camera_function.preview_stream import VideoStream
 from socket_emit import SocketEmit
+
+from ros_executor import RosExecutor
+from manual_topic import ManualTopicManager
+
+from config_load import configManager
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 controller = Controller()
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 @app.route("/stop_motor", methods=["POST"])
@@ -21,6 +24,11 @@ def post_stop_motor():
 @socketio.on(message="connect", namespace="/socket/camera/info")
 def handle_connect_camera_info():
     print("ClientApp connected")
+
+
+@socketio.on(message="connect", namespace="/manual")
+def handle_connect_manual():
+    print("Manual Topic Receiver connected")
 
 
 @app.route("/resource/<resource>", methods=["GET"])
@@ -80,9 +88,41 @@ def preview_video_feed():
     )
 
 
+executor = RosExecutor()
+manualTopicManager = ManualTopicManager(socketio, controller, executor)
+
+
+@app.route("/manual/topic/", methods=["POST"])
+def get_manual_topic():
+    """
+    get manual topic
+    """
+    topic_name = request.json.get("topic_name")
+    if topic_name[0] != "/":
+        topic_name = "/" + topic_name
+    topic_type = configManager.ros2_topics[topic_name]
+
+    node = manualTopicManager.register_topic(topic_name, topic_type)
+    if node is None:
+        return "Topic already exists", 400
+    return Response(status=200)
+
+
+@app.route("/manual/topic/<topic_name>", methods=["DELETE"])
+def delete_manual_topic(topic_name):
+    """
+    delete manual topic
+    """
+    topic_name = "/" + topic_name
+    if topic_name not in manualTopicManager.topics:
+        return "Topic does not exist", 400
+    manualTopicManager.delete_topic(topic_name)
+    return Response(status=200)
+
+
 if __name__ == "__main__":
 
-    executor_thread(
+    executor.executor_thread(
         [
             colorStream.subscriber,
             previewStream.subscriber,
