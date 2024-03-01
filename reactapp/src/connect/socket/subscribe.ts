@@ -1,28 +1,28 @@
 import io from 'socket.io-client';
 
+class SocketWrapper{
+    socket:any;
+    subscriptions: {[key: string]: (data:any)=>void} = {};
+    constructor(_namespace: string){
+        this.socket = io(_namespace);
+        this.socket.on('connect', () => {
+            console.log('Connected to ', _namespace);
+        }
+        );
+    }
 
-const subscribe = (topic: string, events : [{eventName: string, callback: (data:any)=>void}]) => {
-    
-    const socket = io(topic);
-    
-    socket.on('connect', () => {
-        console.log('Connected to ', topic);
-    });
+    subscribe(event: string, callback: (data:any)=>void){
+        if (this.subscriptions[event]){
+            this.socket.off(event, this.subscriptions[event]);
+        }
+        this.socket.on(event, callback);
+    }
 
-    // Listen for 'camera_info' events to receive data
-    
-    events.forEach(event => {
-        socket.on(event.eventName, (data: any) => {
-            event.callback(data);
-        });
-    })
 
-    // Cleanup on component unmount
-    return () => {
-        socket.disconnect();
-    };
 }
 
 
 
-export { subscribe }
+const rosSocket = new SocketWrapper('/socket/ros');
+
+export { rosSocket }

@@ -1,6 +1,6 @@
 import { Container, HStack, Radio, RadioGroup, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { subscribe } from "../connect/socket/subscribe";
+import { rosSocket } from "../connect/socket/subscribe";
 import { CameraInfo } from "../data/CameraInfo";
 
 
@@ -10,14 +10,13 @@ const ControlPannel = () => {
     const [cameraStatus, setCameraStatus] = useState<CameraInfo>();
 
     useEffect(() => {
-        return subscribe('/ros/camera/info', [
-            {
-                eventName: 'camera_info',
-                callback: (data: CameraInfo) => {
-                    setCameraStatus(data);
-                }
-            }
-        ]);
+        rosSocket.subscribe('/camera_info', (data: CameraInfo) => {
+            setCameraStatus(data);
+        });
+
+        rosSocket.subscribe('/ip', (data: string) => {
+            console.log(data);
+        });
     }, []);
 
     return (<VStack style={{

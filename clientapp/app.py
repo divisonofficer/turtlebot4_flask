@@ -3,7 +3,7 @@ from flask import Flask, jsonify, Response
 from flask import Flask
 from flask_socketio import SocketIO
 import requests
-from socketio_client import ros_socket_thread
+from socketio_client import ros_socket_launch
 
 
 ROS_SERVER = "http://192.168.185.2:5000"
@@ -46,15 +46,11 @@ def camera_color_color_proxy():
     )
 
 
-@socketio.on("connect", namespace="/ros/camera/info")
+@socketio.on("connect", namespace="/socket/ros")
 def handle_connect_camera_info():
     print("ReactApp connected")
 
 
 if __name__ == "__main__":
-    ros_socket_thread(
-        callback_camera_info=lambda data: socketio.emit(
-            "camera_info", data, namespace="/ros/camera/info"
-        )
-    )
+    ros_socket_launch(socketio)
     socketio.run(app, debug=True, port=5001)

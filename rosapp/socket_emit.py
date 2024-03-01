@@ -20,7 +20,6 @@ class SocketEmit:
 
     def getCallback(self, event):
         def callback(data):
-            print("Emit Data : ", data)
             self.emit(event, data)
 
         return callback
