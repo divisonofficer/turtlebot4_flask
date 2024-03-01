@@ -52,12 +52,60 @@ def ros_socket_thread(topics: dict):
 
 
 def ros_socket_launch(fsio: SocketIO):
+    threading.Thread(target=ros_socket_launch_thread, args=(fsio,)).start()
+
+
+def ros_socket_launch_thread(fsio: SocketIO):
+
     ros_socket_thread(
         {
             "/oakd/rgb/preview/camera_info": lambda x: fsio.emit(
                 "camera_info", x, namespace="/socket/ros"
             ),
             "/ip": lambda x: print(x) or fsio.emit("/ip", x, namespace="/socket/ros"),
-            "/color/image": lambda x: 0,
+            "/color/image": lambda x: fsio.emit(
+                "camera_detection",
+                request_object_detection(response_to_image_file(x)),
+                namespace="/socket/ros",
+            ),
         }
     )
+
+
+import numpy as np
+import cv2
+from time import time
+
+
+def request_object_detection(image_bytes):
+    """
+    the route "detect' need
+    # Get the image
+        image_file = request.files["image"]
+    """
+    response = post(f"http://localhost:5300/detect", files={"image": image_bytes})
+    begin = time()
+    print(response.json())
+    print(f"Time: {time() - begin}")
+    return response.json()
+
+
+def response_to_image_file(data):
+
+    # Extract image information
+    height = data["height"]
+    width = data["width"]
+    image_data = data["data"]
+    # Convert the flat list to a 3D numpy array (height, width, channels)
+    # The data is in BGR format, and each color channel is 8 bits, so we use uint8
+    image_array = np.array(image_data, dtype=np.uint8).reshape((height, width, 3))
+
+    # Create an image using OpenCV
+    cv2.imwrite("output_image.jpg", image_array)
+
+    # If you need to send this image as part of a POST request, you can read it back as bytes
+    with open("output_image.jpg", "rb") as image_file:
+        image_bytes = image_file.read()
+
+    # Now, `image_bytes` can be used as the body of your POST request
+    return image_bytes

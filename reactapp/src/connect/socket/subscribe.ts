@@ -18,6 +18,12 @@ class SocketWrapper{
         this.socket.on(event, callback);
     }
 
+    subscribeDebug(event: string){
+        this.socket.on(event, (data:any) => {
+            console.log(event, data);
+        });
+    }
+
 
 }
 

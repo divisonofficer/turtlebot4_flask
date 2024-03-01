@@ -2,3 +2,5 @@ flask_socketio
 flask
 requests
 websocket-client
+numpy
+opencv-python-headless
