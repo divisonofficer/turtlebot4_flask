@@ -19,7 +19,8 @@ def post_stop_motor():
     request http call of /stop_motor on ROS_SERVER
     """
     response = requests.post(f"{ROS_SERVER}/stop_motor")
-    return jsonify(response.json())
+    if response.status_code == 200:
+        return Response(status=200)
 
 
 @app.route("/ros/camera/preview")
@@ -44,6 +45,47 @@ def camera_color_color_proxy():
     return Response(
         req.iter_content(chunk_size=1024), content_type=req.headers["Content-Type"]
     )
+
+
+@app.route("/ros/node/list", methods=["GET"])
+def get_node_pkg_list():
+    response = requests.get(f"{ROS_SERVER}/pkg/node/list")
+    if response.json():
+        return jsonify(response.json())
+    return jsonify({"status": "success"})
+
+
+@app.route("/ros/node/<pkg_name>/<node_name>", methods=["POST"])
+def post_node_start(pkg_name, node_name):
+    response = requests.post(f"{ROS_SERVER}/pkg/node/{pkg_name}/{node_name}")
+    if response.json():
+        return jsonify(response.json())
+    return jsonify({"status": "success"})
+
+
+@app.route("/ros/node/<pkg_name>/<node_name>", methods=["DELETE"])
+def delete_node_stop(pkg_name, node_name):
+    response = requests.delete(f"{ROS_SERVER}/pkg/node/{node_name}")
+    if response.json():
+        return jsonify(response.json())
+    return jsonify({"status": "success"})
+
+
+@app.route("/ros/node/<pkg_name>/<node_name>", methods=["GET"])
+def get_node_status(pkg_name, node_name):
+    # Send request to the ROS server
+    response = requests.get(f"{ROS_SERVER}/pkg/node/{node_name}")
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Return the content of the response, status code, and headers
+        return Response(
+            response.content,
+            status=response.status_code,
+        )
+    else:
+        # Handle errors or unexpected response codes here, for example:
+        return {"error": "Node not found or error in server"}, 404
 
 
 @socketio.on("connect", namespace="/socket/ros")

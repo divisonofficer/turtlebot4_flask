@@ -51,6 +51,11 @@ def ros_socket_thread(topics: dict):
         print(f"Subscribed to {topic}")
 
 
+def socket_event_thread(events: dict):
+    for event, callback in events.items():
+        sio.on(event, callback, namespace="/manual")
+
+
 def ros_socket_launch(fsio: SocketIO):
     threading.Thread(target=ros_socket_launch_thread, args=(fsio,)).start()
 
@@ -63,10 +68,17 @@ def ros_socket_launch_thread(fsio: SocketIO):
                 "camera_info", x, namespace="/socket/ros"
             ),
             "/ip": lambda x: print(x) or fsio.emit("/ip", x, namespace="/socket/ros"),
-            "/color/image": lambda x: fsio.emit(
-                "camera_detection",
-                request_object_detection(response_to_image_file(x)),
-                namespace="/socket/ros",
+            # "/color/image": lambda x: request_object_detection_payloader(x, fsio),
+        }
+    )
+
+    socket_event_thread(
+        {
+            "status_monitoring": lambda x: fsio.emit(
+                "/status_monitoring", x, namespace="/socket/ros"
+            ),
+            "pkg_monitoring": lambda x: fsio.emit(
+                "/pkg_monitoring", x, namespace="/socket/ros"
             ),
         }
     )
@@ -77,6 +89,22 @@ import cv2
 from time import time
 
 
+prev_detection_request = 0
+
+
+def request_object_detection_payloader(response, fsio):
+    global prev_detection_request
+    if time() - prev_detection_request < 3:
+        return
+
+    fsio.emit(
+        "camera_detection",
+        request_object_detection(response_to_image_file(response)),
+        namespace="/socket/ros",
+    )
+    prev_detection_request = time()
+
+
 def request_object_detection(image_bytes):
     """
     the route "detect' need
@@ -85,7 +113,6 @@ def request_object_detection(image_bytes):
     """
     response = post(f"http://localhost:5300/detect", files={"image": image_bytes})
     begin = time()
-    print(response.json())
     print(f"Time: {time() - begin}")
     return response.json()
 

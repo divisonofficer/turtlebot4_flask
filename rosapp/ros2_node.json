@@ -1,0 +1,44 @@
+[
+  {
+    "name": "TURTLEBOT4",
+    "pkg": "turtlebot4_node",
+    "node": "/tmp/turtlebot4",
+    "abstract": "TurtleBot 4 is the latest generation of the open-source robotics platform designed for education and research, featuring improved computing power, advanced sensors, and an exceptional user experience. It serves as a comprehensive development and learning platform, equipped with an iRobot® Create® 3 mobile base, a Raspberry Pi 4, an OAK-D stereo camera, 2D LiDAR, and more, enabling users to jumpstart their robotics journey."
+  },
+  {
+    "name": "Turtlebot4_Lidar",
+    "pkg": "rplidar_ros",
+    "node": "rplidar",
+    "abstract": "The Turtlebot4 Lidar node, powered by the RPLIDAR package, integrates a 2D LiDAR sensor with TurtleBot 4, enhancing its navigation and mapping capabilities. This setup is crucial for a wide range of robotic applications, from obstacle avoidance to SLAM (Simultaneous Localization and Mapping), facilitating precise localization and environmental mapping."
+  },
+  {
+    "name": "PointCloud",
+    "pkg": "stereo_image_proc",
+    "node": "stereo_image_proc",
+    "abstract": "The PointCloud node, utilizing the stereo_image_proc package, generates 3D point clouds from stereo images captured by TurtleBot 4's OAK-D camera. This functionality is instrumental in 3D mapping and environment understanding, enabling advanced robotic applications such as object recognition, space measurement, and navigation in complex environments."
+  },
+  {
+    "name": "DepthAI_Mobilenetnode",
+    "pkg": "depthai_examples",
+    "node": "mobile_publisher",
+    "abstract": "The DepthAI_Mobilenetnode, leveraging the depthai_examples package, integrates MobileNet SSD object detection with TurtleBot 4, utilizing its OAK-D camera for real-time object detection and classification. This node is crucial for developing intelligent robotic applications that require the ability to recognize and interact with objects in their surroundings."
+  },
+  {
+    "name": "DepthAI_stereonode",
+    "pkg": "depthai_examples",
+    "node": "stereo",
+    "abstract": "The DepthAI_stereonode, part of the depthai_examples package, harnesses stereo vision capabilities of TurtleBot 4's OAK-D camera to perform depth estimation. This node is essential for applications needing accurate distance measurements to navigate safely and interact effectively with the environment."
+  },
+  {
+    "name": "DepthAI_rgb_stereo_node",
+    "pkg": "depthai_examples",
+    "node": "rgb_stereo_node",
+    "abstract": "The DepthAI_rgb_stereo_node, using the depthai_examples package, combines RGB and stereo data from TurtleBot 4's OAK-D camera for enhanced depth perception and color imaging. This integration is vital for applications that require detailed environmental understanding and object recognition, providing a rich dataset for complex robotic tasks."
+  },
+  {
+    "name": "DepthAI_rgb_publisher",
+    "pkg": "depthai_examples",
+    "node": "rgb_publisher",
+    "abstract": "The DepthAI_rgb_publisher node, a part of the depthai_examples package, is responsible for publishing RGB images from TurtleBot 4's OAK-D camera. This node facilitates the capture and dissemination of high-quality RGB images, enabling the development of applications that rely on color vision, such as object detection, recognition, and environment monitoring."
+  }
+]

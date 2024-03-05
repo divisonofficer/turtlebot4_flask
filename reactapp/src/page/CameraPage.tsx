@@ -2,6 +2,8 @@ import { Container, HStack, Radio, RadioGroup, Text, VStack } from "@chakra-ui/r
 import { useEffect, useRef, useState } from "react";
 import { rosSocket } from "../connect/socket/subscribe";
 import { CameraInfo } from "../data/CameraInfo";
+import ServiceStatusBar from "./ServiceStatusBar";
+import PkgStatusBar from "./PkgStatusBar";
 
 
 
@@ -10,7 +12,7 @@ const ControlPannel = () => {
     const [cameraStatus, setCameraStatus] = useState<CameraInfo>();
     const [ip, setIp] = useState("");
     useEffect(() => {
-        rosSocket.subscribe('/camera_info', (data: CameraInfo) => {
+        rosSocket.subscribe('camera_info', (data: CameraInfo) => {
             setCameraStatus(data);
         });
 
@@ -31,7 +33,7 @@ const ControlPannel = () => {
                 <Text>{cameraStatus?.height}</Text>
                 <Text>{cameraStatus?.width}</Text>
                 <Text>{cameraStatus?.distortion_model}</Text>
-                <HStack style={{ width: '100%', justifyContent: 'flex-start' }}>
+                <VStack style={{ width: '100%', justifyContent: 'flex-start' }}>
                     {[
                         {
                             key: 'd',
@@ -89,7 +91,7 @@ const ControlPannel = () => {
 
                     </VStack>)
                     }
-                </HStack>
+                </VStack>
             </>
         )}
 
@@ -142,6 +144,7 @@ const CameraDetectionCanvas = ({ source }: { source: string }) => {
             height: '100%',
             overflow: 'hidden',
         }}>
+
             <VStack style={{
                 width: '100%',
                 height: '100%',
@@ -187,30 +190,39 @@ const CameraPage = () => {
 
 
 
-    return <HStack style={{
+    return <VStack style={{
         width: '100vw',
         height: '100vh',
 
     }}>
+        <ServiceStatusBar />
+        <PkgStatusBar />
+        <HStack style={{
+            width: '100vw',
+            flexGrow: 1,
 
-        <VStack style={{
-            height: '100%',
         }}>
-            <Text>Camera Preview</Text>
-            <Container style={{
-                width: '100rem',
-                height: '100rem',
-            }}>
-                <CameraDetectionCanvas source={previewSource} />
-            </Container>
 
-            <RadioGroup onChange={(e) => setPreviewSource(e as PreviewSource)} value={previewSource}>
-                <Radio value="/ros/camera/preview">Preview</Radio>
-                <Radio value="/ros/camera/color">Color</Radio>
-            </RadioGroup>
-        </VStack>
-        <ControlPannel />
-    </HStack>
+            <VStack style={{
+                height: '100%',
+            }}>
+                <Text>Camera Preview</Text>
+                <Container style={{
+                    width: '100rem',
+                    height: '100rem',
+                }}>
+                    <CameraDetectionCanvas source={previewSource} />
+                </Container>
+
+                <RadioGroup onChange={(e) => setPreviewSource(e as PreviewSource)} value={previewSource}>
+                    <Radio value="/ros/camera/preview">Preview</Radio>
+                    <Radio value="/ros/camera/color">Color</Radio>
+                </RadioGroup>
+            </VStack>
+            <ControlPannel />
+        </HStack>
+    </VStack>
+
 };
 
 export default CameraPage;

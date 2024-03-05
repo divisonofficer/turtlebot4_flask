@@ -9,6 +9,8 @@ from manual_topic import ManualTopicManager
 
 from config_load import configManager
 
+from ros_topic_diagnostic import RosTopicDiagnostic
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 controller = Controller()
@@ -120,12 +122,51 @@ def delete_manual_topic(topic_name):
     return Response(status=200)
 
 
+rosDiagnostic = RosTopicDiagnostic(socketio)
+
+
+@app.route("/pkg/node/list", methods=["GET"])
+def get_node_list():
+    """
+    get node list
+    """
+    return jsonify(rosDiagnostic.NODE_CHECK_DICT)
+
+
+@app.route("/pkg/node/<pkg_name>/<node_name>", methods=["POST"])
+def post_node_launch(pkg_name, node_name):
+    """
+    launch node
+    """
+    status, response = rosDiagnostic.launch_node(pkg_name, node_name)
+    if status == 500:
+        return Response(response, status=500)
+    return Response(status=200)
+
+
+@app.route("/pkg/node/<node_name>", methods=["DELETE"])
+def delete_node_kill(node_name):
+    """
+    delete node
+    """
+    rosDiagnostic.kill_node(node_name)
+    return Response(status=200)
+
+
+@app.route("/pkg/node/<node_name>", methods=["GET"])
+def get_node_status(node_name):
+    """
+    get node status
+    """
+    return jsonify({"logs": rosDiagnostic.get_log(node_name)})
+
+
 if __name__ == "__main__":
 
     executor.executor_thread(
         [
-            colorStream.subscriber,
-            previewStream.subscriber,
+            # colorStream.subscriber,
+            # previewStream.subscriber,
             controller.con_subscribe_camera_info(
                 None,
                 SocketEmit(socketio, "/socket/camera/info", 1).getCallback(
@@ -134,4 +175,5 @@ if __name__ == "__main__":
             ),
         ]
     )
+    rosDiagnostic.spin()
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
