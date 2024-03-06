@@ -12,9 +12,9 @@ const ControlPannel = () => {
     const [cameraStatus, setCameraStatus] = useState<CameraInfo>();
     const [ip, setIp] = useState("");
     useEffect(() => {
-        rosSocket.subscribe('camera_info', (data: CameraInfo) => {
-            setCameraStatus(data);
-        });
+        // rosSocket.subscribe('camera_info', (data: CameraInfo) => {
+        //     setCameraStatus(data);
+        // });
 
         rosSocket.subscribe('/ip', (data: { data: string }) => {
             setIp(data.data);

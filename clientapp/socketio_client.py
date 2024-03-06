@@ -5,84 +5,87 @@ from requests import post
 from flask_socketio import SocketIO
 
 
-sio = socketio.Client()  # (logger=True, engineio_logger=True)
+# (logger=True, engineio_logger=True)
 ROS_SERVER = "http://192.168.185.2:5000"
 
+import json
 
-@sio.event
-def connect():
-    print("### open ###")
-    sio.emit("my message", {"data": "I'm connected!"})
+import logging
 
-
-@sio.event
-def connect_error(data):
-    print("Connection failed")
+sio = socketio.Client()
 
 
-@sio.event
-def disconnect():
-    print("### closed ###")
+class SocketIoClientManager:
+    def __init__(self):
+        self.event_dict = {}
+
+    def open_topic_publish(self, topic):
+        response = post(f"{ROS_SERVER}/manual/topic", json={"topic_name": topic})
+
+    def ros_socket_open(self):
+        try:
+            # Replace 'http://localhost:5000' with your Socket.IO server URL
+            sio.connect(ROS_SERVER, namespaces=["/manual"])
+            # You might need to adjust the namespace based on your server setup
+        except Exception as e:
+            print(f"Connection error: {e}")
+
+    def ros_socket_thread(self, topics: dict):
+        self.ros_socket_open()
+
+        for topic, callback in topics.items():
+            self.open_topic_publish(topic)
+
+            sio.on(topic, callback, namespace="/manual")
+            print(f"Subscribed to {topic}")
+
+    def socket_event_thread(self, events: dict):
+        for event, callback in events.items():
+            print(event, callback)
+            sio.on(event, handler=callback, namespace="/manual")
+
+    def ros_socket_add_event(self, fsio: SocketIO, event: str):
+        print(f"Adding event {event}")
+        if event in self.event_dict:
+            return
+        self.event_dict[event] = True
+
+        sio.on(
+            event,
+            handler=lambda x: fsio.emit(event, x, namespace="/socket/ros"),
+            namespace="/manual",
+        )
+
+    def ros_socket_launch_thread(self, fsio: SocketIO):
+
+        self.ros_socket_thread(
+            {
+                # "/oakd/rgb/preview/camera_info": lambda x: fsio.emit(
+                #     "camera_info", x, namespace="/socket/ros"
+                # ),
+                # "/ip": lambda x: print(x) or fsio.emit("/ip", x, namespace="/socket/ros"),
+                # # "/color/image": lambda x: request_object_detection_payloader(x, fsio),
+            }
+        )
+        self.socket_event_thread(
+            {
+                "status_monitoring": lambda x: fsio.emit(
+                    "/status_monitoring", json.dumps(x), namespace="/socket/ros"
+                ),
+                "pkg_monitoring": lambda x: fsio.emit(
+                    "/pkg_monitoring", json.dumps(x), namespace="/socket/ros"
+                ),
+            }
+        )
+
+    def ros_socket_update_events(self, events: str, fsio: SocketIO):
+        # decode json to list of dict
+        for event in events:
+            if event["running"]:
+                self.ros_socket_add_event(fsio, event["topic"])
 
 
-CALLBACK_CAMERA_INFO = None
-
-
-def open_topic_publish(topic):
-    response = post(f"{ROS_SERVER}/manual/topic", json={"topic_name": topic})
-
-
-def ros_socket_open():
-    try:
-        # Replace 'http://localhost:5000' with your Socket.IO server URL
-        sio.connect(ROS_SERVER, namespaces=["/manual"])
-        # You might need to adjust the namespace based on your server setup
-    except Exception as e:
-        print(f"Connection error: {e}")
-
-
-def ros_socket_thread(topics: dict):
-    ros_socket_open()
-
-    for topic, callback in topics.items():
-        open_topic_publish(topic)
-
-        sio.on(topic, callback, namespace="/manual")
-        print(f"Subscribed to {topic}")
-
-
-def socket_event_thread(events: dict):
-    for event, callback in events.items():
-        sio.on(event, callback, namespace="/manual")
-
-
-def ros_socket_launch(fsio: SocketIO):
-    threading.Thread(target=ros_socket_launch_thread, args=(fsio,)).start()
-
-
-def ros_socket_launch_thread(fsio: SocketIO):
-
-    ros_socket_thread(
-        {
-            "/oakd/rgb/preview/camera_info": lambda x: fsio.emit(
-                "camera_info", x, namespace="/socket/ros"
-            ),
-            "/ip": lambda x: print(x) or fsio.emit("/ip", x, namespace="/socket/ros"),
-            # "/color/image": lambda x: request_object_detection_payloader(x, fsio),
-        }
-    )
-
-    socket_event_thread(
-        {
-            "status_monitoring": lambda x: fsio.emit(
-                "/status_monitoring", x, namespace="/socket/ros"
-            ),
-            "pkg_monitoring": lambda x: fsio.emit(
-                "/pkg_monitoring", x, namespace="/socket/ros"
-            ),
-        }
-    )
-
+socketIoClientManager = SocketIoClientManager()
 
 import numpy as np
 import cv2

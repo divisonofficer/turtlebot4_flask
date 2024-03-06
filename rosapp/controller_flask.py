@@ -41,11 +41,6 @@ def get_resource(resource):
     return app.send_static_file("resource/" + resource)
 
 
-@app.route("/", methods=["GET"])
-def index():
-    return "Hello world"
-
-
 @app.route("/service/default/<service_name>", methods=["POST"])
 def post_open_service(service_name, request_data=None):
     """
@@ -102,20 +97,24 @@ def get_manual_topic():
     topic_name = request.json.get("topic_name")
     if topic_name[0] != "/":
         topic_name = "/" + topic_name
-    topic_type = configManager.ros2_topics[topic_name]
+
+    topic_type = request.json.get("topic_type")
+    if topic_type is None:
+        topic_type = configManager.ros2_topics[topic_name]
 
     node = manualTopicManager.register_topic(topic_name, topic_type)
     if node is None:
         return "Topic already exists", 400
+
     return Response(status=200)
 
 
-@app.route("/manual/topic/<topic_name>", methods=["DELETE"])
-def delete_manual_topic(topic_name):
+@app.route("/manual/topic/delete", methods=["POST"])
+def delete_manual_topic():
     """
     delete manual topic
     """
-    topic_name = "/" + topic_name
+    topic_name = request.json.get("topic_name")
     if topic_name not in manualTopicManager.topics:
         return "Topic does not exist", 400
     manualTopicManager.delete_topic(topic_name)
@@ -123,6 +122,23 @@ def delete_manual_topic(topic_name):
 
 
 rosDiagnostic = RosTopicDiagnostic(socketio)
+
+
+@app.route("/manual/topic/list", methods=["GET"])
+def get_manual_topic_list():
+    """
+    get manual topic list
+    """
+
+    topic_dict = rosDiagnostic.get_topics_dict_list()
+    topic_running = manualTopicManager.topics.keys()
+    for topic in topic_dict:
+        if topic["topic"] in topic_running:
+            topic["running"] = True
+        else:
+            topic["running"] = False
+
+    return jsonify(topic_dict)
 
 
 @app.route("/pkg/node/list", methods=["GET"])
@@ -161,19 +177,17 @@ def get_node_status(node_name):
     return jsonify({"logs": rosDiagnostic.get_log(node_name)})
 
 
-if __name__ == "__main__":
-
+with app.app_context():
+    controller.init()
+    rosDiagnostic.spin()
     executor.executor_thread(
         [
             # colorStream.subscriber,
             # previewStream.subscriber,
-            controller.con_subscribe_camera_info(
-                None,
-                SocketEmit(socketio, "/socket/camera/info", 1).getCallback(
-                    "camera_info"
-                ),
-            ),
+            controller.rospy.simple_subscriber,
         ]
     )
-    rosDiagnostic.spin()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+
+
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=5000)

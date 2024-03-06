@@ -23,6 +23,9 @@ class RosTopicDiagnostic:
     def __init__(self, socketio: SocketIO):
         self.socketio = socketio
 
+    def get_topics_dict_list(self):
+        return [{"topic": topic, "type": type} for topic, type in self.TOPIC_NAME_TYPE]
+
     def monitor_ros2_services(self):
         ros2_node = Node("ros2_monitoring_node")
 
@@ -32,11 +35,11 @@ class RosTopicDiagnostic:
 
         while True:
             # Example: Check if specific topics are available
-            topics = ros2_node.get_topic_names_and_types()
+            self.TOPIC_NAME_TYPE = ros2_node.get_topic_names_and_types()
 
             status = {topic_name: False for topic_name in TOPIC_CHECK_LIST.keys()}
 
-            for topic_name, _ in topics:
+            for topic_name, _ in self.TOPIC_NAME_TYPE:
                 for key in TOPIC_CHECK_LIST.keys():
                     if TOPIC_CHECK_LIST[key] in topic_name:
                         status[key] = True

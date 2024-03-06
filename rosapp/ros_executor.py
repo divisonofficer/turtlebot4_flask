@@ -11,29 +11,53 @@ class RosExecutor:
     def add_node_runtime(self, node):
         if node not in self.nodes:
             self.nodes.add(node)
-            self.executor.add_node(node)
+            if self.executor:
+                self.executor.add_node(node)  # Add node to the spinning executor
 
     def remove_node_runtime(self, node):
         if node in self.nodes:
             self.nodes.remove(node)
-            self.executor.remove_node(node)
+            if self.executor:
+                self.executor.remove_node(node)
+
+    def spin(self):
+        try:
+            print("Spinning")
+            self.executor.spin()
+        finally:
+            self.executor.shutdown()
 
     def executor_thread(self, nodes: list[Node]):
         self.executor = MultiThreadedExecutor()
-        for node in nodes:
-            self.nodes.add(node)
-            self.executor.add_node(node)
 
-        def spin():
+        def _spin():
             try:
-                self.executor.spin()
+                rclpy.spin(nodes[0])
             finally:
-                self.executor.shutdown()
-                for node in nodes:
-                    node.destroy_node()
                 rclpy.shutdown()
-            # Spin in a separate thread
 
-        thread = threading.Thread(target=spin)
-        thread.start()
-        return self.executor, thread
+        threading.Thread(target=_spin).start()
+
+        return
+
+        for node in nodes:
+            if node not in self.nodes:
+                self.nodes.add(node)
+                self.executor.add_node(node)
+
+        # Clear the set after shutdown
+
+        print("Starting executor thread", self.nodes)
+
+        self.thread = threading.Thread(target=self.spin)
+        self.thread.start()
+        return self.executor, self.thread
+
+    def stop_and_re_spin(self):
+        self.executor.shutdown()
+        self.executor = MultiThreadedExecutor()
+        for node in self.nodes:
+            self.executor.add_node(node)
+        self.thread = threading.Thread(target=self.spin)
+        self.thread.start()
+        return self.executor, self.thread

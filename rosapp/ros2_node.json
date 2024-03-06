@@ -6,6 +6,48 @@
     "abstract": "TurtleBot 4 is the latest generation of the open-source robotics platform designed for education and research, featuring improved computing power, advanced sensors, and an exceptional user experience. It serves as a comprehensive development and learning platform, equipped with an iRobot® Create® 3 mobile base, a Raspberry Pi 4, an OAK-D stereo camera, 2D LiDAR, and more, enabling users to jumpstart their robotics journey."
   },
   {
+    "name": "JoyTeleop",
+    "pkg": "turtlebot4_bringup",
+    "node": "joy_teleop",
+    "abstract": "Enables manual control of the TurtleBot 4 using a joystick. This node interfaces with a physical joystick device, publishing commands based on user inputs to control the robot's movements and actions, enhancing human-robot interaction capabilities."
+  },
+  {
+    "name": "LiteConfiguration",
+    "pkg": "turtlebot4_bringup",
+    "node": "lite",
+    "abstract": "Initiates a lightweight configuration for TurtleBot 4, optimizing resource usage for basic operations. Designed for minimal hardware setups, this launch simplifies the robot's functionalities to core components, ensuring efficient performance under constrained conditions."
+  },
+  {
+    "name": "OAKDCamera",
+    "pkg": "turtlebot4_bringup",
+    "node": "oakd",
+    "abstract": "Launches the OAK-D camera nodes on TurtleBot 4, enabling advanced visual capabilities. This setup includes depth perception, 3D mapping, and object recognition, significantly enhancing the robot's environmental awareness and interaction potential."
+  },
+  {
+    "name": "OAKDCameraExample",
+    "pkg": "turtlebot4_bringup",
+    "node": "oakd_example",
+    "abstract": "Provides an example configuration for utilizing TurtleBot 4's OAK-D camera, demonstrating its capabilities in depth sensing and visual data processing. This launch serves as a practical guide for developers to explore and integrate OAK-D functionalities into custom applications."
+  },
+  {
+    "name": "RobotBasicFunctions",
+    "pkg": "turtlebot4_bringup",
+    "node": "robot",
+    "abstract": "Initializes the basic functions necessary for TurtleBot 4 operation, including sensor activation, motor control, and communication interfaces. This foundational launch ensures that the robot's essential systems are online and ready for further customization and control."
+  },
+  {
+    "name": "RPLidarSensor",
+    "pkg": "turtlebot4_bringup",
+    "node": "rplidar",
+    "abstract": "Integrates the RPLidar sensor with TurtleBot 4, providing 360-degree laser range scanning for obstacle detection and navigation. This launch enhances the robot's spatial awareness and safety, facilitating precise movements and environment mapping."
+  },
+  {
+    "name": "StandardConfiguration",
+    "pkg": "turtlebot4_bringup",
+    "node": "standard",
+    "abstract": "Activates the standard configuration for TurtleBot 4, balancing performance and functionality. This comprehensive launch includes a full suite of sensors and capabilities, making it suitable for a wide range of applications from research to entertainment."
+  },
+  {
     "name": "Turtlebot4_Lidar",
     "pkg": "rplidar_ros",
     "node": "rplidar",

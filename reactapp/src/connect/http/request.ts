@@ -7,12 +7,19 @@ class RequestManager{
         const response = await fetch(url, {
             method: method,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Strict-Origin-Policy': 'false',
             },
             body: JSON.stringify(data)
         });
 
+        // 200인데 empty인 경우
+        if (response.status === 200 && response.headers.get('content-length') === '0') {
+            return {};
+        }
         return await response.json();
+        
     }
 
 

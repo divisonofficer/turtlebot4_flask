@@ -24,6 +24,10 @@ class SocketWrapper{
         });
     }
 
+    unsubscribe(event: string){
+        this.socket.off(event, this.subscriptions[event]);
+    }
+
 
 }
 

@@ -5,6 +5,7 @@ import { PkgNodeInfo } from "../data/PkgNode";
 import NodeStatusBoard from "./NodeStatusBoard";
 import { H2 } from "../design/text/textsystem";
 import { VDivBlock } from "../design/other/blocks";
+import TopicBoard from "./TopicBoard";
 
 const Dashboard = () => {
 
@@ -29,6 +30,9 @@ const Dashboard = () => {
             nodeChosen &&
             <NodeStatusBoard node={nodeChosen} close={() => setNodeChosen(undefined)} />
         }
+        <H2>Topics</H2>
+        <VDivBlock color='#A1E3CB' />
+        <TopicBoard />
     </VStack>
 }
 
