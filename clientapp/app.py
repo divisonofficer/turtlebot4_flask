@@ -4,7 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import requests
-from socketio_client import socketIoClientManager
+from socketio_client import socketIoClientManager, gen_frames
 
 
 ROS_SERVER = "http://192.168.185.2:5000"
@@ -73,10 +73,18 @@ def post_topic_subscribe():
         f"{ROS_SERVER}/manual/topic",
         json={"topic_name": topic_name, "topic_type": topic_type},
     )
-    socketIoClientManager.ros_socket_add_event(socketio, topic_name)
+    socketIoClientManager.ros_socket_add_event(socketio, topic_name, topic_type)
     return Response(
         response.content,
         status=response.status_code,
+    )
+
+
+@app.route("/ros/topic/preview/<frame_id>")
+def ros_preview_feed(frame_id):
+    return Response(
+        gen_frames(frame_id),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
 

@@ -72,8 +72,17 @@ const TopicItem = ({ name, type, running }: { name: string, type?: string, runni
                     padding: '1rem',
                     alignItems: 'flex-start'
                 }}>
+                    <HStack>
+                        <Body3>{log}</Body3>
+                        {
+                            log.split("frame_id").length > 1 && <img src={
+                                `
+                            /ros/topic/preview/${JSON.parse(log)["frame_id"]}
+                            `
+                            } style={{ width: '100px', height: '100px' }} alt="" />
+                        }
+                    </HStack>
 
-                    <Body3>{log}</Body3>
                 </VStack>
             )
         }

@@ -44,15 +44,28 @@ class SocketIoClientManager:
             print(event, callback)
             sio.on(event, handler=callback, namespace="/manual")
 
-    def ros_socket_add_event(self, fsio: SocketIO, event: str):
-        print(f"Adding event {event}")
+    def ros_socket_add_event(self, fsio: SocketIO, event: str, event_type: str):
+        print(f"Adding event {event} {event_type}")
         if event in self.event_dict:
             return
         self.event_dict[event] = True
 
+        callback = lambda x: fsio.emit(event, x, namespace="/socket/ros")
+
+        if "/CompressedImage" in event_type or "/msg/Image" in event_type:
+            callback = lambda x: on_preview(x) or fsio.emit(
+                event,
+                {
+                    "width": x["width"],
+                    "height": x["height"],
+                    "frame_id": x["header"]["frame_id"],
+                },
+                namespace="/socket/ros",
+            )
+
         sio.on(
             event,
-            handler=lambda x: fsio.emit(event, x, namespace="/socket/ros"),
+            handler=callback,
             namespace="/manual",
         )
 
@@ -69,20 +82,20 @@ class SocketIoClientManager:
         )
         self.socket_event_thread(
             {
-                "status_monitoring": lambda x: fsio.emit(
-                    "/status_monitoring", json.dumps(x), namespace="/socket/ros"
-                ),
+                # "status_monitoring": lambda x: fsio.emit(
+                #     "/status_monitoring", json.dumps(x), namespace="/socket/ros"
+                # ),
                 "pkg_monitoring": lambda x: fsio.emit(
-                    "/pkg_monitoring", json.dumps(x), namespace="/socket/ros"
+                    "/pkg_monitoring", x, namespace="/socket/ros"
                 ),
             }
         )
 
-    def ros_socket_update_events(self, events: str, fsio: SocketIO):
+    def ros_socket_update_events(self, events: dict, fsio: SocketIO):
         # decode json to list of dict
         for event in events:
             if event["running"]:
-                self.ros_socket_add_event(fsio, event["topic"])
+                self.ros_socket_add_event(fsio, event["topic"], event["type"][0])
 
 
 socketIoClientManager = SocketIoClientManager()
@@ -126,6 +139,7 @@ def response_to_image_file(data):
     height = data["height"]
     width = data["width"]
     image_data = data["data"]
+
     # Convert the flat list to a 3D numpy array (height, width, channels)
     # The data is in BGR format, and each color channel is 8 bits, so we use uint8
     image_array = np.array(image_data, dtype=np.uint8).reshape((height, width, 3))
@@ -139,3 +153,30 @@ def response_to_image_file(data):
 
     # Now, `image_bytes` can be used as the body of your POST request
     return image_bytes
+
+
+current_frame = {}
+
+
+def on_preview(data):
+    global current_frame
+    # Decode the frame
+
+    height, width = data["height"], data["width"]
+    frame_name = data["header"]["frame_id"]
+    frame_data = np.array(data["data"], dtype=np.uint8).reshape(
+        (height, width, 3)
+    )  # Assuming 'bgr8' encoding
+    current_frame[frame_name] = frame_data
+
+
+def gen_frames(frame_name):
+    global current_frame
+    while True:
+        if current_frame[frame_name] is not None:
+            ret, buffer = cv2.imencode(".jpg", current_frame[frame_name])
+            frame = buffer.tobytes()
+            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+        else:
+            # You may want to add a small sleep here to avoid busy waiting
+            continue
