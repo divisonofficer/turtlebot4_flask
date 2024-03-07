@@ -81,18 +81,24 @@ class RosTopicDiagnostic:
         )
         self.daemon_thread.start()
 
-    def launch_node(self, pkg_name, node_name):
-        # <project_directory>/bash/launch.sh
+    def launch_node(self, pkg_name, node_name, options=None):
         path = "bash/launch.sh"
-        output, error = subprocess.Popen(
-            [path, pkg_name, node_name], stdout=subprocess.PIPE
-        ).communicate()
+
+        if options is not None:
+            output, error = subprocess.Popen(
+                [path, pkg_name, node_name, options], stdout=subprocess.PIPE
+            ).communicate()
+        else:
+            output, error = subprocess.Popen(
+                [path, pkg_name, node_name], stdout=subprocess.PIPE
+            ).communicate()
+        print(output, error)
         output = output.decode("utf-8")
         if error:
             return 500, error
         if "Error" in output:
             return 500, output
-        return 200, None
+        return 200, output
 
     def kill_node(self, node_name):
         # bash/knode.sh <node_name>

@@ -31,7 +31,7 @@ then
 fi
 
 #step 5 : check if the node name exists in the package executable list
-ros2 pkg executables | grep $node
+ls /opt/ros/humble/share/$package_name/launch | grep $node
 if [ $? -ne 0 ]
 then
     echo "node $node not found in package $package_name"
@@ -55,6 +55,10 @@ fi
 
 touch $LOG$node.log
 
-
-
-nohup ros2 launch $package_name $node.launch.py > $LOG$node.log 2>&1 &
+#step 8 : if launch option is provided, use it
+if [ -z "$3" ]
+then
+    nohup ros2 launch $package_name $node.launch.py > $LOG$node.log 2>&1 &
+else
+    nohup ros2 launch $package_name $node.launch.py $3 > $LOG$node.log 2>&1 &
+fi

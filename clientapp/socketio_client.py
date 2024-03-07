@@ -103,6 +103,7 @@ socketIoClientManager = SocketIoClientManager()
 import numpy as np
 import cv2
 from time import time
+import time
 
 
 prev_detection_request = 0
@@ -173,10 +174,11 @@ def on_preview(data):
 def gen_frames(frame_name):
     global current_frame
     while True:
-        if current_frame[frame_name] is not None:
+        if frame_name in current_frame and current_frame[frame_name] is not None:
             ret, buffer = cv2.imencode(".jpg", current_frame[frame_name])
             frame = buffer.tobytes()
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
         else:
             # You may want to add a small sleep here to avoid busy waiting
+            time.sleep(5)
             continue

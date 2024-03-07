@@ -86,6 +86,9 @@ class RosPyManager:
     # Example usage remains the same
 
     def service_type_resolution(self, service_type):
+        """
+        From a string of service_type, resolve it to the service type
+        """
         # if service_type is a string, resolve it to the service type
         if not isinstance(service_type, str):
             return service_type
@@ -97,52 +100,93 @@ class RosPyManager:
         return service_type_map[service_type]
 
     def subscribe_topic(self, topic_name, topic_type, callback):
+        """
+        Create Topic Subscription
+        args:
+            topic_name: str
+            topic_type: str
+            callback: function(ros2 message type)
+
+        if qos profile is not provided by the system, it will be crashed.
+        """
+        qos_profile = self.create_qos_profile_from_dict(
+            self.get_qos_profile(topic_name)["Publishers"][0]["QoS profile"]
+        )
+
         return self.simple_subscriber.add_subscription(
             topic_name,
             self.service_type_resolution(topic_type),
             callback,
-            self.create_qos_profile_from_dict(self.get_qos_profile(topic_name)),
+            qos_profile=qos_profile,
         )
 
     def get_qos_profile(self, topic_name):
+        """
+        Get QoS Profile for a given topic
+        From the command line, run: ros2 topic info -v <topic_name>
+        returns: dict
+        """
         # Execute the command to get verbose topic info
+        print(f"Getting QoS profile for {topic_name}")
         result = subprocess.run(
             ["ros2", "topic", "info", "-v", topic_name],
             stdout=subprocess.PIPE,
             text=True,
         )
         output = result.stdout
+        return self.parse_text_to_dict(output)
 
-        # Regular expression to find the QoS profile block
-        qos_profile_pattern = re.compile(
-            r"QoS profile:\n"
-            r"  Reliability: (\w+)\n"
-            r"  History \(Depth\): (\w+)\n"
-            r"  Durability: (\w+)\n"
-            r"  Lifespan: (\w+)\n"
-            r"  Deadline: (\w+)\n"
-            r"  Liveliness: (\w+)\n"
-            r"  Liveliness lease duration: (\w+)",
-            re.MULTILINE,
-        )
+    def parse_text_to_dict(self, text):
+        """
+        Extract QoS Profile information from the output of `ros2 topic info -v <topic_name>`
 
-        # Search for the QoS profile in the command output
-        match = qos_profile_pattern.search(output)
-        if match:
-            qos_profile = {
-                "Reliability": match.group(1),
-                "History_Depth": match.group(2),
-                "Durability": match.group(3),
-                "Lifespan": match.group(4),
-                "Deadline": match.group(5),
-                "Liveliness": match.group(6),
-                "Liveliness lease duration": match.group(7),
+        """
+        # Publisher와 Subscription 정보를 담을 두 개의 리스트 초기화
+        publishers = []
+        subscriptions = []
+
+        # 각 노드 정보를 분리하여 처리
+        node_infos = text.strip().split("\n\n")
+        for node_info in node_infos:
+            if re.search(r"Node name: (.+)", node_info) is None:
+                continue
+            # 공통 정보 추출
+            node_common_info = {
+                "Node name": re.search(r"Node name: (.+)", node_info).group(1),
+                "Node namespace": re.search(r"Node namespace: (.+)", node_info).group(
+                    1
+                ),
+                "Topic type": re.search(r"Topic type: (.+)", node_info).group(1),
+                "GID": re.search(r"GID: (.+)", node_info).group(1),
+                "QoS profile": {
+                    "Reliability": re.search(r"Reliability: (.+)", node_info).group(1),
+                    "History (Depth)": re.search(
+                        r"History \(Depth\): (.+)", node_info
+                    ).group(1),
+                    "Durability": re.search(r"Durability: (.+)", node_info).group(1),
+                    "Lifespan": re.search(r"Lifespan: (.+)", node_info).group(1),
+                    "Deadline": re.search(r"Deadline: (.+)", node_info).group(1),
+                    "Liveliness": re.search(r"Liveliness: (.+)", node_info).group(1),
+                    "Liveliness lease duration": re.search(
+                        r"Liveliness lease duration: (.+)", node_info
+                    ).group(1),
+                },
             }
-            return qos_profile
-        else:
-            return "QoS Profile not found."
+
+            # Endpoint type에 따라 리스트 분류
+            endpoint_type = re.search(r"Endpoint type: (.+)", node_info).group(1)
+            if endpoint_type == "PUBLISHER":
+                publishers.append(node_common_info)
+            elif endpoint_type == "SUBSCRIPTION":
+                subscriptions.append(node_common_info)
+
+        # 결과를 담은 dictionary 반환
+        return {"Publishers": publishers, "Subscriptions": subscriptions}
 
     def create_qos_profile_from_dict(self, qos_dict):
+        """
+        From a dictionary of QoS settings, create a QoSProfile object
+        """
         # Map string values to rclpy.qos enums and values
         reliability_map = {
             "RELIABLE": QoSReliabilityPolicy.RELIABLE,

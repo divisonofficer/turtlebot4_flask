@@ -99,11 +99,13 @@ const PkgStatusBar = ({ onClickNode }: { onClickNode?: (node: PkgNodeInfo) => vo
     }, []);
 
 
-    const launchNode = (pkg: string, node: string) => {
+    const launchNode = (pkg: string, node: string, options: string | undefined = undefined) => {
         // ask user yes or no
 
         window.confirm(`Do you want to launch ${node} in ${pkg} ?`) &&
-            httpPost(`/ros/node/${pkg}/${node}`, {}).then((data: any) => {
+            httpPost(`/ros/node/${pkg}/${node}`, {
+                options: options
+            }).then((data: any) => {
 
             });
     }
@@ -134,7 +136,7 @@ const PkgStatusBar = ({ onClickNode }: { onClickNode?: (node: PkgNodeInfo) => vo
                         serviceStatus[node.name] !== undefined
                     } checked={serviceStatus[node.name]} onChange={(b) => {
                         if (b) {
-                            launchNode(node.pkg, node.node);
+                            launchNode(node.pkg, node.node, node.launchOption);
                         } else {
                             killNode(node.pkg, node.node);
                         }

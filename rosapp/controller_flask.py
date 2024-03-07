@@ -89,6 +89,9 @@ executor = RosExecutor()
 manualTopicManager = ManualTopicManager(socketio, controller, executor)
 
 
+# ROS2 Topic Management
+
+
 @app.route("/manual/topic/", methods=["POST"])
 def get_manual_topic():
     """
@@ -141,6 +144,18 @@ def get_manual_topic_list():
     return jsonify(topic_dict)
 
 
+@app.route("/manual/topic/nodes", methods=["POST"])
+def post_topic_nodes_get():
+    """
+    get topic nodes
+    """
+    topic_name = request.json.get("topic_name")
+    return jsonify(controller.rospy.get_qos_profile(topic_name))
+
+
+### ROS Node Managments
+
+
 @app.route("/pkg/node/list", methods=["GET"])
 def get_node_list():
     """
@@ -154,7 +169,8 @@ def post_node_launch(pkg_name, node_name):
     """
     launch node
     """
-    status, response = rosDiagnostic.launch_node(pkg_name, node_name)
+    options = request.json.get("options")
+    status, response = rosDiagnostic.launch_node(pkg_name, node_name, options)
     if status == 500:
         return Response(response, status=500)
     return Response(status=200)

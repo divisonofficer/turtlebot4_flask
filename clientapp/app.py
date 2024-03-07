@@ -80,6 +80,18 @@ def post_topic_subscribe():
     )
 
 
+@app.route("/ros/topic/nodes", methods=["POST"])
+def post_topic_nodes_get():
+    topic_name = request.json.get("topic_name")
+    response = requests.post(
+        f"{ROS_SERVER}/manual/topic/nodes", json={"topic_name": topic_name}
+    )
+    return Response(
+        response.content,
+        status=response.status_code,
+    )
+
+
 @app.route("/ros/topic/preview/<frame_id>")
 def ros_preview_feed(frame_id):
     return Response(
@@ -110,7 +122,9 @@ def get_node_pkg_list():
 
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["POST"])
 def post_node_start(pkg_name, node_name):
-    response = requests.post(f"{ROS_SERVER}/pkg/node/{pkg_name}/{node_name}")
+    response = requests.post(
+        f"{ROS_SERVER}/pkg/node/{pkg_name}/{node_name}", json=request.json
+    )
     return Response(
         response.content,
         status=response.status_code,
@@ -120,9 +134,10 @@ def post_node_start(pkg_name, node_name):
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["DELETE"])
 def delete_node_stop(pkg_name, node_name):
     response = requests.delete(f"{ROS_SERVER}/pkg/node/{node_name}")
-    if response.json():
-        return jsonify(response.json())
-    return jsonify({"status": "success"})
+    return Response(
+        response.content,
+        status=response.status_code,
+    )
 
 
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["GET"])

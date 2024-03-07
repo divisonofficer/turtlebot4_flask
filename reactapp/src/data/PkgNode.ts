@@ -3,4 +3,5 @@ export type PkgNodeInfo = {
     pkg: string;
     node: string;
     abstract: string;
+    launchOption?: string;
 }

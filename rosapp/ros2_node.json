@@ -9,6 +9,7 @@
     "name": "JoyTeleop",
     "pkg": "turtlebot4_bringup",
     "node": "joy_teleop",
+    "launchOption": "namespace:=/",
     "abstract": "Enables manual control of the TurtleBot 4 using a joystick. This node interfaces with a physical joystick device, publishing commands based on user inputs to control the robot's movements and actions, enhancing human-robot interaction capabilities."
   },
   {
