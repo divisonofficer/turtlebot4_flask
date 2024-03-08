@@ -8,7 +8,7 @@ from socketio_client import socketIoClientManager, gen_frames
 
 from public.publicresolver import getNetInfo
 
-ROS_SERVER = getNetInfo()["ROBOT_FLASK_SERVER"]
+ROS_SERVER = "http://" + getNetInfo()["ROBOT_FLASK_SERVER"]
 
 
 app = Flask(__name__)
