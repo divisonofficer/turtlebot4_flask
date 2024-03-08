@@ -28,6 +28,7 @@ class SimpleSubscriber(Node):
 
         super().__init__("simple_subscriber" + name)
         self.runningSubscriptions = dict()
+        self.runningPublishers = dict()
 
     def add_subscription(self, topic_name, topic_type, callback, qos_profile):
         if topic_name in self.runningSubscriptions:
@@ -52,6 +53,20 @@ class SimpleSubscriber(Node):
         self.destroy_subscription(self.runningSubscriptions[topic_name])
         del self.runningSubscriptions[topic_name]
         return True
+
+    def add_publisher(self, topic_name, topic_type, qos_profile):
+        if topic_name in self.runningPublishers:
+            return self.runningPublishers[topic_name]
+        print(
+            f"Adding publisher to {topic_name} with type {topic_type}, qos_profile {qos_profile}"
+        )
+        publisher = self.create_publisher(
+            topic_type,
+            topic_name,
+            qos_profile=qos_profile,
+        )
+        self.runningPublishers[topic_name] = publisher
+        return publisher
 
 
 class RosPyManager:
@@ -119,6 +134,27 @@ class RosPyManager:
             callback,
             qos_profile=qos_profile,
         )
+
+    def publish_topic(self, topic_name, topic_type, data):
+        """
+        Publish data to a topic
+        args:
+            topic_name: str
+            data: dict
+        """
+        topic_type = self.service_type_resolution(topic_type)
+        publisher = self.simple_subscriber.add_publisher(
+            topic_name,
+            topic_type,
+            10,
+        )
+        if type(data) is dict:
+            data = self.ros2_dict_to_message(topic_type, data)
+
+        publisher.publish(data)
+
+    def ros2_dict_to_message(self, message_type, dictionary):
+        pass
 
     def get_qos_profile(self, topic_name):
         """

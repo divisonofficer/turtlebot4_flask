@@ -28,7 +28,9 @@ class SocketWrapper{
         this.socket.off(event, this.subscriptions[event]);
     }
 
-
+    publish(event: string, data: any){
+        this.socket.emit(event, data);
+    }
 }
 
 

@@ -11,6 +11,9 @@ from config_load import configManager
 
 from ros_topic_diagnostic import RosTopicDiagnostic
 
+
+from geometry_msgs.msg import Twist
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 controller = Controller()
@@ -203,6 +206,26 @@ with app.app_context():
             controller.rospy.simple_subscriber,
         ]
     )
+
+
+##### ROS SOCKET
+
+
+@socketio.on("connect", namespace="/ros")
+def handle_ros_connect():
+    print("ROS Socket Connected")
+
+
+@socketio.on("drive", namespace="/ros")
+def handle_drive(data):
+    message = Twist()
+    message.linear.x = float(data["linear"]["x"])
+    message.linear.y = float(data["linear"]["y"])
+    message.linear.z = float(data["linear"]["z"])
+    message.angular.x = float(data["angular"]["x"])
+    message.angular.y = float(data["angular"]["y"])
+    message.angular.z = float(data["angular"]["z"])
+    controller.manual_topic_emit("/cmd_vel", "geometry_msgs/msg/Twist", message)
 
 
 if __name__ == "__main__":

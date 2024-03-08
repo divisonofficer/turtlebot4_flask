@@ -162,6 +162,11 @@ def handle_connect_camera_info():
     print("ReactApp connected")
 
 
+@socketio.on("/drive", namespace="/socket/ros")
+def handle_drive(data):
+    socketIoClientManager.ros_socket_emit("drive", data, namespace="/ros")
+
+
 if __name__ == "__main__":
     socketIoClientManager.ros_socket_launch_thread(socketio)
     socketio.run(app, port=5001)

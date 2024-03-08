@@ -43,6 +43,9 @@ class Controller:
     def manual_topic_subscription(self, topic_name, topic_type, callback):
         return self.rospy.subscribe_topic(topic_name, topic_type, callback)
 
+    def manual_topic_emit(self, topic_name, topic_type, data):
+        return self.rospy.publish_topic(topic_name, topic_type, data)
+
     def ros_unsubscribe_topic(self, topic_name):
         return self.rospy.unsubscribe_topic(topic_name)
 

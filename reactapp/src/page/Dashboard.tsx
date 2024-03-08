@@ -6,6 +6,7 @@ import NodeStatusBoard from "./NodeStatusBoard";
 import { H2 } from "../design/text/textsystem";
 import { VDivBlock } from "../design/other/blocks";
 import TopicBoard from "./TopicBoard";
+import JoysticPage from "./Joystick";
 
 const Dashboard = () => {
 
@@ -23,6 +24,9 @@ const Dashboard = () => {
         background: '#ffffff',
         overflowX: 'hidden',
     }}>
+        <H2>Joystick</H2>
+        <VDivBlock color='#A1E3CB' />
+        <JoysticPage />
         <H2>Nodes</H2>
         <VDivBlock color='#A1E3CB' />
         <PkgStatusBar onClickNode={setNodeChosen} />

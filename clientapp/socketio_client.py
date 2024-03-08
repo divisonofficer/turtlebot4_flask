@@ -25,7 +25,7 @@ class SocketIoClientManager:
     def ros_socket_open(self):
         try:
             # Replace 'http://localhost:5000' with your Socket.IO server URL
-            sio.connect(ROS_SERVER, namespaces=["/manual"])
+            sio.connect(ROS_SERVER, namespaces=["/manual", "/ros"])
             # You might need to adjust the namespace based on your server setup
         except Exception as e:
             print(f"Connection error: {e}")
@@ -96,6 +96,9 @@ class SocketIoClientManager:
         for event in events:
             if event["running"]:
                 self.ros_socket_add_event(fsio, event["topic"], event["type"][0])
+
+    def ros_socket_emit(self, event, data, namespace="/manual"):
+        sio.emit(event, data, namespace=namespace)
 
 
 socketIoClientManager = SocketIoClientManager()
