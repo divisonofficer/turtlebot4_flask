@@ -1,45 +1,53 @@
-from controller_ros import *
+from ros_call import RosPyManager
 import sys
 import rclpy
-from camera_function.preview_lowbit_convert import preview_lowbit_convert
 
 
 class Controller:
     def __init__(self):
-        rclpy.init(args=None)
+        pass
+
+    def init(self):
+        self.rospy = RosPyManager()
 
     def con_stop_motor(self, args=None):
         """
         post stop motor
         """
-        return ros_lidar_stop_motor()
+        pass
 
     def con_subscribe_camera_preview(self, args=None, callback=None):
         """
         get subscription of camera preview
         """
-        return ros_camera_preview_raw(callback)
+        pass
 
     def con_subscribe_camera_color(self, args=None, callback=None):
         """
         get subscription of camera color
         """
-        return ros_camera_color(callback)
+        pass
 
     def con_subscribe_camera_info(self, args=None, callback=None):
         """
         get subscription of camera info
         """
-        return ros_camera_info(callback)
+        pass
 
     def command_exists(self, command):
         return command in self.command_map
 
     def manual_service_call(self, service_name, service_type, request_data=None):
-        return call_ros2_service(service_name, service_type, request_data)
+        return self.rospy.call_ros2_service(service_name, service_type, request_data)
 
     def manual_topic_subscription(self, topic_name, topic_type, callback):
-        return subscribe_topic(topic_name, topic_type, callback)
+        return self.rospy.subscribe_topic(topic_name, topic_type, callback)
+
+    def manual_topic_emit(self, topic_name, topic_type, data):
+        return self.rospy.publish_topic(topic_name, topic_type, data)
+
+    def ros_unsubscribe_topic(self, topic_name):
+        return self.rospy.unsubscribe_topic(topic_name)
 
     def run_command(self, command, args=None):
         if not self.command_exists(command):
@@ -48,20 +56,6 @@ class Controller:
             return None
 
         command_function = self.command_map[command]["function"]
-        if "callback" in self.command_map[command]:
-            callback = lambda x: print(x)
-
-            def callback_a(x):
-                x = preview_lowbit_convert(x)
-                for i in range(len(x)):
-                    for j in range(len(x[i])):
-                        print(x[i][j], end="")
-                    print()
-
-            if "-a" in args:
-                callback = callback_a
-
-            return command_function(self, args, callback)
         return command_function(self, args)
 
     command_map = {

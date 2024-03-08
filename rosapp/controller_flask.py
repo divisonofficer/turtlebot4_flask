@@ -9,6 +9,12 @@ from manual_topic import ManualTopicManager
 
 from config_load import configManager
 
+from ros_topic_diagnostic import RosTopicDiagnostic
+
+
+from geometry_msgs.msg import Twist
+
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 controller = Controller()
@@ -37,11 +43,6 @@ def get_resource(resource):
     return files in resource/ folder
     """
     return app.send_static_file("resource/" + resource)
-
-
-@app.route("/", methods=["GET"])
-def index():
-    return "Hello world"
 
 
 @app.route("/service/default/<service_name>", methods=["POST"])
@@ -92,6 +93,9 @@ executor = RosExecutor()
 manualTopicManager = ManualTopicManager(socketio, controller, executor)
 
 
+# ROS2 Topic Management
+
+
 @app.route("/manual/topic/", methods=["POST"])
 def get_manual_topic():
     """
@@ -100,38 +104,130 @@ def get_manual_topic():
     topic_name = request.json.get("topic_name")
     if topic_name[0] != "/":
         topic_name = "/" + topic_name
-    topic_type = configManager.ros2_topics[topic_name]
+
+    topic_type = request.json.get("topic_type")
+    if topic_type is None:
+        topic_type = configManager.ros2_topics[topic_name]
 
     node = manualTopicManager.register_topic(topic_name, topic_type)
     if node is None:
         return "Topic already exists", 400
+
     return Response(status=200)
 
 
-@app.route("/manual/topic/<topic_name>", methods=["DELETE"])
-def delete_manual_topic(topic_name):
+@app.route("/manual/topic/delete", methods=["POST"])
+def delete_manual_topic():
     """
     delete manual topic
     """
-    topic_name = "/" + topic_name
+    topic_name = request.json.get("topic_name")
     if topic_name not in manualTopicManager.topics:
         return "Topic does not exist", 400
     manualTopicManager.delete_topic(topic_name)
     return Response(status=200)
 
 
-if __name__ == "__main__":
+rosDiagnostic = RosTopicDiagnostic(socketio)
 
+
+@app.route("/manual/topic/list", methods=["GET"])
+def get_manual_topic_list():
+    """
+    get manual topic list
+    """
+
+    topic_dict = rosDiagnostic.get_topics_dict_list()
+    topic_running = manualTopicManager.topics.keys()
+    for topic in topic_dict:
+        if topic["topic"] in topic_running:
+            topic["running"] = True
+        else:
+            topic["running"] = False
+
+    return jsonify(topic_dict)
+
+
+@app.route("/manual/topic/nodes", methods=["POST"])
+def post_topic_nodes_get():
+    """
+    get topic nodes
+    """
+    topic_name = request.json.get("topic_name")
+    return jsonify(controller.rospy.get_qos_profile(topic_name))
+
+
+### ROS Node Managments
+
+
+@app.route("/pkg/node/list", methods=["GET"])
+def get_node_list():
+    """
+    get node list
+    """
+    return jsonify(rosDiagnostic.NODE_CHECK_DICT)
+
+
+@app.route("/pkg/node/<pkg_name>/<node_name>", methods=["POST"])
+def post_node_launch(pkg_name, node_name):
+    """
+    launch node
+    """
+    options = request.json.get("options")
+    status, response = rosDiagnostic.launch_node(pkg_name, node_name, options)
+    if status == 500:
+        return Response(response, status=500)
+    return Response(status=200)
+
+
+@app.route("/pkg/node/<node_name>", methods=["DELETE"])
+def delete_node_kill(node_name):
+    """
+    delete node
+    """
+    rosDiagnostic.kill_node(node_name)
+    return Response(status=200)
+
+
+@app.route("/pkg/node/<node_name>", methods=["GET"])
+def get_node_status(node_name):
+    """
+    get node status
+    """
+    return jsonify({"logs": rosDiagnostic.get_log(node_name)})
+
+
+with app.app_context():
+    controller.init()
+    rosDiagnostic.spin()
     executor.executor_thread(
         [
-            colorStream.subscriber,
-            previewStream.subscriber,
-            controller.con_subscribe_camera_info(
-                None,
-                SocketEmit(socketio, "/socket/camera/info", 1).getCallback(
-                    "camera_info"
-                ),
-            ),
+            # colorStream.subscriber,
+            # previewStream.subscriber,
+            controller.rospy.simple_subscriber,
         ]
     )
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+
+
+##### ROS SOCKET
+
+
+@socketio.on("connect", namespace="/ros")
+def handle_ros_connect():
+    print("ROS Socket Connected")
+
+
+@socketio.on("drive", namespace="/ros")
+def handle_drive(data):
+    message = Twist()
+    message.linear.x = float(data["linear"]["x"])
+    message.linear.y = float(data["linear"]["y"])
+    message.linear.z = float(data["linear"]["z"])
+    message.angular.x = float(data["angular"]["x"])
+    message.angular.y = float(data["angular"]["y"])
+    message.angular.z = float(data["angular"]["z"])
+    controller.manual_topic_emit("/cmd_vel", "geometry_msgs/msg/Twist", message)
+
+
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=5000)

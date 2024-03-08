@@ -1,1 +1,5 @@
 topic_mix.py
+clientapp/data.json
+clientapp/output_image.jpg
+clientapp/__pycache__/socketio_client.cpython-310.pyc
+clientapp/public/__pycache__/publicresolver.cpython-310.pyc
