@@ -14,6 +14,7 @@ from ros_topic_diagnostic import RosTopicDiagnostic
 
 from geometry_msgs.msg import Twist
 
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
 controller = Controller()

@@ -6,8 +6,9 @@ from flask_socketio import SocketIO
 import requests
 from socketio_client import socketIoClientManager, gen_frames
 
+from public.publicresolver import getNetInfo
 
-ROS_SERVER = "http://192.168.185.2:5000"
+ROS_SERVER = getNetInfo()["ROBOT_FLASK_SERVER"]
 
 
 app = Flask(__name__)
