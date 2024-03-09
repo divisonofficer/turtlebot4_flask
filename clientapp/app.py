@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response, request
+from flask import Flask, jsonify, Response, request, send_from_directory
 
 from flask import Flask
 from flask_cors import CORS
@@ -14,6 +14,19 @@ ROS_SERVER = "http://" + getNetInfo()["ROBOT_FLASK_SERVER"]
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+@app.route("/", methods=["GET"])
+def get_template():
+    return send_from_directory("build", "index.html")
+
+@app.route("/static/css/<path:filename>", methods=["GET"])
+def get_template_static_css(filename):
+    return send_from_directory("build/static/css", filename)
+
+@app.route("/static/js/<path:filename>", methods=["GET"])
+def get_template_static_cs(filename):
+    return send_from_directory("build/static/js", filename)
+
 
 
 @app.route("/ros/stop_motor", methods=["POST"])
@@ -170,4 +183,4 @@ def handle_drive(data):
 
 if __name__ == "__main__":
     socketIoClientManager.ros_socket_launch_thread(socketio)
-    socketio.run(app, port=5001)
+    socketio.run(app, port=5001, host='0.0.0.0')
