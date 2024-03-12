@@ -15,7 +15,8 @@ const Dashboard = () => {
     <VStack
       style={{
         width: "100%",
-        minHeight: "100vh",
+        height: "100vh",
+
         overflowY: "auto",
         justifyContent: "flex-start",
         alignItems: "flex-start",

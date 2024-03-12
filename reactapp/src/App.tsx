@@ -4,6 +4,7 @@ import Dashboard from "./page/Dashboard";
 import { HStack, useMediaQuery, VStack } from "@chakra-ui/react";
 import { Menus, MenuToggle } from "./page/Menu";
 import JoysticPage from "./page/Joystick";
+import { TopicPage } from "./page/topic/TopicPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/joystick" element={<JoysticPage />} />
+        <Route path="/topic" element={<TopicPage />} />
       </Routes>
     );
   };
