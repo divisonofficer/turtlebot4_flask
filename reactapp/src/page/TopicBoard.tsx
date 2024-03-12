@@ -1,15 +1,24 @@
-import { Checkbox, HStack, IconButton, Switch, VStack } from "@chakra-ui/react";
+import {
+  Checkbox,
+  Grid,
+  HStack,
+  IconButton,
+  Switch,
+  VStack,
+} from "@chakra-ui/react";
 import { Body1, Body2, Body3, H3, H4 } from "../design/text/textsystem";
 import { useCallback, useEffect, useState } from "react";
 import { rosSocket } from "../connect/socket/subscribe";
 import { httpDel, httpGet, httpPost } from "../connect/http/request";
 import { InfoIcon, RepeatIcon } from "@chakra-ui/icons";
+import { TopicInfo, TopicItem } from "./topic/TopicPage";
+import { TopicSpec } from "../data/Topic";
 
-type TopicNodes = {
+export type TopicNodes = {
   Publishers: TopicNode[];
   Subscriptions: TopicNode[];
 };
-type TopicNode = {
+export type TopicNode = {
   "Node name": string;
   "Node namespace": string;
   "QoS profile": QoSProfile;
@@ -22,7 +31,7 @@ type QoSProfile = {
   Liveliness: string;
 };
 
-const TopicItem = ({
+const TopicButton = ({
   name,
   type,
   running,
@@ -314,6 +323,7 @@ const TopicBoard = () => {
     );
   };
 
+  const [topicDisplay, setTopicDisplay] = useState<TopicSpec>();
   return (
     <VStack
       style={{
@@ -321,18 +331,22 @@ const TopicBoard = () => {
         padding: "1rem",
       }}
     >
+      {topicDisplay && <TopicInfo topic={topicDisplay} />}
       <TopicToolbar />
-      {topicList.map(
-        (topic, i) =>
-          (topicVisibleList.includes(topic.topic) || topic.running) && (
-            <TopicItem
-              key={topic.topic}
-              name={topic.topic}
-              type={topic.type}
-              running={topic.running}
-            />
-          )
-      )}
+      <Grid templateColumns="repeat(4, 1fr)" gap={6}>
+        {topicList.map(
+          (topic, i) =>
+            (topicVisibleList.includes(topic.topic) || topic.running) && (
+              <TopicItem
+                key={topic.topic}
+                topic={topic}
+                onClick={() => {
+                  setTopicDisplay(topic);
+                }}
+              />
+            )
+        )}
+      </Grid>
       {
         /* 
             A loading bar floating on top of the topic list

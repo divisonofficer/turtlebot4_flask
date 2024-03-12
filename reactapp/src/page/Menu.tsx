@@ -31,12 +31,23 @@ const MenuButton = ({ menu }: { menu: MenuItem }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <menu.icon
-        style={{
-          width: "1rem",
-          height: "1rem",
-        }}
-      />
+      {typeof menu.icon === "string" ? (
+        <img
+          src={menu.icon}
+          style={{
+            width: "1rem",
+            height: "1rem",
+          }}
+          alt=""
+        />
+      ) : (
+        <menu.icon
+          style={{
+            width: "1rem",
+            height: "1rem",
+          }}
+        />
+      )}
       <H4
         style={{
           fontWeight: "normal",

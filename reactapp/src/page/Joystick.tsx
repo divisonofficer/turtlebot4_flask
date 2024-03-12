@@ -1,10 +1,12 @@
-import { ArrowRightIcon } from "@chakra-ui/icons";
+import { ArrowRightIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { Container, Flex, HStack, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { rosSocket } from "../connect/socket/subscribe";
 import { H2, H4 } from "../design/text/textsystem";
 import { VDivBlock, VDivMenu } from "../design/other/blocks";
 import { VStackAdj } from "../design/other/flexs";
+import { InputButton } from "../design/button/inputButtons";
+import { Btn } from "../design/button/button";
 
 const stickProfile = [
   {
@@ -100,26 +102,24 @@ const JoysticPage = () => {
         {[0, 1, 2].map((index) => (
           <HStack>
             {[0, 1, 2].map((hindex) => (
-              <Flex
+              <InputButton
                 style={{
                   width: "5rem",
                   height: "5rem",
-                  borderRadius: "50%",
-                  background: "#D7F9FB",
-                  alignItems: "center",
-                  justifyContent: "center",
                 }}
                 onMouseDown={() => handleButtonDown(index * 3 + hindex)}
                 onMouseUp={() => handleButtonUp(index * 3 + hindex)}
               >
-                <ArrowRightIcon
+                <ChevronRightIcon
                   style={{
                     transform: `rotate(${
                       stickProfile[index * 3 + hindex].arrow
                     }deg)`,
+                    width: "2rem",
+                    height: "2rem",
                   }}
                 />
-              </Flex>
+              </InputButton>
             ))}
           </HStack>
         ))}
@@ -178,6 +178,16 @@ const JoysticPage = () => {
         <JoyStick />
         <OakdPreview />
         <LidarPreview />
+        <Btn size="lg">Start</Btn>
+        <Btn size="lg" varient="gray">
+          Start
+        </Btn>
+        <Btn size="lg" varient="outline">
+          Start
+        </Btn>
+        <Btn size="sm" varient="borderless">
+          Start
+        </Btn>
       </VStackAdj>
     </VStack>
   );

@@ -120,8 +120,9 @@ const PkgStatusBar = ({
       .onSuccess((data: PkgNodeInfo[]) => {
         if (data) setNodeList(data);
       })
-      .onError((e: any) => {
-        alert(e.message);
+      .onError((code, message, error) => {
+        console.log("error", code, message, error);
+        alert(error);
       })
       .fetch();
   }, []);

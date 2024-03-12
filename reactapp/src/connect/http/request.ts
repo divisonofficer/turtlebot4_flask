@@ -1,4 +1,4 @@
-const DEBUG = false;
+const DEBUG = true;
 
 class RequestManager {
   request = async (url: string, method: string, data: any) => {
@@ -16,7 +16,7 @@ class RequestManager {
     });
 
     if (DEBUG) {
-      console.log("RequestManager.request", response);
+      console.log("RequestManager.request", response.status);
     }
 
     // 200이 아닌 경우
@@ -34,15 +34,11 @@ class RequestManager {
       return {};
     }
 
-    // 200인데 json이 아닌 plain text 인 경우
-    if (
-      response.status === 200 &&
-      response.headers.get("content-type") !== "application/json"
-    ) {
+    try {
+      return await response.json();
+    } catch (e) {
       return await response.text();
     }
-
-    return await response.json();
   };
 }
 
