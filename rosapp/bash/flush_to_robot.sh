@@ -1,6 +1,6 @@
 #!/bin/bash
 
-remote_ip="192.168.185.2"
+remote_ip="192.168.185.3"
 remote_folder="ubuntu@$remote_ip:~/turtlebot4_ws/turtlebot4_flask"
 remote_password="turtlebot4"
 

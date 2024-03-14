@@ -3,10 +3,10 @@ import socketio
 import threading
 from requests import post
 from flask_socketio import SocketIO
-
+from public.publicresolver import getNetInfo
 
 # (logger=True, engineio_logger=True)
-ROS_SERVER = "http://192.168.185.2:5000"
+ROS_SERVER = "http://" + getNetInfo()["ROBOT_FLASK_SERVER"]
 
 import json
 

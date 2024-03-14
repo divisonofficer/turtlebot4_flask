@@ -185,11 +185,7 @@ const CameraDetectionCanvas = ({ source }: { source: string }) => {
 
 
 const CameraPage = () => {
-
     const [previewSource, setPreviewSource] = useState<PreviewSource>("/ros/camera/preview");
-
-
-
     return <VStack style={{
         width: '100vw',
         height: '100vh',
@@ -200,7 +196,6 @@ const CameraPage = () => {
         <HStack style={{
             width: '100vw',
             flexGrow: 1,
-
         }}>
 
             <VStack style={{
