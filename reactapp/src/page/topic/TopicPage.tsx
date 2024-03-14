@@ -13,9 +13,9 @@ import {
   TelegramLogo,
   UploadSimple,
 } from "@phosphor-icons/react";
-import { m } from "framer-motion";
 
 export type TopicOutput = {
+  interval: number;
   log: string;
   timeStamp: string;
   timeMs: number;
@@ -56,7 +56,7 @@ const TopicLogs = ({ logs }: { logs: TopicOutput[] }) => {
                 padding: "0rem 1rem",
                 justifyContent: "space-between",
               }}
-              key={log.timeMs}
+              key={i}
             >
               <Body3>{log.timeStamp}</Body3>
               <Body3>{log.log}</Body3>
@@ -113,8 +113,8 @@ const TopicNodeItem = ({
                 background: j % 2 === 1 ? "#F7F9FB" : "#E5ECF6",
               }}
             >
-              <H3 style={{ flex: 2 }}>{node["Node name"]}</H3>
-              <Body3 style={{ flex: 3 }}>{node["Node namespace"]}</Body3>
+              <H3 style={{ flex: 2 }}>{node["name"]}</H3>
+              <Body3 style={{ flex: 3 }}>{node["namespace"]}</Body3>
             </HStack>
           );
         })}
@@ -123,54 +123,89 @@ const TopicNodeItem = ({
   );
 };
 
+interface InfoState {
+  topicNodes?: TopicNodes;
+  logs: TopicOutput[];
+  timeInterval: number;
+  messageCount: number;
+}
+
 const TopicInfo = ({ topic }: { topic?: TopicSpec }) => {
-  const [topicNodes, setTopicNodes] = useState<TopicNodes>();
-  const [logs, setLogs] = useState<TopicOutput[]>([]);
-  const [timeInterval, setTimeInterval] = useState(0);
-  const [messageCount, setMessageCount] = useState(0);
+  const [state, setState] = useState<InfoState>({
+    topicNodes: undefined,
+    logs: [],
+    timeInterval: 0,
+    messageCount: 0,
+  });
 
   const getTopicNodes = useCallback(() => {
     httpPost(`/ros/topic/nodes`, {
       topic_name: topic?.topic,
     })
       .onSuccess((data: TopicNodes) => {
-        setTopicNodes(data);
+        console.log(data);
+        setState((prev) => ({ ...prev, topicNodes: data }));
       })
       .fetch();
-  }, []);
+  }, [topic?.topic]);
 
-  useEffect(() => {
-    if (topic?.running) {
-      console.log("subscribing to ", topic.topic);
-      rosSocket.subscribe(topic.topic, (data: any) => {
-        publishLog(JSON.stringify(data));
-      });
-    } else {
-      rosSocket.unsubscribe(topic?.topic || "");
-    }
-    getTopicNodes();
-    return () => {
-      rosSocket.unsubscribe(topic?.topic || "");
-    };
-  }, [topic]);
-
-  const publishLog = (log: string) => {
-    const timeStamp = new Date().toLocaleTimeString();
-    const timeMs = new Date().getTime();
-    var logList = logs;
+  const getTopicLogs = useCallback(() => {
+    httpPost(`/ros/topic/logs`, {
+      topic_name: topic?.topic,
+    })
+      .onSuccess(
+        (data: { count: number; interval: number; logs: Object[] }) => {
+          setState((prev) => ({
+            ...prev,
+            messageCount: data.count || 0,
+            timeInterval: data.interval || 0,
+            logs: data["logs"]
+              ? data["logs"].map((log: any) => {
+                  return {
+                    log: log["log"],
+                    timeStamp: log["timeStamp"],
+                    timeMs: log["timeMs"],
+                    interval: log["interval"],
+                  };
+                })
+              : [],
+          }));
+        }
+      )
+      .onError(() => {})
+      .fetch();
+  }, [topic?.topic]);
+  const publishLog = useCallback((log: string, interval: number) => {
+    var logList = state.logs;
     if (logList.length > 10) {
       logList.shift();
     }
 
+    const timeStamp = new Date().toLocaleTimeString();
+    logList.push({ log, timeStamp, timeMs: new Date().getTime(), interval });
     if (logList.length > 0) {
-      setTimeInterval(timeMs - logList[logList.length - 1].timeMs);
+      setState((prev) => ({
+        ...prev,
+        timeInterval: interval * 1000,
+        messageCount: prev.messageCount + 1,
+        logs: logList,
+      }));
     }
+  }, []);
+  useEffect(() => {
+    topic &&
+      rosSocket.subscribe(topic.topic, (data: any) => {
+        const interval = data["interval"].toFixed(6);
+        publishLog(JSON.stringify(data), interval);
+      });
+    getTopicNodes();
+    getTopicLogs();
 
-    setMessageCount(messageCount + 1);
+    return () => {
+      rosSocket.unsubscribe(topic?.topic || "");
+    };
+  }, [topic, getTopicNodes, getTopicLogs, publishLog]);
 
-    logList.push({ log, timeStamp, timeMs });
-    setLogs(logList);
-  };
   return (
     <VStack
       style={{
@@ -183,34 +218,38 @@ const TopicInfo = ({ topic }: { topic?: TopicSpec }) => {
       <HStack>
         <InfoCard
           title="Subscriptions"
-          value={topicNodes?.Subscriptions.length}
+          value={state.topicNodes?.subscriptions.length}
           icon={DownloadSimple}
         />
         <InfoCard
           title="Publishers"
-          value={topicNodes?.Publishers.length}
+          value={state.topicNodes?.publishers.length}
           icon={UploadSimple}
           color="#E5ECF6"
         />
-        <InfoCard title="Messages" value={messageCount} icon={TelegramLogo} />
+        <InfoCard
+          title="Messages"
+          value={state.messageCount}
+          icon={TelegramLogo}
+        />
         <InfoCard
           title="Interval"
-          value={timeInterval + "ms"}
+          value={state.timeInterval.toFixed(2) + "ms"}
           icon={Clock}
           color="#E5ECF6"
         />
       </HStack>
 
-      {logs.length > 0 && <TopicLogs logs={logs} />}
-      {topicNodes &&
+      {state.logs.length > 0 && <TopicLogs logs={state.logs} />}
+      {state.topicNodes &&
         [
           {
             key: "Publishers",
-            nodes: topicNodes.Publishers,
+            nodes: state.topicNodes.publishers,
           },
           {
             key: "Subscriptions",
-            nodes: topicNodes.Subscriptions,
+            nodes: state.topicNodes.subscriptions,
           },
         ].map((key, i) => {
           return <TopicNodeItem head={key.key} nodes={key.nodes} />;
