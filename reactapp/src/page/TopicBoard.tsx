@@ -15,20 +15,20 @@ import { TopicInfo, TopicItem } from "./topic/TopicPage";
 import { TopicSpec } from "../data/Topic";
 
 export type TopicNodes = {
-  Publishers: TopicNode[];
-  Subscriptions: TopicNode[];
+  publishers: TopicNode[];
+  subscriptions: TopicNode[];
 };
 export type TopicNode = {
-  "Node name": string;
-  "Node namespace": string;
-  "QoS profile": QoSProfile;
+  name: string;
+  namespace: string;
+  qosProfile: QoSProfile;
 };
 
 type QoSProfile = {
-  DeadLine: string;
-  Durability: string;
-  Lifespan: string;
-  Liveliness: string;
+  deadline: string;
+  durability: string;
+  lifespan: string;
+  liveliness: string;
 };
 
 const TopicButton = ({
@@ -144,11 +144,11 @@ const TopicButton = ({
           {[
             {
               key: "Publishers",
-              nodes: topicNodes.Publishers,
+              nodes: topicNodes.publishers,
             },
             {
               key: "Subscriptions",
-              nodes: topicNodes.Subscriptions,
+              nodes: topicNodes.subscriptions,
             },
           ].map((key, i) => {
             return (
@@ -163,12 +163,12 @@ const TopicButton = ({
                           width: "100%",
                         }}
                       >
-                        <H3>{node["Node name"]}</H3>
-                        <Body3>{node["Node namespace"]}</Body3>
-                        <Body3>{node["QoS profile"].DeadLine}</Body3>
-                        <Body3>{node["QoS profile"].Durability}</Body3>
-                        <Body3>{node["QoS profile"].Lifespan}</Body3>
-                        <Body3>{node["QoS profile"].Liveliness}</Body3>
+                        <H3>{node["name"]}</H3>
+                        <Body3>{node["namespace"]}</Body3>
+                        <Body3>{node["qosProfile"].deadline}</Body3>
+                        <Body3>{node["qosProfile"].durability}</Body3>
+                        <Body3>{node["qosProfile"].lifespan}</Body3>
+                        <Body3>{node["qosProfile"].liveliness}</Body3>
                       </VStack>
                     );
                   })}
