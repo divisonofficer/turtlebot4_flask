@@ -1,6 +1,6 @@
 import { HStack, Icon, VStack } from "@chakra-ui/react";
 import { Body1, H3 } from "../text/textsystem";
-import { ElementType, ReactElement, ReactNode } from "react";
+import { ElementType, ReactElement, ReactNode, useState } from "react";
 import { JsxElement } from "typescript";
 
 const InfoCard = (props: {
@@ -60,4 +60,56 @@ const InfoCard = (props: {
   );
 };
 
-export { InfoCard };
+const InfoCardBtn = (props: {
+  title: string;
+  color?: string;
+  Icon: string | ElementType;
+  onClick?: () => void;
+}) => {
+  const [hover, setHover] = useState(false);
+
+  return (
+    <VStack
+      style={{
+        width: "8rem",
+        height: "8rem",
+        borderRadius: "1rem",
+        justifyContent: "center",
+        background: (props.color || "#1C1C1C") + (hover ? "80" : "FF"),
+        transition: "0.3s",
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={() => props.onClick && props.onClick()}
+    >
+      {typeof props.Icon === "string" ? (
+        <img
+          src={props.Icon}
+          style={{
+            width: "2rem",
+            height: "2rem",
+          }}
+          alt={props.title}
+        />
+      ) : (
+        <props.Icon
+          style={{
+            width: "2rem",
+            height: "2rem",
+            // tint white
+            filter: "invert(100%)",
+          }}
+        />
+      )}
+      <H3
+        style={{
+          color: "white",
+        }}
+      >
+        {props.title}
+      </H3>
+    </VStack>
+  );
+};
+
+export { InfoCard, InfoCardBtn };
