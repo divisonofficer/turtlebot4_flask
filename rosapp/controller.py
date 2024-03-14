@@ -3,6 +3,7 @@ from .ros_executor import RosExecutor
 from .manual_topic import ManualTopicManager
 import sys
 import rclpy
+import json
 
 
 class Controller:
@@ -57,6 +58,7 @@ class Controller:
         return self.rospy.subscribe_topic(topic_name, topic_type, callback)
 
     def manual_topic_emit(self, topic_name, topic_type, data):
+        data = json.loads(data)
         return self.rospy.publish_topic(topic_name, topic_type, data)
 
     def ros_unsubscribe_topic(self, topic_name):

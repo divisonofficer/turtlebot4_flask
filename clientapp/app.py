@@ -75,6 +75,21 @@ def get_topic_list():
     return jsonify(controller.get_topic_list())
 
 
+@app.route("/ros/topic/type/format", methods=["POST"])
+def get_topic_type_format():
+    topic_type = request.json.get("topic_type")
+    return jsonify(controller.rospy.get_type_json_format(topic_type))
+
+
+@app.route("/ros/topic/publish", methods=["POST"])
+def publish_topic_once():
+    topic_name = request.json.get("topic_name")
+    topic_type = request.json.get("topic_type")
+    data = request.json.get("message")
+    controller.manual_topic_emit(topic_name, topic_type, data)
+    return Response(status=200)
+
+
 @app.route("/ros/topic", methods=["POST"])
 def post_topic_subscribe():
     topic_name = request.json.get("topic_name")
@@ -176,5 +191,5 @@ with app.app_context():
     controller.init(socketio, "/socket/ros")
 
 if __name__ == "__main__":
-    socketIoClientManager.ros_socket_launch_thread(socketio)
+    # socketIoClientManager.ros_socket_launch_thread(socketio)
     socketio.run(app, port=5001, host="0.0.0.0")
