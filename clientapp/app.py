@@ -8,6 +8,7 @@ from socketio_client import socketIoClientManager, gen_frames
 
 from public.publicresolver import getNetInfo
 
+
 ROS_SERVER = "http://" + getNetInfo()["ROBOT_FLASK_SERVER"]
 
 
@@ -15,18 +16,24 @@ app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
+from share.controller import Controller
+
+controller = Controller()
+
+
 @app.route("/", methods=["GET"])
 def get_template():
     return send_from_directory("build", "index.html")
+
 
 @app.route("/static/css/<path:filename>", methods=["GET"])
 def get_template_static_css(filename):
     return send_from_directory("build/static/css", filename)
 
+
 @app.route("/static/js/<path:filename>", methods=["GET"])
 def get_template_static_cs(filename):
     return send_from_directory("build/static/js", filename)
-
 
 
 @app.route("/ros/stop_motor", methods=["POST"])
@@ -65,45 +72,30 @@ def camera_color_color_proxy():
 
 @app.route("/ros/topic/list/", methods=["GET"])
 def get_topic_list():
-    response = requests.get(f"{ROS_SERVER}/manual/topic/list")
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Return the content of the response, status code, and headers
-        socketIoClientManager.ros_socket_update_events(response.json(), socketio)
-        return Response(
-            response.content,
-            status=response.status_code,
-        )
-    else:
-        # Handle errors or unexpected response codes here, for example:
-        return {"error": response.content}, response.status_code
+    return jsonify(controller.get_topic_list())
 
 
 @app.route("/ros/topic", methods=["POST"])
 def post_topic_subscribe():
     topic_name = request.json.get("topic_name")
     topic_type = request.json.get("topic_type")
-    response = requests.post(
-        f"{ROS_SERVER}/manual/topic",
-        json={"topic_name": topic_name, "topic_type": topic_type},
-    )
-    socketIoClientManager.ros_socket_add_event(socketio, topic_name, topic_type)
-    return Response(
-        response.content,
-        status=response.status_code,
-    )
+
+    res = controller.manualTopicManager.register_topic(topic_name, topic_type)
+    if res == True:
+        return Response(status=200)
+    return Response(status=400, response=res)
+
+
+@app.route("/ros/topic/logs", methods=["POST"])
+def post_topic_get_logs():
+    topic_name = request.json.get("topic_name")
+    return jsonify(controller.get_topic_logs(topic_name))
 
 
 @app.route("/ros/topic/nodes", methods=["POST"])
 def post_topic_nodes_get():
     topic_name = request.json.get("topic_name")
-    response = requests.post(
-        f"{ROS_SERVER}/manual/topic/nodes", json={"topic_name": topic_name}
-    )
-    return Response(
-        response.content,
-        status=response.status_code,
-    )
+    return jsonify(controller.rospy.get_topic_nodes_list(topic_name))
 
 
 @app.route("/ros/topic/preview/<frame_id>")
@@ -117,21 +109,20 @@ def ros_preview_feed(frame_id):
 @app.route("/ros/topic/delete", methods=["POST"])
 def delete_topic_unsubscribe():
     topic_name = request.json.get("topic_name")
-    response = requests.post(
-        f"{ROS_SERVER}/manual/topic/delete", json={"topic_name": topic_name}
-    )
-    return Response(
-        response.content,
-        status=response.status_code,
-    )
+
+    ret = controller.manualTopicManager.delete_topic(topic_name)
+    if ret == 200:
+        return Response(status=200)
+    return Response(status=400, response=ret)
 
 
 @app.route("/ros/node/list/", methods=["GET"])
 def get_node_pkg_list():
-    response = requests.get(f"{ROS_SERVER}/pkg/node/list")
-    if response.json():
-        return jsonify(response.json())
-    return jsonify({"status": "success"})
+    return jsonify(controller.get_node_list())
+    # response = requests.get(f"{ROS_SERVER}/pkg/node/list")
+    # if response.json():
+    #     return jsonify(response.json())
+    # return jsonify({"status": "success"})
 
 
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["POST"])
@@ -181,6 +172,9 @@ def handle_drive(data):
     socketIoClientManager.ros_socket_emit("drive", data, namespace="/ros")
 
 
+with app.app_context():
+    controller.init(socketio, "/socket/ros")
+
 if __name__ == "__main__":
     socketIoClientManager.ros_socket_launch_thread(socketio)
-    socketio.run(app, port=5001, host='0.0.0.0')
+    socketio.run(app, port=5001, host="0.0.0.0")

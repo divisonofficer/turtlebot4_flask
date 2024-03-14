@@ -2,10 +2,6 @@ from flask import Flask, request, jsonify, render_template, Response
 from flask_socketio import SocketIO
 from controller import Controller
 from camera_function.preview_stream import VideoStream
-from socket_emit import SocketEmit
-
-from ros_executor import RosExecutor
-from manual_topic import ManualTopicManager
 
 from config_load import configManager
 
@@ -89,10 +85,6 @@ def preview_video_feed():
     )
 
 
-executor = RosExecutor()
-manualTopicManager = ManualTopicManager(socketio, controller, executor)
-
-
 # ROS2 Topic Management
 
 
@@ -109,7 +101,7 @@ def get_manual_topic():
     if topic_type is None:
         topic_type = configManager.ros2_topics[topic_name]
 
-    node = manualTopicManager.register_topic(topic_name, topic_type)
+    node = controller.manualTopicManager.register_topic(topic_name, topic_type)
     if node is None:
         return "Topic already exists", 400
 
@@ -122,9 +114,9 @@ def delete_manual_topic():
     delete manual topic
     """
     topic_name = request.json.get("topic_name")
-    if topic_name not in manualTopicManager.topics:
+    if topic_name not in controller.manualTopicManager.topics:
         return "Topic does not exist", 400
-    manualTopicManager.delete_topic(topic_name)
+    controller.manualTopicManager.delete_topic(topic_name)
     return Response(status=200)
 
 
@@ -138,7 +130,7 @@ def get_manual_topic_list():
     """
 
     topic_dict = rosDiagnostic.get_topics_dict_list()
-    topic_running = manualTopicManager.topics.keys()
+    topic_running = controller.manualTopicManager.topics.keys()
     for topic in topic_dict:
         if topic["topic"] in topic_running:
             topic["running"] = True
@@ -198,15 +190,8 @@ def get_node_status(node_name):
 
 
 with app.app_context():
-    controller.init()
+    controller.init(socketio, "/manual")
     rosDiagnostic.spin()
-    executor.executor_thread(
-        [
-            # colorStream.subscriber,
-            # previewStream.subscriber,
-            controller.rospy.simple_subscriber,
-        ]
-    )
 
 
 ##### ROS SOCKET

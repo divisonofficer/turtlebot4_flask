@@ -22,12 +22,14 @@
     "name": "OAKDCamera",
     "pkg": "turtlebot4_bringup",
     "node": "oakd",
+    "launchOption": "namespace:=/",
     "abstract": "Launches the OAK-D camera nodes on TurtleBot 4, enabling advanced visual capabilities. This setup includes depth perception, 3D mapping, and object recognition, significantly enhancing the robot's environmental awareness and interaction potential."
   },
   {
     "name": "OAKDCameraExample",
     "pkg": "turtlebot4_bringup",
     "node": "oakd_example",
+    "launchOption": "namespace:=/",
     "abstract": "Provides an example configuration for utilizing TurtleBot 4's OAK-D camera, demonstrating its capabilities in depth sensing and visual data processing. This launch serves as a practical guide for developers to explore and integrate OAK-D functionalities into custom applications."
   },
   {
