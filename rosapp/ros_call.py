@@ -151,10 +151,24 @@ class RosPyManager:
         if type(data) is dict:
             data = self.ros2_dict_to_message(topic_type, data)
 
+        print(data)
+
         publisher.publish(data)
 
     def ros2_dict_to_message(self, message_type, dictionary):
-        pass
+        type = self.service_type_resolution(message_type)
+        message = type()
+        for field, value in dictionary.items():
+            if hasattr(message, field):
+                if isinstance(value, dict):
+                    setattr(
+                        message,
+                        field,
+                        self.ros2_dict_to_message(getattr(message, field), value),
+                    )
+                else:
+                    setattr(message, field, value)
+        return message
 
     def get_qos_profile(self, topic_name):
         """
@@ -288,6 +302,14 @@ class RosPyManager:
         future = client.call_async(req)
         rclpy.spin_until_future_complete(node, future)
         return future.result()
+
+    def get_type_json_format(self, type_name):
+        """
+        Get type in json format
+        """
+        type_class = self.service_type_resolution(type_name)
+        item = type_class()
+        return self.ros2_message_to_dictionary(item)
 
     def get_topic_list(self):
         """
