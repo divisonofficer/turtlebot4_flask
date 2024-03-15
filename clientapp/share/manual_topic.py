@@ -1,4 +1,3 @@
-from .ros_executor import RosExecutor
 from time import time
 
 
@@ -14,12 +13,12 @@ class ManualTopicLogger:
 
     def log(self, data):
         self.count += 1
-        self.logs.append(data)
+        # self.logs.append(data)
         self.interval = time() - self.time
         self.time = time()
 
-        if len(self.logs) > 10:
-            self.logs.pop(0)
+        # if len(self.logs) > 10:
+        #    self.logs.pop(0)
 
         return self.interval
 
@@ -41,10 +40,8 @@ class ManualTopicManager:
         socket,
         socket_namespace: str,
         controller,
-        executor: RosExecutor,
     ):
         self.socket = socket
-        self.executor = executor
         self.controller = controller
         self.socket_namespace = socket_namespace
 

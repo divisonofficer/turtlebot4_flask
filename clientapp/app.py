@@ -133,11 +133,10 @@ def delete_topic_unsubscribe():
 
 @app.route("/ros/node/list/", methods=["GET"])
 def get_node_pkg_list():
-    return jsonify(controller.get_node_list())
-    # response = requests.get(f"{ROS_SERVER}/pkg/node/list")
-    # if response.json():
-    #     return jsonify(response.json())
-    # return jsonify({"status": "success"})
+    response = requests.get(f"{ROS_SERVER}/pkg/node/list")
+    if response.json():
+        return jsonify(response.json())
+    return jsonify({"status": "success"})
 
 
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["POST"])
@@ -177,6 +176,29 @@ def get_node_status(pkg_name, node_name):
         return {"error": "Node not found or error in server"}, 404
 
 
+@app.route("/ros/service/list/", methods=["GET"])
+def get_ros_service_list():
+    return jsonify(controller.rospy.get_services_list())
+
+
+@app.route("/ros/service/call", methods=["POST"])
+def get_ros_service_call():
+    service_name = request.json.get("service_name")
+    service_type = request.json.get("service_type")
+    request_data = request.json.get("request_data")
+
+    result = controller.manual_service_call(service_name, service_type, request_data)
+    return jsonify(result)
+
+
+@app.route("/ros/video/lidar")
+def get_ros_video_lidar_stream():
+    return Response(
+        controller.lidar.stream.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
 @socketio.on("connect", namespace="/socket/ros")
 def handle_connect_camera_info():
     print("ReactApp connected")
@@ -191,5 +213,5 @@ with app.app_context():
     controller.init(socketio, "/socket/ros")
 
 if __name__ == "__main__":
-    # socketIoClientManager.ros_socket_launch_thread(socketio)
+    socketIoClientManager.ros_socket_launch_thread(socketio)
     socketio.run(app, port=5001, host="0.0.0.0")

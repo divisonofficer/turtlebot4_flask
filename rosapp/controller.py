@@ -1,6 +1,7 @@
 from .ros_call import RosPyManager
 from .ros_executor import RosExecutor
 from .manual_topic import ManualTopicManager
+from .lidar import LidarNode
 import sys
 import rclpy
 import json
@@ -13,16 +14,14 @@ class Controller:
     def init(self, socketio, socket_namespace: str):
         self.rospy = RosPyManager()
         self.executor = RosExecutor()
+        self.lidar = LidarNode()
         self.executor.executor_thread(
             [
-                # colorStream.subscriber,
-                # previewStream.subscriber,
                 self.rospy.simple_subscriber,
+                self.lidar,
             ]
         )
-        self.manualTopicManager = ManualTopicManager(
-            socketio, socket_namespace, self, self.executor
-        )
+        self.manualTopicManager = ManualTopicManager(socketio, socket_namespace, self)
 
     def con_stop_motor(self, args=None):
         """
@@ -95,7 +94,7 @@ class Controller:
         for topic in topics:
             if topic["topic"] in running_topics:
                 topic["running"] = True
-                topic["history"] = running_topics[topic["topic"]].get_dict()
+                # topic["history"] = running_topics[topic["topic"]].get_dict()
             else:
                 topic["running"] = False
         return topics
