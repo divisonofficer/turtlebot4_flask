@@ -1,8 +1,11 @@
 from .ros_call import RosPyManager
 from .ros_executor import RosExecutor
 from .manual_topic import ManualTopicManager
+from .lidar import LidarNode
+from .nodes.diagnostic import DiagnosticNode
 import sys
 import rclpy
+import json
 
 
 class Controller:
@@ -12,15 +15,15 @@ class Controller:
     def init(self, socketio, socket_namespace: str):
         self.rospy = RosPyManager()
         self.executor = RosExecutor()
+        self.lidar = LidarNode()
+        self.diagnostic = DiagnosticNode()
         self.executor.executor_thread(
-            [
-                # colorStream.subscriber,
-                # previewStream.subscriber,
-                self.rospy.simple_subscriber,
-            ]
+            [self.rospy.simple_subscriber, self.lidar, self.diagnostic]
         )
-        self.manualTopicManager = ManualTopicManager(
-            socketio, socket_namespace, self, self.executor
+        self.manualTopicManager = ManualTopicManager(socketio, socket_namespace, self)
+
+        self.diagnostic.callback = lambda x: socketio.emit(
+            "/turtlebot/diagnostic", x, namespace="/socket/ros"
         )
 
     def con_stop_motor(self, args=None):
@@ -57,6 +60,7 @@ class Controller:
         return self.rospy.subscribe_topic(topic_name, topic_type, callback)
 
     def manual_topic_emit(self, topic_name, topic_type, data):
+        data = json.loads(data)
         return self.rospy.publish_topic(topic_name, topic_type, data)
 
     def ros_unsubscribe_topic(self, topic_name):
@@ -93,7 +97,7 @@ class Controller:
         for topic in topics:
             if topic["topic"] in running_topics:
                 topic["running"] = True
-                topic["history"] = running_topics[topic["topic"]].get_dict()
+                # topic["history"] = running_topics[topic["topic"]].get_dict()
             else:
                 topic["running"] = False
         return topics

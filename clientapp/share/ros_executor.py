@@ -32,7 +32,9 @@ class RosExecutor:
 
         def _spin():
             try:
-                rclpy.spin(nodes[0])
+                for node in nodes:
+                    self.executor.add_node(node)
+                self.executor.spin()
             finally:
                 rclpy.shutdown()
 

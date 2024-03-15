@@ -75,6 +75,21 @@ def get_topic_list():
     return jsonify(controller.get_topic_list())
 
 
+@app.route("/ros/topic/type/format", methods=["POST"])
+def get_topic_type_format():
+    topic_type = request.json.get("topic_type")
+    return jsonify(controller.rospy.get_type_json_format(topic_type))
+
+
+@app.route("/ros/topic/publish", methods=["POST"])
+def publish_topic_once():
+    topic_name = request.json.get("topic_name")
+    topic_type = request.json.get("topic_type")
+    data = request.json.get("message")
+    controller.manual_topic_emit(topic_name, topic_type, data)
+    return Response(status=200)
+
+
 @app.route("/ros/topic", methods=["POST"])
 def post_topic_subscribe():
     topic_name = request.json.get("topic_name")
@@ -118,11 +133,10 @@ def delete_topic_unsubscribe():
 
 @app.route("/ros/node/list/", methods=["GET"])
 def get_node_pkg_list():
-    return jsonify(controller.get_node_list())
-    # response = requests.get(f"{ROS_SERVER}/pkg/node/list")
-    # if response.json():
-    #     return jsonify(response.json())
-    # return jsonify({"status": "success"})
+    response = requests.get(f"{ROS_SERVER}/pkg/node/list")
+    if response.json():
+        return jsonify(response.json())
+    return jsonify({"status": "success"})
 
 
 @app.route("/ros/node/<pkg_name>/<node_name>", methods=["POST"])
@@ -160,6 +174,29 @@ def get_node_status(pkg_name, node_name):
     else:
         # Handle errors or unexpected response codes here, for example:
         return {"error": "Node not found or error in server"}, 404
+
+
+@app.route("/ros/service/list/", methods=["GET"])
+def get_ros_service_list():
+    return jsonify(controller.rospy.get_services_list())
+
+
+@app.route("/ros/service/call", methods=["POST"])
+def get_ros_service_call():
+    service_name = request.json.get("service_name")
+    service_type = request.json.get("service_type")
+    request_data = request.json.get("request_data")
+
+    result = controller.manual_service_call(service_name, service_type, request_data)
+    return jsonify(result)
+
+
+@app.route("/ros/video/lidar")
+def get_ros_video_lidar_stream():
+    return Response(
+        controller.lidar.stream.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
 
 
 @socketio.on("connect", namespace="/socket/ros")

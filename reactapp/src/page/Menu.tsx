@@ -80,8 +80,8 @@ const Menus = () => {
         >
           Menu
         </H3>
-        {menuList.map((menu) => (
-          <MenuButton menu={menu} />
+        {menuList.map((menu, idx) => (
+          <MenuButton menu={menu} key={idx} />
         ))}
       </VStack>
 
