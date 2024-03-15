@@ -22,11 +22,16 @@ import {
   DoorOpen,
   DownloadSimple,
   Paperclip,
+  Play,
   RepeatOnce,
+  Stop,
   TelegramLogo,
   UploadSimple,
 } from "@phosphor-icons/react";
 import { stringify } from "json5";
+import { observable } from "mobx";
+import { observer } from "mobx-react";
+import { topicStore } from "../../stores/TopicStore";
 
 export type TopicOutput = {
   interval: number;
@@ -320,6 +325,14 @@ const TopicInfo = ({ topic }: { topic?: TopicSpec }) => {
     };
   }, [topic, getTopicNodes, getTopicLogs, publishLog]);
 
+  const openTopic = () => {
+    topicStore.fetchTopicOpen(topic?.topic!);
+  };
+
+  const closeTopic = () => {
+    topicStore.fetchTopicClose(topic?.topic!);
+  };
+
   const TopicMenus = () => {
     const cards = [
       <InfoCard
@@ -346,6 +359,21 @@ const TopicInfo = ({ topic }: { topic?: TopicSpec }) => {
       />,
     ];
     const btns = [
+      topicStore.getTopic(topic?.topic!)?.running ? (
+        <InfoCardBtn
+          title="Shutdown"
+          Icon={Stop}
+          color="#FFCC00"
+          onClick={closeTopic}
+        />
+      ) : (
+        <InfoCardBtn
+          Icon={Play}
+          title="Subscribe"
+          color="#34C759"
+          onClick={openTopic}
+        />
+      ),
       <InfoCardBtn
         title="Publish"
         Icon={DoorOpen}
@@ -450,7 +478,7 @@ const TopicItem = ({
   onClick?: () => void;
 }) => {
   const [hover, setHover] = useState(false);
-  const [open, setOpen] = useState(topic?.running || false);
+  const open = topicStore.getTopic(topic?.topic!)?.running || false;
 
   const status = open
     ? {
@@ -464,22 +492,9 @@ const TopicItem = ({
 
   const topicOpen = (status: Boolean) => {
     if (status) {
-      httpPost(`/ros/topic`, {
-        topic_name: topic?.topic,
-        topic_type: topic?.type,
-      })
-        .onSuccess(() => {
-          setOpen(true);
-        })
-        .fetch();
+      topicStore.fetchTopicOpen(topic?.topic!);
     } else {
-      httpPost(`/ros/topic/delete`, {
-        topic_name: topic?.topic,
-      })
-        .onSuccess(() => {
-          setOpen(false);
-        })
-        .fetch();
+      topicStore.fetchTopicClose(topic?.topic!);
     }
   };
 
@@ -542,7 +557,7 @@ const TopicItem = ({
   );
 };
 
-const TopicPage = () => {
+const TopicPage = observer(() => {
   return (
     <VStack
       style={{
@@ -554,6 +569,6 @@ const TopicPage = () => {
       <TopicBoard />
     </VStack>
   );
-};
+});
 
 export { TopicInfo, TopicItem, TopicPage };

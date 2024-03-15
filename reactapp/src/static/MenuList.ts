@@ -6,8 +6,13 @@ import {
   PlusSquareIcon,
 } from "@chakra-ui/icons";
 import { ComponentWithAs, IconProps } from "@chakra-ui/react";
+import {
+  ArrowBendDoubleUpLeft,
+  ArrowBendDoubleUpRight,
+} from "@phosphor-icons/react";
+import { ElementType } from "react";
 
-export const menuList = [
+export const menuList: MenuItem[] = [
   {
     icon: InfoIcon,
     name: "Dashboard",
@@ -21,6 +26,7 @@ export const menuList = [
   {
     icon: PlusSquareIcon,
     name: "ServiceCall",
+    destination: "/service_call",
   },
   {
     icon: ChatIcon,
@@ -31,10 +37,15 @@ export const menuList = [
     icon: CalendarIcon,
     name: "Nodes",
   },
+  {
+    icon: ArrowBendDoubleUpLeft,
+    name: "Lidar",
+    destination: "/lidar",
+  },
 ];
 
 export type MenuItem = {
-  icon: ComponentWithAs<"svg", IconProps> | string;
+  icon: ElementType | string;
   name: string;
   destination?: string;
 };
