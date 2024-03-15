@@ -5,7 +5,7 @@ import { H3, H4 } from "../design/text/textsystem";
 import { useNavigate } from "react-router-dom";
 import { MenuItem, menuList } from "../static/MenuList";
 
-const MenuButton = ({ menu }: { menu: MenuItem }) => {
+const MenuButton = ({ menu, level }: { menu: MenuItem; level: number }) => {
   const naviate = useNavigate();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -14,48 +14,54 @@ const MenuButton = ({ menu }: { menu: MenuItem }) => {
     menu.destination && window.location.pathname === menu.destination;
 
   return (
-    <HStack
-      style={{
-        marginLeft: "1rem",
-        marginRight: "1rem",
-        width: "13rem",
-        height: "3rem",
-        padding: "0rem 1rem",
-        justifyContent: "flex-start",
-        borderRadius: "1rem",
-        background: isHovered || isPresentPage ? "#1C1C1C1A" : "transparent",
-      }}
-      onClick={() => {
-        if (menu.destination) naviate(menu.destination);
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {typeof menu.icon === "string" ? (
-        <img
-          src={menu.icon}
-          style={{
-            width: "1rem",
-            height: "1rem",
-          }}
-          alt=""
-        />
-      ) : (
-        <menu.icon
-          style={{
-            width: "1rem",
-            height: "1rem",
-          }}
-        />
-      )}
-      <H4
+    <>
+      <HStack
         style={{
-          fontWeight: "normal",
+          marginLeft: `${level + 1}rem`,
+          marginRight: "1rem",
+          width: `${13 - level}rem`,
+          height: "3rem",
+          padding: "0rem 1rem",
+          justifyContent: "flex-start",
+          borderRadius: "1rem",
+          background: isHovered || isPresentPage ? "#1C1C1C1A" : "transparent",
         }}
+        onClick={() => {
+          if (menu.destination) naviate(menu.destination);
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {menu.name}
-      </H4>
-    </HStack>
+        {typeof menu.icon === "string" ? (
+          <img
+            src={menu.icon}
+            style={{
+              width: "1rem",
+              height: "1rem",
+            }}
+            alt=""
+          />
+        ) : (
+          <menu.icon
+            style={{
+              width: "1rem",
+              height: "1rem",
+            }}
+          />
+        )}
+        <H4
+          style={{
+            fontWeight: "normal",
+          }}
+        >
+          {menu.name}
+        </H4>
+      </HStack>
+      {menu.subMenu &&
+        menu.subMenu.map((subMenu, idx) => (
+          <MenuButton menu={subMenu} key={idx} level={level + 1} />
+        ))}
+    </>
   );
 };
 
@@ -81,7 +87,7 @@ const Menus = () => {
           Menu
         </H3>
         {menuList.map((menu, idx) => (
-          <MenuButton menu={menu} key={idx} />
+          <MenuButton menu={menu} key={idx} level={0} />
         ))}
       </VStack>
 

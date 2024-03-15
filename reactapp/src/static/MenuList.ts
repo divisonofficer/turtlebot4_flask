@@ -1,14 +1,13 @@
 import {
   CalendarIcon,
   ChatIcon,
-  ChevronRightIcon,
   InfoIcon,
   PlusSquareIcon,
 } from "@chakra-ui/icons";
-import { ComponentWithAs, IconProps } from "@chakra-ui/react";
 import {
   ArrowBendDoubleUpLeft,
-  ArrowBendDoubleUpRight,
+  Notification,
+  Robot,
 } from "@phosphor-icons/react";
 import { ElementType } from "react";
 
@@ -24,19 +23,38 @@ export const menuList: MenuItem[] = [
     destination: "/joystick",
   },
   {
-    icon: PlusSquareIcon,
-    name: "ServiceCall",
-    destination: "/service_call",
+    icon: Robot,
+    name: "ROS",
+    subMenu: [
+      {
+        icon: PlusSquareIcon,
+        name: "ServiceCall",
+        destination: "/service_call",
+      },
+      {
+        icon: ChatIcon,
+        name: "Topics",
+        destination: "/topic",
+      },
+      {
+        icon: CalendarIcon,
+        name: "Nodes",
+      },
+      {
+        icon: Notification,
+        name: "Diagnotics",
+        destination: "/diagnostics",
+        subMenu: [
+          {
+            icon: InfoIcon,
+            name: "Detail",
+            destination: "/diagnostics/detail",
+          },
+        ],
+      },
+    ],
   },
-  {
-    icon: ChatIcon,
-    name: "Topics",
-    destination: "/topic",
-  },
-  {
-    icon: CalendarIcon,
-    name: "Nodes",
-  },
+
   {
     icon: ArrowBendDoubleUpLeft,
     name: "Lidar",
@@ -48,4 +66,5 @@ export type MenuItem = {
   icon: ElementType | string;
   name: string;
   destination?: string;
+  subMenu?: MenuItem[];
 };
