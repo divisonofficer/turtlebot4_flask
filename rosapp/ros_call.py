@@ -12,6 +12,7 @@ from .service_type_map import service_type_map, service_type_qos_map
 from array import array
 import subprocess
 import re
+import json
 
 ROBOT_NAMESPACE = ""  # "cgbot1/"
 
@@ -23,10 +24,7 @@ from time import time
 class SimpleSubscriber(Node):
 
     def __init__(self):
-
-        name = str(time())[-3:]
-
-        super().__init__("simple_subscriber" + name)
+        super().__init__("flask_simple_subscriber")
         self.runningSubscriptions = dict()
         self.runningPublishers = dict()
 
@@ -96,6 +94,9 @@ class RosPyManager:
             return message.tolist()
         else:
             # For basic data types that are directly serializable (int, float, string, etc.)
+            # if value is Infinity, return null
+            if message == "Infinity":
+                return None
             return message
 
     # Example usage remains the same
@@ -287,11 +288,37 @@ class RosPyManager:
         return self.simple_subscriber.remove_subscription(topic_name)
 
     def call_ros2_service(self, service_name, service_type, request_data=None):
-        node = rclpy.create_node("flask_ros2_service_client")
+
+        try:
+            # ROS2 서비스 호출 명령어 실행
+            result = subprocess.run(
+                [
+                    "ros2",
+                    "service",
+                    "call",
+                    service_name,
+                    service_type,
+                    json.dumps(request_data),
+                ],
+                stdout=subprocess.PIPE,
+                text=True,
+                timeout=10,  # 타임아웃 설정 (초 단위)
+            )
+            # 명령어 실행 결과 반환
+            return result.stdout
+        except subprocess.TimeoutExpired:
+            # 타임아웃 발생 시 오류 메시지 반환
+            return "Error: The command timed out."
+
+        node = self.simple_subscriber
         service_type = self.service_type_resolution(service_type)
         client = node.create_client(service_type, ROBOT_NAMESPACE + service_name)
+        holds = 0
         while not client.wait_for_service(timeout_sec=1.0):
             print("Service not available, waiting again...")
+            holds = holds + 1
+            if holds > 5:
+                break
         req = service_type.Request()
 
         # Populate request data here based on the service definition
@@ -324,6 +351,13 @@ class RosPyManager:
         """
         result = self.simple_subscriber.get_node_names_and_namespaces()
         return [{"name": name, "namespace": namespace} for name, namespace in result]
+
+    def get_services_list(self):
+        """
+        Get List of Service (callable), including parameter types & returns
+        """
+        result = self.simple_subscriber.get_service_names_and_types()
+        return [{"service": service, "type": type[0]} for service, type in result]
 
     def get_topic_nodes_list(self, topic_name):
         """
