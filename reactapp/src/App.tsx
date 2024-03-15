@@ -5,6 +5,8 @@ import { HStack, useMediaQuery, VStack } from "@chakra-ui/react";
 import { Menus, MenuToggle } from "./page/Menu";
 import JoysticPage from "./page/Joystick";
 import { TopicPage } from "./page/topic/TopicPage";
+import ServiceCallPage from "./page/service/ServiceCallPage";
+import { LidarPage } from "./page/lidar/LidarPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -15,6 +17,8 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/joystick" element={<JoysticPage />} />
         <Route path="/topic" element={<TopicPage />} />
+        <Route path="/service_call" element={<ServiceCallPage />} />
+        <Route path="/lidar" element={<LidarPage />} />
       </Routes>
     );
   };
