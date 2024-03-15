@@ -2,6 +2,7 @@ from .ros_call import RosPyManager
 from .ros_executor import RosExecutor
 from .manual_topic import ManualTopicManager
 from .lidar import LidarNode
+from .nodes.diagnostic import DiagnosticNode
 import sys
 import rclpy
 import json
@@ -15,13 +16,15 @@ class Controller:
         self.rospy = RosPyManager()
         self.executor = RosExecutor()
         self.lidar = LidarNode()
+        self.diagnostic = DiagnosticNode()
         self.executor.executor_thread(
-            [
-                self.rospy.simple_subscriber,
-                self.lidar,
-            ]
+            [self.rospy.simple_subscriber, self.lidar, self.diagnostic]
         )
         self.manualTopicManager = ManualTopicManager(socketio, socket_namespace, self)
+
+        self.diagnostic.callback = lambda x: socketio.emit(
+            "/turtlebot/diagnostic", x, namespace="/socket/ros"
+        )
 
     def con_stop_motor(self, args=None):
         """
