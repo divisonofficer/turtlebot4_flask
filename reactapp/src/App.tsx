@@ -7,6 +7,8 @@ import JoysticPage from "./page/Joystick";
 import { TopicPage } from "./page/topic/TopicPage";
 import ServiceCallPage from "./page/service/ServiceCallPage";
 import { LidarPage } from "./page/lidar/LidarPage";
+import { DiagnosticPage } from "./page/diagnotics/DiagnoticsPage";
+import { DiagnoticsDetailPage } from "./page/diagnotics/DiagnoticsDetailPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -19,6 +21,8 @@ function App() {
         <Route path="/topic" element={<TopicPage />} />
         <Route path="/service_call" element={<ServiceCallPage />} />
         <Route path="/lidar" element={<LidarPage />} />
+        <Route path="/diagnostics" element={<DiagnosticPage />} />
+        <Route path="/diagnostics/detail" element={<DiagnoticsDetailPage />} />
       </Routes>
     );
   };

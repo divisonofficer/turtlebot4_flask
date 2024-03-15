@@ -1,5 +1,15 @@
-import { Flex, FlexProps, VStack, useMediaQuery } from "@chakra-ui/react";
-import { H1 } from "../text/textsystem";
+import {
+  Divider,
+  Flex,
+  FlexProps,
+  HStack,
+  VStack,
+  useMediaQuery,
+} from "@chakra-ui/react";
+import { H1, H2 } from "../text/textsystem";
+import { Color } from "../color";
+import { useNavigate } from "react-router-dom";
+import { Btn } from "../button/button";
 
 const VStackAdj = (props: FlexProps) => {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -11,8 +21,14 @@ export { VStackAdj };
 export const PageRoot = (
   props: FlexProps & {
     title: string;
+    color?: string;
+    backPage?: {
+      title: string;
+      path: string;
+    };
   }
 ) => {
+  const navigate = useNavigate();
   return (
     <Flex
       direction="column"
@@ -24,7 +40,26 @@ export const PageRoot = (
         justifyContent: "flex-start",
       }}
     >
-      <H1>{props.title}</H1>
+      <HStack>
+        {props.backPage && (
+          <Btn
+            varient="borderless"
+            size="md"
+            onClick={() => navigate(props.backPage!.path)}
+          >
+            {props.backPage.title + " <"}
+          </Btn>
+        )}
+        <H1
+          style={{
+            margin: "1rem",
+          }}
+        >
+          {props.title}
+        </H1>
+      </HStack>
+
+      <Divider />
 
       {props.children}
     </Flex>
