@@ -1,7 +1,17 @@
 from rclpy.node import Node
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
+from sensor_msgs.msg import Image
 import json
 import base64
+from ..videostream import VideoStream
+from rclpy.qos import QoSProfile
+from rclpy.qos import (
+    QoSReliabilityPolicy,
+    QoSHistoryPolicy,
+    QoSDurabilityPolicy,
+    QoSLivelinessPolicy,
+)
+from builtin_interfaces.msg import Duration
 
 
 def encode_bytes_to_base64(data):
@@ -22,9 +32,16 @@ class DiagnosticNode(Node):
         self.subscription = self.create_subscription(
             DiagnosticArray, "/diagnostics", self.diagnostic_callback, 10
         )
-        self.subscription.timer_period = 10  # Set the timer period to 10 seconds
         self.callback = None
         self.diagnostic_dict = {}
+
+        self.oakdPreview = VideoStream()
+        self.oakdSubscription = self.create_subscription(
+            Image,
+            "/oakd/rgb/preview/image_raw",
+            self.oakdPreview.cv_raw_callback,
+            10,
+        )
 
     def diagnostic_callback(self, msg: DiagnosticArray):
         for status in msg.status:

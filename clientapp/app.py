@@ -191,10 +191,28 @@ def get_ros_service_call():
     return jsonify(result)
 
 
+@app.route("/ros/nodes/list", methods=["GET"])
+def get_ros_nodes_list():
+    return jsonify(controller.rospy.get_node_list())
+
+
+@app.route("/ros/nodes/<node_name>", methods=["GET"])
+def get_ros_nodes_detail(node_name):
+    return jsonify(controller.rospy.get_node_detail(node_name, "/"))
+
+
 @app.route("/ros/video/lidar")
 def get_ros_video_lidar_stream():
     return Response(
         controller.lidar.stream.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.route("/ros/video/oakd_preview")
+def get_ros_video_oakd_preview_stream():
+    return Response(
+        controller.diagnostic.oakdPreview.generate_preview(),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
