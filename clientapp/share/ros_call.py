@@ -359,6 +359,34 @@ class RosPyManager:
         result = self.simple_subscriber.get_service_names_and_types()
         return [{"service": service, "type": type[0]} for service, type in result]
 
+    def get_node_detail(self, node_name, namespace):
+        clients = self.simple_subscriber.get_client_names_and_types_by_node(
+            node_name, namespace
+        )
+        services = self.simple_subscriber.get_service_names_and_types_by_node(
+            node_name, namespace
+        )
+        publishers = self.simple_subscriber.get_publisher_names_and_types_by_node(
+            node_name, namespace
+        )
+        subscriptions = self.simple_subscriber.get_subscriber_names_and_types_by_node(
+            node_name, namespace
+        )
+
+        return {
+            "clients": [{"name": x[0], "type": x[1]} for x in clients],
+            "services": [
+                {"name": service, "type": type[0]} for service, type in services
+            ],
+            "publishers": [
+                {"name": publisher[0], "type": publisher[1]} for publisher in publishers
+            ],
+            "subscriptions": [
+                {"name": subscription[0], "type": subscription[1]}
+                for subscription in subscriptions
+            ],
+        }
+
     def get_topic_nodes_list(self, topic_name):
         """
         Get list of nodes for each topic
