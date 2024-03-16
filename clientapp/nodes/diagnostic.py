@@ -3,7 +3,7 @@ from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from sensor_msgs.msg import Image
 import json
 import base64
-from ..videostream import VideoStream
+from videostream import VideoStream
 from rclpy.qos import QoSProfile
 from rclpy.qos import (
     QoSReliabilityPolicy,

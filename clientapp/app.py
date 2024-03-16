@@ -16,9 +16,9 @@ app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-from share.controller import Controller
+from client_controller import ClientController
 
-controller = Controller()
+controller = ClientController()
 
 
 @app.route("/", methods=["GET"])
@@ -222,6 +222,9 @@ def handle_connect_camera_info():
     print("ReactApp connected")
 
 
+from geometry_msgs.msg import Twist
+
+
 @socketio.on("/drive", namespace="/socket/ros")
 def handle_drive(data):
     socketIoClientManager.ros_socket_emit("drive", data, namespace="/ros")
@@ -229,7 +232,8 @@ def handle_drive(data):
 
 with app.app_context():
     controller.init(socketio, "/socket/ros")
+    socketIoClientManager.ros_socket_launch_thread(socketio)
 
 if __name__ == "__main__":
-    socketIoClientManager.ros_socket_launch_thread(socketio)
+
     socketio.run(app, port=5001, host="0.0.0.0")
