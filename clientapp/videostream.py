@@ -15,11 +15,15 @@ class VideoStream:
     def cv_raw_callback(self, msg):
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        print("Generating Frame", cv_image.shape)
+        # print("Generating Frame", cv_image.shape)
         self.output_frame = cv_image
 
+    def cv_ndarray_callback(self, image):
+        # print("Generating Frame", image.shape)
+        self.output_frame = image
+
     def generate_preview(self):
-        print("Generating preview")
+        # print("Generating preview")
         while True:
             with self.lock:
                 if self.output_frame is None:

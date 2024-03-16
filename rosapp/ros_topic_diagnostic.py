@@ -34,20 +34,6 @@ class RosTopicDiagnostic:
             self.NODE_CHECK_DICT = json.load(f)
 
         while True:
-            # Example: Check if specific topics are available
-            self.TOPIC_NAME_TYPE = ros2_node.get_topic_names_and_types()
-
-            status = {topic_name: False for topic_name in TOPIC_CHECK_LIST.keys()}
-
-            for topic_name, _ in self.TOPIC_NAME_TYPE:
-                for key in TOPIC_CHECK_LIST.keys():
-                    if TOPIC_CHECK_LIST[key] in topic_name:
-                        status[key] = True
-
-            # Emit status over SocketIO
-            self.socketio.emit("status_monitoring", status, namespace="/manual")
-
-            # Sleep for a bit before checking again
             time.sleep(10)
 
             pkg_status = {

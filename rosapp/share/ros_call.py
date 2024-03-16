@@ -151,23 +151,25 @@ class RosPyManager:
         )
         if type(data) is dict:
             data = self.ros2_dict_to_message(topic_type, data)
-
-        print(data)
-
         publisher.publish(data)
 
     def ros2_dict_to_message(self, message_type, dictionary):
-        type = self.service_type_resolution(message_type)
-        message = type()
+        message_class = self.service_type_resolution(message_type)
+        message = message_class()
         for field, value in dictionary.items():
             if hasattr(message, field):
                 if isinstance(value, dict):
                     setattr(
                         message,
                         field,
-                        self.ros2_dict_to_message(getattr(message, field), value),
+                        self.ros2_dict_to_message(
+                            getattr(message, field).__class__, value
+                        ),
                     )
                 else:
+                    # Convert number to float
+                    if isinstance(value, int):
+                        value = float(value)
                     setattr(message, field, value)
         return message
 
