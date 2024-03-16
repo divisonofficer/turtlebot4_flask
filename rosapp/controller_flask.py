@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template, Response
 from flask_socketio import SocketIO
-from controller import Controller
+from share.controller import Controller
 from camera_function.preview_stream import VideoStream
 
 from config_load import configManager
@@ -17,28 +17,9 @@ controller = Controller()
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
-@app.route("/stop_motor", methods=["POST"])
-def post_stop_motor():
-    response = controller.run_command("stop_motor")
-    return jsonify(response)
-
-
-@socketio.on(message="connect", namespace="/socket/camera/info")
-def handle_connect_camera_info():
-    print("ClientApp connected")
-
-
 @socketio.on(message="connect", namespace="/manual")
 def handle_connect_manual():
     print("Manual Topic Receiver connected")
-
-
-@app.route("/resource/<resource>", methods=["GET"])
-def get_resource(resource):
-    """
-    return files in resource/ folder
-    """
-    return app.send_static_file("resource/" + resource)
 
 
 @app.route("/service/default/<service_name>", methods=["POST"])
@@ -88,65 +69,7 @@ def preview_video_feed():
 # ROS2 Topic Management
 
 
-@app.route("/manual/topic/", methods=["POST"])
-def get_manual_topic():
-    """
-    get manual topic
-    """
-    topic_name = request.json.get("topic_name")
-    if topic_name[0] != "/":
-        topic_name = "/" + topic_name
-
-    topic_type = request.json.get("topic_type")
-    if topic_type is None:
-        topic_type = configManager.ros2_topics[topic_name]
-
-    node = controller.manualTopicManager.register_topic(topic_name, topic_type)
-    if node is None:
-        return "Topic already exists", 400
-
-    return Response(status=200)
-
-
-@app.route("/manual/topic/delete", methods=["POST"])
-def delete_manual_topic():
-    """
-    delete manual topic
-    """
-    topic_name = request.json.get("topic_name")
-    if topic_name not in controller.manualTopicManager.topics:
-        return "Topic does not exist", 400
-    controller.manualTopicManager.delete_topic(topic_name)
-    return Response(status=200)
-
-
 rosDiagnostic = RosTopicDiagnostic(socketio)
-
-
-@app.route("/manual/topic/list", methods=["GET"])
-def get_manual_topic_list():
-    """
-    get manual topic list
-    """
-
-    topic_dict = rosDiagnostic.get_topics_dict_list()
-    topic_running = controller.manualTopicManager.topics.keys()
-    for topic in topic_dict:
-        if topic["topic"] in topic_running:
-            topic["running"] = True
-        else:
-            topic["running"] = False
-
-    return jsonify(topic_dict)
-
-
-@app.route("/manual/topic/nodes", methods=["POST"])
-def post_topic_nodes_get():
-    """
-    get topic nodes
-    """
-    topic_name = request.json.get("topic_name")
-    return jsonify(controller.rospy.get_qos_profile(topic_name))
 
 
 ### ROS Node Managments
