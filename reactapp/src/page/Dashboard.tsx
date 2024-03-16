@@ -28,13 +28,7 @@ const Dashboard = () => {
     >
       <H2>Nodes</H2>
       <VDivBlock color="#A1E3CB" />
-      <PkgStatusBar onClickNode={setNodeChosen} />
-      {nodeChosen && (
-        <NodeStatusBoard
-          node={nodeChosen}
-          close={() => setNodeChosen(undefined)}
-        />
-      )}
+
       <H2>Topics</H2>
       <VDivBlock color="#A1E3CB" />
       <TopicBoard />
