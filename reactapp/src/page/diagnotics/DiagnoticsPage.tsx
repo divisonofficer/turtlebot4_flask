@@ -62,6 +62,16 @@ export const DiagnosticPage = observer(() => {
         {Object.values(diagnoticsStore.message).map((diagnotic, index) => {
           return <DiagnosticView key={index} di={diagnotic} idx={index} />;
         })}
+        <img
+          src="/ros/video/oakd_preview"
+          style={{
+            width: "20rem",
+            height: "10rem",
+            borderRadius: "1rem",
+            background: "black",
+            margin: "10px",
+          }}
+        />
       </Grid>
     </PageRoot>
   );

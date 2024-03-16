@@ -7,6 +7,8 @@ class TopicStore {
   topicGroup: { [key: string]: string[] } = {};
   topicGroupChecked: { [key: string]: boolean } = {};
 
+  topicDetailView: string = "";
+
   constructor() {
     makeAutoObservable(this);
   }

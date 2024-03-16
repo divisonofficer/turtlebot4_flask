@@ -1,19 +1,12 @@
-import {
-  Button,
-  Checkbox,
-  Grid,
-  HStack,
-  IconButton,
-  VStack,
-} from "@chakra-ui/react";
-import { useCallback, useEffect, useState } from "react";
+import { Checkbox, Grid, HStack, IconButton, VStack } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 
 import { RepeatIcon } from "@chakra-ui/icons";
-import { TopicInfo, TopicItem } from "./topic/TopicPage";
-import { TopicSpec } from "../data/Topic";
+import { TopicItem } from "./topic/TopicPage";
 import { topicStore } from "../stores/TopicStore";
 import { observer } from "mobx-react";
 import { reaction } from "mobx";
+import { useNavigate } from "react-router-dom";
 
 export type TopicNodes = {
   publishers: TopicNode[];
@@ -101,7 +94,8 @@ const TopicBoard = observer(() => {
     );
   });
 
-  const [topicDisplay, setTopicDisplay] = useState<TopicSpec>();
+  const navigate = useNavigate();
+
   return (
     <VStack
       style={{
@@ -109,7 +103,6 @@ const TopicBoard = observer(() => {
         padding: "1rem",
       }}
     >
-      {topicDisplay && <TopicInfo topic={topicDisplay} />}
       <TopicToolbar />
       <Grid templateColumns="repeat(4, 1fr)" gap={6}>
         {topicStore.topics.map(
@@ -119,7 +112,8 @@ const TopicBoard = observer(() => {
                 key={topic.topic}
                 topic={topic}
                 onClick={() => {
-                  setTopicDisplay(topic);
+                  topicStore.topicDetailView = topic.topic;
+                  navigate("/topic/detail");
                 }}
               />
             )
