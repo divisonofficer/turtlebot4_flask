@@ -1,6 +1,7 @@
 import {
   Button,
   Container,
+  Flex,
   Grid,
   HStack,
   Switch,
@@ -151,14 +152,14 @@ const PkgStatusBar = ({
   };
 
   return (
-    <Grid
+    <Flex
       style={{
         justifyContent: "flex-start",
         alignItems: "flex-start",
         paddingLeft: "2rem",
         paddingBottom: "2rem",
+        flexWrap: "wrap",
       }}
-      templateColumns="repeat(4, 1fr)"
     >
       {nodeList &&
         nodeList.map((node, index) => (
@@ -179,7 +180,7 @@ const PkgStatusBar = ({
             }}
           />
         ))}
-    </Grid>
+    </Flex>
   );
 };
 

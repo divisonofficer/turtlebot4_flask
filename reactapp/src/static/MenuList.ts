@@ -8,6 +8,7 @@ import {
   ArrowBendDoubleUpLeft,
   Notification,
   Robot,
+  RocketLaunch,
 } from "@phosphor-icons/react";
 import { ElementType } from "react";
 
@@ -26,6 +27,11 @@ export const menuList: MenuItem[] = [
     icon: Robot,
     name: "ROS",
     subMenu: [
+      {
+        icon: RocketLaunch,
+        name: "Launch",
+        destination: "/launch",
+      },
       {
         icon: PlusSquareIcon,
         name: "ServiceCall",

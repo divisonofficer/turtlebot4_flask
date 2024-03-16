@@ -75,7 +75,7 @@ const JoysticPage = () => {
           z: stickProfile[index].angle,
         },
       });
-    }, 100);
+    }, 10);
     setIntervalJob(job);
   };
 
@@ -100,9 +100,10 @@ const JoysticPage = () => {
     return (
       <VStack>
         {[0, 1, 2].map((index) => (
-          <HStack>
+          <HStack key={index}>
             {[0, 1, 2].map((hindex) => (
               <InputButton
+                key={index * 3 + hindex}
                 style={{
                   width: "5rem",
                   height: "5rem",
@@ -136,7 +137,7 @@ const JoysticPage = () => {
             width: " 20rem",
             height: "20rem",
           }}
-          src="https://wallpaperaccess.com/full/2393735.jpg"
+          src="/ros/video/oakd_preview"
           alt=""
         />
       </VStack>
@@ -152,7 +153,7 @@ const JoysticPage = () => {
             width: " 20rem",
             height: "20rem",
           }}
-          src="https://wallpaperaccess.com/full/2393735.jpg"
+          src="/ros/video/lidar"
           alt=""
         />
       </VStack>
@@ -178,16 +179,6 @@ const JoysticPage = () => {
         <JoyStick />
         <OakdPreview />
         <LidarPreview />
-        <Btn size="lg">Start</Btn>
-        <Btn size="lg" varient="gray">
-          Start
-        </Btn>
-        <Btn size="lg" varient="outline">
-          Start
-        </Btn>
-        <Btn size="sm" varient="borderless">
-          Start
-        </Btn>
       </VStackAdj>
     </VStack>
   );

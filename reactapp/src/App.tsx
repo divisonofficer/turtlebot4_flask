@@ -11,6 +11,7 @@ import { DiagnosticPage } from "./page/diagnotics/DiagnoticsPage";
 import { DiagnoticsDetailPage } from "./page/diagnotics/DiagnoticsDetailPage";
 import { NodeDetailPage, NodePage } from "./page/nodes/NodePage";
 import { TopicDetailPage } from "./page/topic/TopicDetailPage";
+import { LaunchPage } from "./page/launch/LaunchPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -28,6 +29,7 @@ function App() {
         <Route path="/nodes" element={<NodePage />} />
         <Route path="/nodes/detail" element={<NodeDetailPage />} />
         <Route path="/topic/detail" element={<TopicDetailPage />} />
+        <Route path="/launch" element={<LaunchPage />} />
       </Routes>
     );
   };
