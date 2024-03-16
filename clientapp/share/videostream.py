@@ -4,7 +4,9 @@ from cv_bridge import CvBridge
 
 
 class VideoStream:
-    def __init__(self, create_subscriber):
+    def __init__(self, create_subscriber=None):
+        if create_subscriber is None:
+            return
         self.subscriber = create_subscriber(self.cv_raw_callback)
 
     output_frame = None
@@ -13,6 +15,7 @@ class VideoStream:
     def cv_raw_callback(self, msg):
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        print("Generating Frame", cv_image.shape)
         self.output_frame = cv_image
 
     def generate_preview(self):
