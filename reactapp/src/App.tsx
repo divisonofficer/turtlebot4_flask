@@ -9,6 +9,8 @@ import ServiceCallPage from "./page/service/ServiceCallPage";
 import { LidarPage } from "./page/lidar/LidarPage";
 import { DiagnosticPage } from "./page/diagnotics/DiagnoticsPage";
 import { DiagnoticsDetailPage } from "./page/diagnotics/DiagnoticsDetailPage";
+import { NodeDetailPage, NodePage } from "./page/nodes/NodePage";
+import { TopicDetailPage } from "./page/topic/TopicDetailPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -23,6 +25,9 @@ function App() {
         <Route path="/lidar" element={<LidarPage />} />
         <Route path="/diagnostics" element={<DiagnosticPage />} />
         <Route path="/diagnostics/detail" element={<DiagnoticsDetailPage />} />
+        <Route path="/nodes" element={<NodePage />} />
+        <Route path="/nodes/detail" element={<NodeDetailPage />} />
+        <Route path="/topic/detail" element={<TopicDetailPage />} />
       </Routes>
     );
   };

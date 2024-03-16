@@ -39,6 +39,7 @@ export const menuList: MenuItem[] = [
       {
         icon: CalendarIcon,
         name: "Nodes",
+        destination: "/nodes",
       },
       {
         icon: Notification,
