@@ -26,6 +26,8 @@ def encode_bytes_to_base64(data):
 
 
 class DiagnosticNode(Node):
+    __counter = 0
+
     def __init__(self):
         super().__init__("client_diagnostic_node")
         self.create_timer(20, self.timer_callback)
@@ -44,6 +46,9 @@ class DiagnosticNode(Node):
         )
 
     def diagnostic_callback(self, msg: DiagnosticArray):
+        if self.__counter < 1:
+            return
+        self.counter = 0
         for status in msg.status:
             if type(status) != DiagnosticStatus:
                 continue
@@ -65,4 +70,5 @@ class DiagnosticNode(Node):
             self.callback(json.dumps(encode_bytes_to_base64(self.diagnostic_dict)))
 
     def timer_callback(self):
+        self.__counter = 1
         self.get_logger().info("Diagnostic node is running")
