@@ -1,4 +1,4 @@
-import { Grid, VStack } from "@chakra-ui/layout";
+import { Grid, VStack, Flex } from "@chakra-ui/layout";
 import { PageRoot } from "../../design/other/flexs";
 import { useEffect, useState } from "react";
 import { httpGet, httpPost } from "../../connect/http/request";
@@ -17,6 +17,7 @@ import { useDisclosure } from "@chakra-ui/hooks";
 import { Button } from "@chakra-ui/button";
 import { Btn } from "../../design/button/button";
 import { Textarea } from "@chakra-ui/textarea";
+import { Input } from "@chakra-ui/react";
 
 const ServiceCallModal = ({
   isOpen,
@@ -70,7 +71,7 @@ const ServiceCallModal = ({
           />
 
           <H3>Response</H3>
-          <Textarea value={responseBody} isReadOnly />
+          <Textarea value={responseBody} isReadOnly height="20rem" />
         </ModalBody>
 
         <ModalFooter gap="5">
@@ -127,12 +128,29 @@ const ServiceCallList = () => {
       .fetch();
   }, []);
 
+  const [keyword, setKeyword] = useState<string>("");
+
   return (
-    <Grid templateColumns="repeat(4, 1fr)" gap="1rem">
-      {services.map((service, index) => (
-        <ServiceCallItem key={index} service={service} />
-      ))}
-    </Grid>
+    <VStack
+      style={{
+        marginLeft: "3rem",
+        marginRight: "3rem",
+        marginTop: "3rem",
+      }}
+    >
+      <Input
+        placeholder="Search"
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+      />
+      <Flex wrap="wrap" gap="1rem">
+        {services
+          .filter((service) => service.service.includes(keyword))
+          .map((service, index) => (
+            <ServiceCallItem key={index} service={service} />
+          ))}
+      </Flex>
+    </VStack>
   );
 };
 
