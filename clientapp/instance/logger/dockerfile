@@ -1,0 +1,26 @@
+FROM ros:humble-ros-base
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+COPY requirements.txt ./
+
+# Turtlebot Navigation 설치
+
+RUN apt update 
+RUN apt-get install -y iputils-ping iproute2
+# pip 설치
+RUN apt install -y python3-pip
+# Python 패키지 설치
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Flask 애플리케이션 코드 및 기타 필요한 파일 복사
+COPY . .
+
+
+SHELL ["/bin/bash", "-c"]
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+# Flask 애플리케이션 실행
+CMD ["python3", "rosout.py"]
