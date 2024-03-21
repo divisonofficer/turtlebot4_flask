@@ -9,3 +9,4 @@ clientapp/share/__pycache__/manual_topic.cpython-310.pyc
 clientapp/share/__pycache__/ros_call.cpython-310.pyc
 *.pyc
 temp.json
+clientapp/instance/.env

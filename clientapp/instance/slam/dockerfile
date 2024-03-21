@@ -1,0 +1,97 @@
+FROM ros:humble-ros-base
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN apt update && apt install -y sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g ${GROUP_ID} appgroup && \
+    useradd -m -u ${USER_ID} -g appgroup appuser \
+    && echo "appuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/appuser
+
+
+
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+COPY requirements.txt ./
+
+# Turtlebot Navigation 설치
+
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y ros-humble-turtlebot4-navigation
+RUN apt-get install -y iputils-ping iproute2
+# pip 설치
+RUN apt install -y python3-pip
+
+
+
+
+# Python 패키지 설치
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Flask 애플리케이션 코드 및 기타 필요한 파일 복사
+COPY . .
+
+SHELL ["/bin/bash", "-c"]
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+# /etc/turtlebot4_discovery/ 디렉터리 생성
+RUN mkdir -p /etc/turtlebot4_discovery/
+
+# 사용자 변경
+USER appuser
+
+RUN source /opt/ros/humble/setup.bash
+
+
+
+# # FastDDS superclient 프로필 XML 파일 생성 및 서버 IP 주소 변경
+# RUN echo '<?xml version="1.0" encoding="UTF-8" ?>' > /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '<dds>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '    <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '        <participant profile_name="super_client_profile" is_default_profile="true">' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '            <rtps>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                <builtin>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                    <discovery_config>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                        <discoveryProtocol>SUPER_CLIENT</discoveryProtocol>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                        <discoveryServersList>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                            <RemoteServer prefix="44.53.00.5f.45.50.52.4f.53.49.4d.41">' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                <metatrafficUnicastLocatorList>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                    <locator>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                        <udpv4>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                            <address>192.168.185.3</address>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                            <port>11811</port>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                        </udpv4>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                    </locator>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                                </metatrafficUnicastLocatorList>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                            </RemoteServer>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                        </discoveryServersList>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                    </discovery_config>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '                </builtin>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '            </rtps>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '        </participant>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+# && echo '    </profiles>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml \
+#  && echo '</dds>' >> /etc/turtlebot4_discovery/fastdds_discovery_super_client.xml
+
+# setup.bash 파일 생성 및 ROS_DISCOVERY_SERVER 부분 변경
+# RUN echo 'source /opt/ros/humble/setup.bash' > /etc/turtlebot4_discovery/setup.bash \
+#  && echo 'export RMW_IMPLEMENTATION=rmw_fastrtps_cpp' >> /etc/turtlebot4_discovery/setup.bash \
+#  && echo 'export FASTRTPS_DEFAULT_PROFILES_FILE=/etc/turtlebot4_discovery/fastdds_discovery_super_client.xml' >> /etc/turtlebot4_discovery/setup.bash \
+#  && echo 'export ROS_DISCOVERY_SERVER=192.168.185.3:11811' >> /etc/turtlebot4_discovery/setup.bash \
+#  && echo 'export ROS_DOMAIN_ID=0' >> /etc/turtlebot4_discovery/setup.bash
+
+
+
+# # ~/.bashrc에 setup.bash 추가
+# RUN echo 'source /etc/turtlebot4_discovery/setup.bash' >> ~/.bashrc
+# # IP 라우트 설정을 위한 스크립트 생성
+# RUN echo "ip route add 192.168.185.0/24 via 192.168.180.1 dev eth0" >> /etc/turtlebot4_discovery/add_route.sh \
+#  && chmod +x /etc/turtlebot4_discovery/add_route.sh
+# IP 라우트 서비스 실행
+#RUN /etc/turtlebot4_discovery/add_route.sh
+
+# Flask 애플리케이션 실행
+CMD ["python3", "slam_app.py"]
