@@ -1,63 +1,22 @@
-from flask import Flask, Response
+from flask import Flask, Response, request
+from flask_socketio import SocketIO
+
+
 import os
 import subprocess
 import threading
 
-from slam_opencv import slam_map_opencv, stream
-from rclpy.node import Node
+from slam_opencv import stream
 import rclpy
-from std_msgs.msg import String
-from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseWithCovarianceStamped
-
-
-class SlamApp(Node):
-    def __init__(self):
-        super().__init__("client_slam_node")
-        self.publisher_ = self.create_publisher(String, "/client/slam", 10)
-        self.timer_ = self.create_timer(20, self.timer_callback)
-        self.map_subscription = self.create_subscription(
-            OccupancyGrid, "/map", self.map_callback, 10
-        )
-        self.pos_subscription = self.create_subscription(
-            PoseWithCovarianceStamped, "/pose", self.position_callback, 10
-        )
-        self.__position = None
-        self.__map_origin = None
-
-    def map_callback(self, msg: OccupancyGrid):
-        slam_map_opencv(msg, self.__position)
-        self.__map_origin = msg.info.origin.position
-
-    def position_callback(self, msg: PoseWithCovarianceStamped):
-        self.__position = msg
-
-    def timer_callback(self):
-        msg = String()
-        msg.data = "Running"
-        self.publisher_.publish(msg)
-        self.get_logger().info("Published 'Running' on /client/slam")
-        if self.__position:
-            self.get_logger().info(f"Robot Pose: {self.__position.pose.pose}")
-        if self.__map_origin:
-            self.get_logger().info(f"Map Origin: {self.__map_origin}")
-
-
-def spin_ros2_node():
-    rclpy.init()
-    node = SlamApp()
-
-    def spin():
-        rclpy.spin(node)
-
-    threading.Thread(target=spin).start()
+from slam_node import SlamApp
 
 
 class SlamLaunch:
-    def __init__(self):
+    def __init__(self, sockets):
         self.command = "ros2 launch turtlebot4_navigation slam.launch.py"
         self.process = None
         self.thread = None
+        self.sockets = sockets
 
     def std_callback(self, msg):
         print(msg)
@@ -88,7 +47,6 @@ class SlamLaunch:
         self.thread.start()
 
     def cancel_subprocess(self):
-        # ps aux | grep -i "ros2 launch turtlebot4_navigation slam.launch.py" | awk '{print $2}' | xargs kill -9
         os.system(
             "ps aux | grep -i 'ros2 launch turtlebot4_navigation slam.launch.py' | awk '{print $2}' | xargs kill -9"
         )
@@ -105,9 +63,19 @@ class SlamLaunch:
 
 
 app = Flask(__name__)
+sockets = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
-launch = SlamLaunch()
+launch = SlamLaunch(sockets)
+node = SlamApp(sockets, launch)
+
+
+def spin_ros2_node():
+
+    def spin():
+        rclpy.spin(node)
+
+    threading.Thread(target=spin).start()
 
 
 @app.route("/launch", methods=["GET"])
@@ -140,6 +108,26 @@ def cancel_slam():
     }
 
 
+@sockets.on("connect", namespace="/slam")
+def handle_connect_camera_info():
+    print("ReactApp connected")
+    node.emit_slam_status()
+
+
+@app.route("/map/add_marker_self", methods=["POST"])
+def add_marker_self():
+    node.request_add_marker()
+    return {"status": "success", "message": "Marker added"}
+
+
+@app.route("/map/add_marker", methods=["POST"])
+def add_marker():
+    x = float(request.form.get("x"))
+    y = float(request.form.get("y"))
+    node.add_marker_by_position(x, y)
+    return {"status": "success", "message": "Marker added"}
+
+
 @app.route("/map")
 def map_preview_stream():
     return Response(
@@ -149,4 +137,4 @@ def map_preview_stream():
 
 if __name__ == "__main__":
     spin_ros2_node()
-    app.run(port=5010)
+    sockets.run(app, port=5010, host="0.0.0.0", allow_unsafe_werkzeug=True)
