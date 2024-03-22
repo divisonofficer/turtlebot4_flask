@@ -15,7 +15,7 @@ RUN apt update && apt install -y sudo \
 # 작업 디렉토리 설정
 WORKDIR /app
 
-COPY requirements.txt ./
+
 
 # Turtlebot Navigation 설치
 
@@ -30,6 +30,7 @@ RUN apt install -y python3-pip
 
 
 # Python 패키지 설치
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Flask 애플리케이션 코드 및 기타 필요한 파일 복사
