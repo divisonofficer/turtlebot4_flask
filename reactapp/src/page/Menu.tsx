@@ -11,7 +11,9 @@ const MenuButton = ({ menu, level }: { menu: MenuItem; level: number }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const isPresentPage =
-    menu.destination && window.location.pathname === menu.destination;
+    menu.destination && window.location.pathname === "/#" + menu.destination;
+
+  console.log(window.location.pathname, menu.destination, isPresentPage);
 
   return (
     <>

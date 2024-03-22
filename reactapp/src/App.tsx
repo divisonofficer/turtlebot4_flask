@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
 import Dashboard from "./page/Dashboard";
 import { HStack, useMediaQuery, VStack } from "@chakra-ui/react";
 import { Menus, MenuToggle } from "./page/Menu";
@@ -12,6 +12,7 @@ import { DiagnoticsDetailPage } from "./page/diagnotics/DiagnoticsDetailPage";
 import { NodeDetailPage, NodePage } from "./page/nodes/NodePage";
 import { TopicDetailPage } from "./page/topic/TopicDetailPage";
 import { LaunchPage } from "./page/launch/LaunchPage";
+import { SlamPage } from "./page/slam/SlamPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -30,6 +31,7 @@ function App() {
         <Route path="/nodes/detail" element={<NodeDetailPage />} />
         <Route path="/topic/detail" element={<TopicDetailPage />} />
         <Route path="/launch" element={<LaunchPage />} />
+        <Route path="/slam" element={<SlamPage />} />
       </Routes>
     );
   };
@@ -37,7 +39,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <BrowserRouter>
+        <HashRouter>
           {isMobile ? (
             <VStack
               style={{
@@ -59,7 +61,7 @@ function App() {
               <RouteTable />
             </HStack>
           )}
-        </BrowserRouter>
+        </HashRouter>
       </header>
     </div>
   );

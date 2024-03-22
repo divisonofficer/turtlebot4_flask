@@ -4,6 +4,7 @@ import { PageRoot } from "../../design/other/flexs";
 import { useEffect, useRef, useState } from "react";
 import { rosSocket } from "../../connect/socket/subscribe";
 import { Body3 } from "../../design/text/textsystem";
+import { VideoStream } from "../../design/other/video";
 
 export interface LidarScan {
   angle_min: number;
@@ -41,7 +42,7 @@ export const LidarBlock = () => {
 export const LidarPage = () => {
   return (
     <PageRoot title={"Lidar"}>
-      <Image src="/ros/video/lidar" width="600px" height="600px" />
+      <VideoStream url="/ros/video/lidar" width="600px" height="600px" />
       <LidarBlock />
     </PageRoot>
   );
