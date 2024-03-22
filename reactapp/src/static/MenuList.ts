@@ -6,6 +6,7 @@ import {
 } from "@chakra-ui/icons";
 import {
   ArrowBendDoubleUpLeft,
+  MapPin,
   Notification,
   Robot,
   RocketLaunch,
@@ -66,6 +67,11 @@ export const menuList: MenuItem[] = [
     icon: ArrowBendDoubleUpLeft,
     name: "Lidar",
     destination: "/lidar",
+  },
+  {
+    icon: MapPin,
+    name: "SLAM",
+    destination: "/slam",
   },
 ];
 

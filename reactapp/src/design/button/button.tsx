@@ -3,39 +3,8 @@ import { isDisabled } from "@testing-library/user-event/dist/utils";
 import { ReactNode, useState } from "react";
 import { JsxElement } from "typescript";
 
-const ButtonStyle = {};
-
-const VarientBorderless = (isDisabled: boolean, isHovered: boolean) => {
-  return {
-    background: isHovered ? "#1C1C1C0D" : "transparent",
-    color: isDisabled ? "##1C1C1C1A" : "#000000",
-    transition: "background 0.3s ease",
-  };
-};
-
-const VarientGray = (isDisabled: boolean, isHovered: boolean) => {
-  return {
-    background: isHovered ? "#1C1C1C33" : "#1C1C1C0D",
-    color: isDisabled ? "##1C1C1C1A" : "#000000",
-    transition: "background 0.3s ease",
-  };
-};
-
-const VarientOutline = (isDisabled: boolean, isHovered: boolean) => {
-  return {
-    background: isHovered ? "#1C1C1C33" : "transparent",
-    color: isDisabled ? "##1C1C1C1A" : "#000000",
-    border: "2px solid #1C1C1C1A",
-    transition: "background 0.3s ease",
-  };
-};
-
-const VarientFilled = (isDisabled: boolean, isHovered: boolean) => {
-  return {
-    background: isHovered ? "#1C1C1C99" : isDisabled ? "#1C1C1C0D" : "#1C1C1C",
-    color: isDisabled ? "##1C1C1C1A" : "#FFFFFF",
-    transition: "background 0.3s ease",
-  };
+const ButtonStyle = {
+  cursor: "pointer",
 };
 
 const SizeSm = {
@@ -59,6 +28,7 @@ const SizeLg = {
 const Btn = (props: {
   icon?: ReactNode | string;
   children: string | ReactNode;
+  color?: string;
   onClick?: () => void;
   varient?: "borderless" | "gray" | "outline" | "filled";
   size?: "sm" | "md" | "lg";
@@ -66,6 +36,44 @@ const Btn = (props: {
   const [isHovered, setIsHovered] = useState(false);
   const isDisabled = false;
 
+  const VarientBorderless = (isDisabled: boolean, isHovered: boolean) => {
+    return {
+      background: isHovered ? `${props.color || "1c1c1c"}0D` : "transparent",
+      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
+      transition: "background 0.3s ease",
+    };
+  };
+
+  const VarientGray = (isDisabled: boolean, isHovered: boolean) => {
+    return {
+      background: isHovered
+        ? `${props.color || "1c1c1c"}33`
+        : `${props.color || "1c1c1c"}0D`,
+      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
+      transition: "background 0.3s ease",
+    };
+  };
+
+  const VarientOutline = (isDisabled: boolean, isHovered: boolean) => {
+    return {
+      background: isHovered ? `${props.color || "1c1c1c"}33` : "transparent",
+      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
+      border: `2px solid ${props.color || "1c1c1c"}1A`,
+      transition: "background 0.3s ease",
+    };
+  };
+
+  const VarientFilled = (isDisabled: boolean, isHovered: boolean) => {
+    return {
+      background: isHovered
+        ? `${props.color || "1c1c1c"}99`
+        : isDisabled
+        ? `${props.color || "1c1c1c"}0D`
+        : `${props.color || "1c1c1c"}`,
+      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#FFFFFF",
+      transition: "background 0.3s ease",
+    };
+  };
   return (
     <Flex
       style={{
