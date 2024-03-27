@@ -128,11 +128,36 @@ def add_marker():
     return {"status": "success", "message": "Marker added"}
 
 
-@app.route("/map")
-def map_preview_stream():
+@app.route("/map/stream/<timestamp>")
+def map_preview_stream(timestamp):
     return Response(
-        stream.generate_preview(), mimetype="multipart/x-mixed-replace; boundary=frame"
+        stream.generate_preview(timestamp),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@app.route("/map/stream/<timestamp>", methods=["DELETE"])
+def cancel_map_preview(timestamp):
+    stream.stop(timestamp)
+    return {"status": "success", "message": "Map preview stopped"}
+
+
+@app.route("/map/marker/<id>", methods=["DELETE"])
+def delete_marker(id):
+    node.delete_marker(id)
+    return {"status": "success", "message": "Marker deleted"}
+
+
+@app.route("/map/data", methods=["GET"])
+def get_map_data():
+    if not launch.process:
+        return {
+            "status": "error",
+            "message": "Slam not running",
+        }
+    data = node.get_map_json()
+    print(data)
+    return data
 
 
 if __name__ == "__main__":

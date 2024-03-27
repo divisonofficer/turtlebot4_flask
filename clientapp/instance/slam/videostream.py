@@ -6,6 +6,7 @@ import time
 
 class VideoStream:
     def __init__(self, create_subscriber=None):
+        self.running = {}
         if create_subscriber is None:
             return
         self.subscriber = create_subscriber(self.cv_raw_callback)
@@ -21,8 +22,15 @@ class VideoStream:
     def cv_ndarray_callback(self, image):
         self.output_frame = image
 
-    def generate_preview(self, isGrayScale=False):
+    def stop(self, timeStamp: str):
+        self.running[timeStamp] = False
+
+    def generate_preview(self, timeStamp: str = None, isGrayScale=False):
+        if timeStamp:
+            self.running[timeStamp] = True
         while True:
+            if not self.running[timeStamp]:
+                break
             with self.lock:
                 if self.output_frame is None:
                     continue
@@ -42,4 +50,4 @@ class VideoStream:
                 b"Content-Type: image/jpeg\r\n\r\n" + bytearray(encodedImage) + b"\r\n"
             )
             self.output_frame = None
-            time.sleep(0.03)
+            time.sleep(0.1)
