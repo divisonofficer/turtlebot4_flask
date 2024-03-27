@@ -2,7 +2,7 @@ import { observer } from "mobx-react";
 import { PageRoot } from "../../design/other/flexs";
 import { Body1, H4 } from "../../design/text/textsystem";
 import { Diagnotic, diagnoticsStore } from "../../stores/DiagnoticsStore";
-import { Grid, VStack } from "@chakra-ui/react";
+import { Flex, Grid, VStack } from "@chakra-ui/react";
 import { Color } from "../../design/color";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -58,7 +58,7 @@ export const DiagnosticView = observer(
 export const DiagnosticPage = observer(() => {
   return (
     <PageRoot title="Diagnostics">
-      <Grid templateColumns="repeat(4, 1fr)" gap={6}>
+      <Flex wrap="wrap">
         {Object.values(diagnoticsStore.message).map((diagnotic, index) => {
           return <DiagnosticView key={index} di={diagnotic} idx={index} />;
         })}
@@ -72,7 +72,7 @@ export const DiagnosticPage = observer(() => {
             margin: "10px",
           }}
         />
-      </Grid>
+      </Flex>
     </PageRoot>
   );
 });

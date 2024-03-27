@@ -35,44 +35,46 @@ const Btn = (props: {
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const isDisabled = false;
+  const varient = props.varient || "filled";
+
+  const color = props.color || "#1c1c1c";
 
   const VarientBorderless = (isDisabled: boolean, isHovered: boolean) => {
     return {
-      background: isHovered ? `${props.color || "1c1c1c"}0D` : "transparent",
-      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
+      background: isHovered ? `${color}0D` : "transparent",
+      color: isDisabled ? `${color}1A` : "#000000",
       transition: "background 0.3s ease",
     };
   };
 
   const VarientGray = (isDisabled: boolean, isHovered: boolean) => {
     return {
-      background: isHovered
-        ? `${props.color || "1c1c1c"}33`
-        : `${props.color || "1c1c1c"}0D`,
-      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
+      background: isHovered ? `${color}33` : `${color}0D`,
+      color: isDisabled ? `${color}1A` : "#000000",
       transition: "background 0.3s ease",
     };
   };
 
   const VarientOutline = (isDisabled: boolean, isHovered: boolean) => {
     return {
-      background: isHovered ? `${props.color || "1c1c1c"}33` : "transparent",
-      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#000000",
-      border: `2px solid ${props.color || "1c1c1c"}1A`,
+      background: isHovered ? `${color}33` : "transparent",
+      color: isDisabled ? `${color}1A` : "#000000",
+      border: `2px solid ${color}1A`,
       transition: "background 0.3s ease",
     };
   };
 
   const VarientFilled = (isDisabled: boolean, isHovered: boolean) => {
-    return {
+    const style = {
       background: isHovered
-        ? `${props.color || "1c1c1c"}99`
+        ? `${color}99`
         : isDisabled
-        ? `${props.color || "1c1c1c"}0D`
-        : `${props.color || "1c1c1c"}`,
-      color: isDisabled ? `${props.color || "1c1c1c"}1A` : "#FFFFFF",
+        ? `${color}0D`
+        : `${color}FF`,
+      color: isDisabled ? `${color}1A` : `#FFFFFF`,
       transition: "background 0.3s ease",
     };
+    return style;
   };
   return (
     <Flex
@@ -80,12 +82,11 @@ const Btn = (props: {
         ...ButtonStyle,
         ...VarientFilled(isDisabled, isHovered),
         ...SizeMd,
-        ...(props.varient === "borderless" &&
+        ...(varient === "borderless" &&
           VarientBorderless(isDisabled, isHovered)),
-        ...(props.varient === "gray" && VarientGray(isDisabled, isHovered)),
-        ...(props.varient === "outline" &&
-          VarientOutline(isDisabled, isHovered)),
-        ...(props.varient === "filled" && VarientFilled(isDisabled, isHovered)),
+        ...(varient === "gray" && VarientGray(isDisabled, isHovered)),
+        ...(varient === "outline" && VarientOutline(isDisabled, isHovered)),
+        ...(varient === "filled" && VarientFilled(isDisabled, isHovered)),
         ...(props.size === "sm" && SizeSm),
         ...(props.size === "md" && SizeMd),
         ...(props.size === "lg" && SizeLg),
