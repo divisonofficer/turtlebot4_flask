@@ -1,4 +1,11 @@
-import { Checkbox, Grid, HStack, IconButton, VStack } from "@chakra-ui/react";
+import {
+  Checkbox,
+  Flex,
+  Grid,
+  HStack,
+  IconButton,
+  VStack,
+} from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
 import { RepeatIcon } from "@chakra-ui/icons";
@@ -59,10 +66,11 @@ const TopicBoard = observer(() => {
 
   const TopicToolbar = observer(() => {
     return (
-      <HStack
+      <Flex
         style={{
           width: "100%",
         }}
+        wrap="wrap"
       >
         <Checkbox
           isChecked={Object.values(topicStore.topicGroupChecked).every(
@@ -90,7 +98,7 @@ const TopicBoard = observer(() => {
           icon={<RepeatIcon />}
           onClick={() => topicStore.fetchGetTopicList()}
         />
-      </HStack>
+      </Flex>
     );
   });
 

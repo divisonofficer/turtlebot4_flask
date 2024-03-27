@@ -107,26 +107,22 @@ export const NodeDetailPage = observer(() => {
   );
 });
 
-export const NodePage = () => {
-  const [nodes, setNodes] = useState<Node[]>([]);
-  useEffect(() => {
-    httpGet("/ros/nodes/list")
-      .onSuccess((data) => {
-        setNodes(data);
-      })
-      .fetch();
-  }, []);
+export const NodePage = observer(() => {
   const navigate = useNavigate();
+  useEffect(() => {
+    nodeStore.fetchGetNodeList();
+  }, []);
   return (
     <PageRoot title="Nodes">
       <Flex width="100%" flexWrap="wrap" gap={2}>
-        {nodes.map((node) => {
+        {nodeStore.nodes.map((node) => {
           return (
             <Btn
               onClick={() => {
                 nodeStore.nodeDetailView = node;
                 navigate("/nodes/detail");
               }}
+              key={node.name}
             >
               {node.name}
             </Btn>
@@ -135,4 +131,4 @@ export const NodePage = () => {
       </Flex>
     </PageRoot>
   );
-};
+});

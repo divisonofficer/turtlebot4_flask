@@ -149,7 +149,7 @@ export const SlamMap = ({
     >
       <VideoStream
         id="video-stream"
-        url="/slam/map"
+        url="/slam/map/stream"
         width="100%"
         height="100%"
       />
