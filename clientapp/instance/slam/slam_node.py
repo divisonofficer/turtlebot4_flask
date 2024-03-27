@@ -1,10 +1,16 @@
-import random
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from slam_opencv import slam_map_opencv
 from quaternion_to_euler import quaternion_to_euler
+
+from sensor_msgs.msg import LaserScan
+from slam_toolbox.srv import SaveMap
+
+import math
+
+import time
 
 
 class SlamApp(Node):
@@ -38,17 +44,24 @@ class SlamApp(Node):
 
         self.sockets = sockets
         self.launch = launch
-        self.timer_ = self.create_timer(20, self.timer_callback)
+        self.timer_ = self.create_timer(10, self.timer_callback)
         self.map_subscription = self.create_subscription(
             OccupancyGrid, "/map", self.map_callback, 10
         )
         self.pos_subscription = self.create_subscription(
             PoseWithCovarianceStamped, "/pose", self.position_callback, 10
         )
+        self.lidar_subscription = self.create_subscription(
+            LaserScan, "/scan", self.lidar_callback, 10
+        )
+        self.init_members()
+
+    def init_members(self):
         self.__position = None
         self.__map_origin = None
         self.__map_size = None
-
+        self.__euler_orientation = None
+        self.__map_msg = None
         self.__markers = []
 
         self.topic_timestamps = {}
@@ -64,13 +77,14 @@ class SlamApp(Node):
         Args:
             msg: The map message.
         """
-        slam_map_opencv(msg, self.__position, self.__markers)
+        slam_map_opencv(msg, self.__position, self.__markers, self.__lidar_position)
         self.__map_origin = msg.info.origin.position
         self.__map_size = {
             "width": msg.info.width,
             "height": msg.info.height,
             "resolution": msg.info.resolution,
         }
+        self.__map_msg = msg
         self.topic_timestamps["map"] = msg.header.stamp
 
     def position_callback(self, msg: PoseWithCovarianceStamped):
@@ -81,6 +95,12 @@ class SlamApp(Node):
             msg: The position message.
         """
         self.__position = msg
+        self.__euler_orientation = quaternion_to_euler(
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w,
+        )
         msg.pose.pose.orientation
         self.sockets.emit(
             "robot_pose",
@@ -88,6 +108,26 @@ class SlamApp(Node):
             namespace="/slam",
         )
         self.topic_timestamps["pose"] = msg.header.stamp
+
+    def lidar_callback(self, msg: LaserScan):
+        self.__lidar_position = self.laser_to_position_array(msg)
+
+    ############################################################################################################
+    # Service Call
+    ############################################################################################################
+
+    def service_call_save_map(self, filename: str):
+        request = SaveMap.Request()
+        request.name = filename
+        client = self.create_client(SaveMap, "/slam_toolbox/save_map")
+        while not client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("Service not available, waiting...")
+        future = client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        if future.result() is not None:
+            return future.result().success
+        else:
+            return False
 
     ############################################################################################################
     # Marker Functions
@@ -100,9 +140,7 @@ class SlamApp(Node):
         Args:
             msg: The marker message.
         """
-        self.__markers.append(
-            {"id": random.randint(0, 100000000), "pose": self.pose_to_dict(msg)}
-        )
+        self.__markers.append({"id": time.time().real, "pose": self.pose_to_dict(msg)})
 
     def request_add_marker(self):
         """
@@ -124,9 +162,21 @@ class SlamApp(Node):
             x: The x-coordinate of the marker.
             y: The y-coordinate of the marker.
         """
-        self.__markers.append(
-            {"id": random.randint(0, 100000000), "pose": {"x": x, "y": y}}
+        self.__markers.append({"id": time.time().real, "pose": {"x": x, "y": y}})
+        self.sockets.emit(
+            "markers",
+            self.__markers,
+            namespace="/slam",
         )
+
+    def delete_marker(self, id):
+        """
+        Deletes a marker from the list of markers.
+
+        Args:
+            id: The id of the marker.
+        """
+        self.__markers = [marker for marker in self.__markers if marker["id"] != id]
         self.sockets.emit(
             "markers",
             self.__markers,
@@ -165,6 +215,23 @@ class SlamApp(Node):
             },
         }
 
+    def laser_to_position_array(self, msg: LaserScan):
+        if self.__euler_orientation is None:
+            return []
+
+        angleStart = msg.angle_min + self.__euler_orientation["roll"] + math.pi / 2
+        angleIncrement = msg.angle_increment
+        ranges = msg.ranges
+        positionArray = []
+        for i, distance in enumerate(ranges):
+            if math.isinf(distance):
+                continue
+            angle = angleStart + i * angleIncrement
+            x = distance * math.cos(angle)
+            y = distance * math.sin(angle)
+            positionArray.append((x, y))
+        return positionArray
+
     ############################################################################################################
     # Timer Functions
     ############################################################################################################
@@ -191,20 +258,7 @@ class SlamApp(Node):
                 self.get_logger().info(f"Map Origin: {self.__map_origin}")
             self.sockets.emit(
                 "slam_status",
-                {
-                    "status": "success",
-                    "message": "Slam running",
-                    "robot_pose": {
-                        "x": self.__position.pose.pose.position.x,
-                        "y": self.__position.pose.pose.position.y,
-                    },
-                    "map_origin": {
-                        "x": self.__map_origin.x,
-                        "y": self.__map_origin.y,
-                    },
-                    "map_size": self.__map_size,
-                    "markers": self.__markers,
-                },
+                self.get_slam_status(),
                 namespace="/slam",
             )
         else:
@@ -214,3 +268,48 @@ class SlamApp(Node):
                 {"status": "error", "message": "Slam not running"},
                 namespace="/slam",
             )
+
+    def get_slam_status(self):
+        return {
+            "status": "success",
+            "message": "Slam running",
+            "robot_pose": (
+                {
+                    "x": self.__position.pose.pose.position.x,
+                    "y": self.__position.pose.pose.position.y,
+                }
+                if self.__position
+                else None
+            ),
+            "map_origin": (
+                {
+                    "x": self.__map_origin.x,
+                    "y": self.__map_origin.y,
+                }
+                if self.__map_origin
+                else None
+            ),
+            "map_size": self.__map_size,
+            "markers": self.__markers,
+        }
+
+    def get_map_json(self):
+        data = list(self.__map_msg.data)
+        return {
+            "map_origin": self.point_to_dict(self.__map_origin),
+            "map_size": self.__map_size,
+            "markers": self.__markers,
+            "map_metadata": [
+                {
+                    "resolution": x.resolution,
+                    "width": x.width,
+                    "height": x.height,
+                    "origin": self.point_to_dict(x.origin.position),
+                }
+                for x in [self.__map_msg.info]
+            ][0],
+            "map_data": data,
+        }
+
+    def point_to_dict(self, p):
+        return {"x": p.x, "y": p.y}

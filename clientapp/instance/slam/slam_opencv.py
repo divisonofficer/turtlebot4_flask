@@ -10,7 +10,10 @@ stream = VideoStream()
 
 
 def slam_map_opencv(
-    map: OccupancyGrid, position: PoseWithCovarianceStamped, markers: list = None
+    map: OccupancyGrid,
+    position: PoseWithCovarianceStamped,
+    markers: list = None,
+    lidar_position: list = None,
 ):
 
     # 임의의 데이터를 생성합니다. 실제 사용 시에는 ROS 메시지의 data를 사용해야 합니다.
@@ -41,12 +44,21 @@ def slam_map_opencv(
         robot_y = int((robot_pose.y - origin.y) / map.info.resolution)
 
         cv2.circle(image_data, (robot_x, robot_y), 2, (128, 0, 0), -1)
+        radius = int(map.info.width / 300)
+        if lidar_position:
+            for position in lidar_position:
+                lidar_x = robot_x - int(position[0] / map.info.resolution)
+                lidar_y = robot_y + int(position[1] / map.info.resolution)
+                if radius < 1:
+                    image_data[lidar_y, lidar_x] = (0, 0, 255)
+                else:
+                    cv2.circle(image_data, (lidar_x, lidar_y), radius, (0, 0, 255), -1)
 
     for marker in markers or []:
         pos = marker["pose"]
         marker_x = int(map.info.width - (pos["x"] - origin.x) / map.info.resolution)
         marker_y = int((pos["y"] - origin.y) / map.info.resolution)
 
-        cv2.circle(image_data, (marker_x, marker_y), 2, (0, 0, 128), -1)
+        cv2.circle(image_data, (marker_x, marker_y), 2, (0, 128, 0), -1)
 
     stream.cv_ndarray_callback(image_data)
