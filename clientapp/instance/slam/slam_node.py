@@ -3,14 +3,24 @@ from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from slam_opencv import slam_map_opencv
-from quaternion_to_euler import quaternion_to_euler
 
 from sensor_msgs.msg import LaserScan
 from slam_toolbox.srv import SaveMap
 
+from slam_types import (
+    QuaternionAngle,
+    MapMarker,
+    EulierAngle,
+    Point3D,
+    MapInfo,
+    Pose3D,
+    dictValueConversion,
+)
+
 import math
 
 import time
+from typing import Union, List, Optional, Tuple
 
 
 class SlamApp(Node):
@@ -31,6 +41,13 @@ class SlamApp(Node):
         __markers: The list of markers.
         topic_timestamps: The timestamps of the topics.
     """
+
+    __map_origin: Optional[Point3D]
+    __euler_orientation: Optional[EulierAngle]
+    __markers: List[MapMarker]
+    __map_msg: Optional[OccupancyGrid]
+    __map_size: Optional[MapInfo]
+    __lidar_position: List[Tuple[float, float]]
 
     def __init__(self, sockets, launch):
         """
@@ -57,12 +74,13 @@ class SlamApp(Node):
         self.init_members()
 
     def init_members(self):
-        self.__position = None
         self.__map_origin = None
-        self.__map_size = None
         self.__euler_orientation = None
-        self.__map_msg = None
         self.__markers = []
+
+        self.__map_msg = None
+        self.__map_size = None
+        self.__position = None
 
         self.topic_timestamps = {}
 
@@ -78,12 +96,8 @@ class SlamApp(Node):
             msg: The map message.
         """
         slam_map_opencv(msg, self.__position, self.__markers, self.__lidar_position)
-        self.__map_origin = msg.info.origin.position
-        self.__map_size = {
-            "width": msg.info.width,
-            "height": msg.info.height,
-            "resolution": msg.info.resolution,
-        }
+        self.__map_origin = Point3D.from_msg(msg.info.origin.position)
+        self.__map_size = MapInfo(msg.info.width, msg.info.height, msg.info.resolution)
         self.__map_msg = msg
         self.topic_timestamps["map"] = msg.header.stamp
 
@@ -94,17 +108,13 @@ class SlamApp(Node):
         Args:
             msg: The position message.
         """
-        self.__position = msg
-        self.__euler_orientation = quaternion_to_euler(
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w,
-        )
-        msg.pose.pose.orientation
+        self.__position = Pose3D.from_msg(msg.pose.pose)
+        self.__euler_orientation = QuaternionAngle.from_msg(
+            msg.pose.pose.orientation
+        ).to_euler()
         self.sockets.emit(
             "robot_pose",
-            self.pose_to_dict(msg),
+            self.__position.to_dict_point(),
             namespace="/slam",
         )
         self.topic_timestamps["pose"] = msg.header.stamp
@@ -150,7 +160,7 @@ class SlamApp(Node):
         self.add_marker(self.__position)
         self.sockets.emit(
             "markers",
-            self.__markers,
+            dictValueConversion(self.__markers),
             namespace="/slam",
         )
 
@@ -162,10 +172,17 @@ class SlamApp(Node):
             x: The x-coordinate of the marker.
             y: The y-coordinate of the marker.
         """
-        self.__markers.append({"id": time.time().real, "pose": {"x": x, "y": y}})
+
+        self.__markers.append(
+            MapMarker(
+                id=time.time().real,
+                position=Point3D(x, y, 0),
+                orientation=QuaternionAngle(0, 0, 0, 1),
+            )
+        )
         self.sockets.emit(
             "markers",
-            self.__markers,
+            dictValueConversion(self.__markers),
             namespace="/slam",
         )
 
@@ -176,10 +193,10 @@ class SlamApp(Node):
         Args:
             id: The id of the marker.
         """
-        self.__markers = [marker for marker in self.__markers if marker["id"] != id]
+        self.__markers = [marker for marker in self.__markers if marker.id != id]
         self.sockets.emit(
             "markers",
-            self.__markers,
+            dictValueConversion(self.__markers),
             namespace="/slam",
         )
 
@@ -187,42 +204,14 @@ class SlamApp(Node):
     # Position Functions
     ############################################################################################################
 
-    def pose_to_dict(self, msg):
-        """
-        Converts a pose message to a dictionary.
-
-        Args:
-            msg: The pose message.
-
-        Returns:
-            A dictionary representing the pose.
-        """
-        return {
-            "x": msg.pose.pose.position.x,
-            "y": msg.pose.pose.position.y,
-            "z": msg.pose.pose.position.z,
-            "orientation": quaternion_to_euler(
-                msg.pose.pose.orientation.x,
-                msg.pose.pose.orientation.y,
-                msg.pose.pose.orientation.z,
-                msg.pose.pose.orientation.w,
-            ),
-            "orientation_quaternion": {
-                "x": msg.pose.pose.orientation.x,
-                "y": msg.pose.pose.orientation.y,
-                "z": msg.pose.pose.orientation.z,
-                "w": msg.pose.pose.orientation.w,
-            },
-        }
-
-    def laser_to_position_array(self, msg: LaserScan):
+    def laser_to_position_array(self, msg: LaserScan) -> List[Tuple[float, float]]:
         if self.__euler_orientation is None:
             return []
 
-        angleStart = msg.angle_min + self.__euler_orientation["roll"] + math.pi / 2
+        angleStart = msg.angle_min + self.__euler_orientation.roll + math.pi / 2
         angleIncrement = msg.angle_increment
         ranges = msg.ranges
-        positionArray = []
+        positionArray: List[Tuple[float, float]] = []
         for i, distance in enumerate(ranges):
             if math.isinf(distance):
                 continue
@@ -253,12 +242,12 @@ class SlamApp(Node):
         if self.launch.process:
             self.get_logger().info("Slam App is Running")
             if self.__position:
-                self.get_logger().info(f"Robot Pose: {self.__position.pose.pose}")
+                self.get_logger().info(f"Robot Pose: {self.__position}")
             if self.__map_origin:
                 self.get_logger().info(f"Map Origin: {self.__map_origin}")
             self.sockets.emit(
                 "slam_status",
-                self.get_slam_status(),
+                dictValueConversion(self.get_slam_status()),
                 namespace="/slam",
             )
         else:
@@ -274,26 +263,19 @@ class SlamApp(Node):
             "status": "success",
             "message": "Slam running",
             "robot_pose": (
-                {
-                    "x": self.__position.pose.pose.position.x,
-                    "y": self.__position.pose.pose.position.y,
-                }
-                if self.__position
-                else None
+                self.__position.to_dict_point() if self.__position else None
             ),
-            "map_origin": (
-                {
-                    "x": self.__map_origin.x,
-                    "y": self.__map_origin.y,
-                }
-                if self.__map_origin
-                else None
-            ),
+            "map_origin": self.__map_origin,
             "map_size": self.__map_size,
-            "markers": self.__markers,
+            "markers": [marker for marker in self.__markers],
         }
 
     def get_map_json(self):
+        if self.__map_msg is None:
+            return {
+                "status": "error",
+                "message": "Map not available",
+            }
         data = list(self.__map_msg.data)
         return {
             "map_origin": self.point_to_dict(self.__map_origin),

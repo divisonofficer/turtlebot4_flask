@@ -2,6 +2,7 @@ import cv2
 import threading
 from cv_bridge import CvBridge
 import time
+from typing import Union
 
 
 class VideoStream:
@@ -25,7 +26,7 @@ class VideoStream:
     def stop(self, timeStamp: str):
         self.running[timeStamp] = False
 
-    def generate_preview(self, timeStamp: str = None, isGrayScale=False):
+    def generate_preview(self, timeStamp: Union[str, None] = None, isGrayScale=False):
         if timeStamp:
             self.running[timeStamp] = True
         while True:

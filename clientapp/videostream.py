@@ -2,11 +2,17 @@ import cv2
 import threading
 from cv_bridge import CvBridge
 import time
+from typing import Union
+
+from sensor_msgs.msg import Image, CompressedImage
+from typing import Union
+import numpy as np
 
 
 class VideoStream:
     def __init__(self, create_subscriber=None):
         self.running = {}
+        self.bridge = CvBridge()
         if create_subscriber is None:
             return
         self.subscriber = create_subscriber(self.cv_raw_callback)
@@ -14,9 +20,14 @@ class VideoStream:
     output_frame = None
     lock = threading.Lock()
 
-    def cv_raw_callback(self, msg):
-        bridge = CvBridge()
-        cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+    def cv_raw_callback(self, msg: Union[Image, CompressedImage]):
+
+        if isinstance(msg, CompressedImage):
+            np_arr = np.frombuffer(msg.data, np.uint8)
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        else:
+
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         self.output_frame = cv_image
 
     def cv_ndarray_callback(self, image):
@@ -25,7 +36,7 @@ class VideoStream:
     def stop(self, timeStamp: str):
         self.running[timeStamp] = False
 
-    def generate_preview(self, timeStamp: str = None, isGrayScale=False):
+    def generate_preview(self, timeStamp: Union[str, None] = None, isGrayScale=False):
         if timeStamp:
             self.running[timeStamp] = True
         while True:

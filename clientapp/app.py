@@ -209,12 +209,18 @@ def get_ros_video_lidar_stream():
     )
 
 
-@app.route("/ros/video/oakd_preview")
-def get_ros_video_oakd_preview_stream():
+@app.route("/ros/video/oakd_preview/<timestamp>")
+def get_ros_video_oakd_preview_stream(timestamp):
     return Response(
-        controller.diagnostic.oakdPreview.generate_preview(),
+        controller.diagnostic.oakdPreview.generate_preview(timestamp),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@app.route("/ros/video/oakd_preview/<timestamp>", methods=["DELETE"])
+def delete_ros_video_oakd_preview_stream(timestamp):
+    controller.diagnostic.oakdPreview.stop(timestamp)
+    return {"status": "success", "message": "Oakd preview stopped"}
 
 
 @socketio.on("connect", namespace="/socket/ros")
