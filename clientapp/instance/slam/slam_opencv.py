@@ -5,15 +5,16 @@ import cv2
 
 from videostream import VideoStream
 
+from slam_types import MapMarker, QuaternionAngle, Point3D, EulierAngle, Pose3D
 
 stream = VideoStream()
 
 
 def slam_map_opencv(
     map: OccupancyGrid,
-    position: PoseWithCovarianceStamped,
-    markers: list = None,
-    lidar_position: list = None,
+    pose: Pose3D,
+    markers: list[MapMarker] = [],
+    lidar_position: list = [],
 ):
 
     # 임의의 데이터를 생성합니다. 실제 사용 시에는 ROS 메시지의 data를 사용해야 합니다.
@@ -27,38 +28,36 @@ def slam_map_opencv(
     ]
 
     # numpy 배열로 변환하고 이미지의 형태로 재조정합니다.
+
+    origin = map.info.origin.position
     image_data = np.array(data, dtype=np.uint8).reshape(
         (map.info.height, map.info.width, 3)
     )
+    image = cv2.flip(image_data, 1)
+    if pose is not None:
+        robot_x = int(
+            map.info.width - (pose.position.x - origin.x) / map.info.resolution
+        )
+        robot_y = int((pose.position.y - origin.y) / map.info.resolution)
 
-    # OpenCV에서 사용할 수 있도록 데이터 타입을 변경합니다.
-    image_data = image_data.astype(np.uint8)
-
-    origin = map.info.origin.position
-    if position is not None:
-        robot_pose = position.pose.pose.position
-
-        image_data = cv2.flip(image_data, 1)
-
-        robot_x = int(map.info.width - (robot_pose.x - origin.x) / map.info.resolution)
-        robot_y = int((robot_pose.y - origin.y) / map.info.resolution)
-
-        cv2.circle(image_data, (robot_x, robot_y), 2, (128, 0, 0), -1)
+        cv2.circle(image, (robot_x, robot_y), 2, (128, 0, 0), -1)
         radius = int(map.info.width / 300)
         if lidar_position:
             for position in lidar_position:
                 lidar_x = robot_x - int(position[0] / map.info.resolution)
                 lidar_y = robot_y + int(position[1] / map.info.resolution)
+                lidar_x = max(0, min(lidar_x, map.info.width - 1))
+                lidar_y = max(0, min(lidar_y, map.info.height - 1))
                 if radius < 1:
-                    image_data[lidar_y, lidar_x] = (0, 0, 255)
+                    image[lidar_y, lidar_x] = (0, 0, 255)
                 else:
-                    cv2.circle(image_data, (lidar_x, lidar_y), radius, (0, 0, 255), -1)
+                    cv2.circle(image, (lidar_x, lidar_y), radius, (0, 0, 255), -1)
 
     for marker in markers or []:
-        pos = marker["pose"]
+        pos = marker.position
         marker_x = int(map.info.width - (pos["x"] - origin.x) / map.info.resolution)
         marker_y = int((pos["y"] - origin.y) / map.info.resolution)
 
-        cv2.circle(image_data, (marker_x, marker_y), 2, (0, 128, 0), -1)
+        cv2.circle(image, (marker_x, marker_y), 2, (0, 128, 0), -1)
 
-    stream.cv_ndarray_callback(image_data)
+    stream.cv_ndarray_callback(image)

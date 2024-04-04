@@ -33,7 +33,10 @@ class SlamLaunch:
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
             )
             while True:
-                output = self.process.stdout.readline().decode().strip()
+                stdout = self.process.stdout
+                if not stdout:
+                    break
+                output = stdout.readline().decode().strip()
                 if output == "" and self.process.poll() is not None:
                     break
                 if output:
@@ -122,9 +125,11 @@ def add_marker_self():
 
 @app.route("/map/add_marker", methods=["POST"])
 def add_marker():
-    x = float(request.form.get("x"))
-    y = float(request.form.get("y"))
-    node.add_marker_by_position(x, y)
+    x = request.form.get("x", "0")
+    y = request.form.get("y", "0")
+    if not x or not y:
+        return {"status": "error", "message": "Invalid x or y"}
+    node.add_marker_by_position(float(x), float(y))
     return {"status": "success", "message": "Marker added"}
 
 
