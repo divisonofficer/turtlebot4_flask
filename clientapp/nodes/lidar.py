@@ -7,7 +7,6 @@ from videostream import VideoStream
 from rclpy.node import Node
 from flask_socketio import SocketIO
 
-
 RESOLUTION = 512
 DOSPLAY_RESOLUTION = 512
 
@@ -15,6 +14,7 @@ DOSPLAY_RESOLUTION = 512
 class LidarNode(Node):
     __counter = 0
     EMIT_INTERVAL = 10
+    is_running = False
 
     def __init__(self, socketio: SocketIO):
         super().__init__("client_lidar_node")
@@ -26,11 +26,16 @@ class LidarNode(Node):
         self.__bridgeCallback = None
         self.stream = VideoStream()
         self.__bridgeCallback = self.stream.cv_ndarray_callback
+        self.is_running = False  # Add an on-off switch variable
 
     def timer_callback(self):
-        print("Lidar Node is Running")
+        if self.is_running:
+            print("Lidar Node is Running")
 
     def scan_callback(self, msg: LaserScan):
+        if not self.is_running:
+            return
+
         self.__counter += 1
         if self.__counter > self.EMIT_INTERVAL:
             self.__counter = 0
@@ -70,14 +75,20 @@ class LidarNode(Node):
 
         # Create a 2d image array. Each element in the array represents a pixel in the image. Image resolution is RESOLUTION x RESOLUTION
 
-        image = np.zeros((RESOLUTION, RESOLUTION, 3), dtype=np.uint8)
+        image = np.full((RESOLUTION, RESOLUTION, 3), (255, 255, 255), dtype=np.uint8)
 
         # Iterate over the image array and set the corresponding pixels in the image
 
         for dot in dots:
             x = int((dot[0] + 1) * RESOLUTION / 2)
             y = int((dot[1] + 1) * RESOLUTION / 2)
-            cv2.circle(image, (x, y), 3, (255, 255, 255), -1)
+            cv2.circle(image, (x, y), 2, (0, 0, 255), -1)
 
         if self.__bridgeCallback:
             self.__bridgeCallback(image)
+
+    def start(self):
+        self.is_running = True
+
+    def stop(self):
+        self.is_running = False
