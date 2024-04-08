@@ -13,6 +13,7 @@ from array import array
 import subprocess
 import re
 import json
+import threading
 
 ROBOT_NAMESPACE = ""  # "cgbot1/"
 
@@ -20,11 +21,15 @@ ROBOT_NAMESPACE = ""  # "cgbot1/"
 import numpy as np
 from time import time
 
+from typing import Union, Optional
+
 
 class SimpleSubscriber(Node):
+    runningSubscriptions: dict
+    runningPublishers: dict
 
     def __init__(self):
-        super().__init__("flask_simple_subscriber")
+        super().__init__("client_subscriber")
         self.runningSubscriptions = dict()
         self.runningPublishers = dict()
 
@@ -68,9 +73,13 @@ class SimpleSubscriber(Node):
 
 
 class RosPyManager:
+    scan_thread: Optional[threading.Thread] = None
+
     def __init__(self):
         rclpy.init()
         self.simple_subscriber = SimpleSubscriber()
+        self.ros_viewer = Node("client_viewer")
+        self.topic_nodes_dict = {}
 
     def ros2_message_to_dictionary(self, message):
         """
@@ -125,9 +134,13 @@ class RosPyManager:
 
         if qos profile is not provided by the system, it will be crashed.
         """
-        qos_profile = self.create_qos_profile_from_dict(
-            self.get_qos_profile(topic_name)["Publishers"][0]["QoS profile"]
-        )
+        # qos_profile = self.create_qos_profile_from_dict(
+        #     self.get_qos_profile(topic_name)["Publishers"][0]["QoS profile"]
+        # )
+
+        qos_profile = self.ros_viewer.get_publishers_info_by_topic(topic_name)[
+            0
+        ].qos_profile
 
         return self.simple_subscriber.add_subscription(
             topic_name,
@@ -172,69 +185,6 @@ class RosPyManager:
                         value = float(value)
                     setattr(message, field, value)
         return message
-
-    def get_qos_profile(self, topic_name):
-        """
-        Get QoS Profile for a given topic
-        From the command line, run: ros2 topic info -v <topic_name>
-        returns: dict
-        """
-        # Execute the command to get verbose topic info
-        print(f"Getting QoS profile for {topic_name}")
-        result = subprocess.run(
-            ["ros2", "topic", "info", "-v", topic_name],
-            stdout=subprocess.PIPE,
-            text=True,
-        )
-        output = result.stdout
-        return self.parse_text_to_dict(output)
-
-    def parse_text_to_dict(self, text):
-        """
-        Extract QoS Profile information from the output of `ros2 topic info -v <topic_name>`
-
-        """
-        # Publisher와 Subscription 정보를 담을 두 개의 리스트 초기화
-        publishers = []
-        subscriptions = []
-
-        # 각 노드 정보를 분리하여 처리
-        node_infos = text.strip().split("\n\n")
-        for node_info in node_infos:
-            if re.search(r"Node name: (.+)", node_info) is None:
-                continue
-            # 공통 정보 추출
-            node_common_info = {
-                "Node name": re.search(r"Node name: (.+)", node_info).group(1),
-                "Node namespace": re.search(r"Node namespace: (.+)", node_info).group(
-                    1
-                ),
-                "Topic type": re.search(r"Topic type: (.+)", node_info).group(1),
-                "GID": re.search(r"GID: (.+)", node_info).group(1),
-                "QoS profile": {
-                    "Reliability": re.search(r"Reliability: (.+)", node_info).group(1),
-                    "History (Depth)": re.search(
-                        r"History \(Depth\): (.+)", node_info
-                    ).group(1),
-                    "Durability": re.search(r"Durability: (.+)", node_info).group(1),
-                    "Lifespan": re.search(r"Lifespan: (.+)", node_info).group(1),
-                    "Deadline": re.search(r"Deadline: (.+)", node_info).group(1),
-                    "Liveliness": re.search(r"Liveliness: (.+)", node_info).group(1),
-                    "Liveliness lease duration": re.search(
-                        r"Liveliness lease duration: (.+)", node_info
-                    ).group(1),
-                },
-            }
-
-            # Endpoint type에 따라 리스트 분류
-            endpoint_type = re.search(r"Endpoint type: (.+)", node_info).group(1)
-            if endpoint_type == "PUBLISHER":
-                publishers.append(node_common_info)
-            elif endpoint_type == "SUBSCRIPTION":
-                subscriptions.append(node_common_info)
-
-        # 결과를 담은 dictionary 반환
-        return {"Publishers": publishers, "Subscriptions": subscriptions}
 
     def create_qos_profile_from_dict(self, qos_dict):
         """
@@ -344,34 +294,46 @@ class RosPyManager:
         """
         Get list of topics
         """
-        result = self.simple_subscriber.get_topic_names_and_types()
-        return [{"topic": topic, "type": type} for topic, type in result]
+        result = self.ros_viewer.get_topic_names_and_types()
+        self.scan_topic_node_thread([topic for topic, _ in result])
+        return [
+            {
+                "topic": topic,
+                "type": type,
+                "nodes": (
+                    self.topic_nodes_dict[topic]
+                    if topic in self.topic_nodes_dict
+                    else self.get_topic_nodes_list(topic)
+                ),
+            }
+            for topic, type in result
+        ]
 
     def get_node_list(self):
         """
         Get list of nodes
         """
-        result = self.simple_subscriber.get_node_names_and_namespaces()
+        result = self.ros_viewer.get_node_names_and_namespaces()
         return [{"name": name, "namespace": namespace} for name, namespace in result]
 
     def get_services_list(self):
         """
         Get List of Service (callable), including parameter types & returns
         """
-        result = self.simple_subscriber.get_service_names_and_types()
+        result = self.ros_viewer.get_service_names_and_types()
         return [{"service": service, "type": type[0]} for service, type in result]
 
     def get_node_detail(self, node_name, namespace):
-        clients = self.simple_subscriber.get_client_names_and_types_by_node(
+        clients = self.ros_viewer.get_client_names_and_types_by_node(
             node_name, namespace
         )
-        services = self.simple_subscriber.get_service_names_and_types_by_node(
+        services = self.ros_viewer.get_service_names_and_types_by_node(
             node_name, namespace
         )
-        publishers = self.simple_subscriber.get_publisher_names_and_types_by_node(
+        publishers = self.ros_viewer.get_publisher_names_and_types_by_node(
             node_name, namespace
         )
-        subscriptions = self.simple_subscriber.get_subscriber_names_and_types_by_node(
+        subscriptions = self.ros_viewer.get_subscriber_names_and_types_by_node(
             node_name, namespace
         )
 
@@ -393,10 +355,8 @@ class RosPyManager:
         """
         Get list of nodes for each topic
         """
-        publishers = self.simple_subscriber.get_publishers_info_by_topic(topic_name)
-        subscriptions = self.simple_subscriber.get_subscriptions_info_by_topic(
-            topic_name
-        )
+        publishers = self.ros_viewer.get_publishers_info_by_topic(topic_name)
+        subscriptions = self.ros_viewer.get_subscriptions_info_by_topic(topic_name)
 
         def endpointinfo_dict(info):
             return {
@@ -420,5 +380,16 @@ class RosPyManager:
         subscriptions = [
             endpointinfo_dict(subscription) for subscription in subscriptions
         ]
-        print(publishers)
+        self.topic_nodes_dict[topic_name] = {
+            "publishers": publishers,
+            "subscriptions": subscriptions,
+        }
         return {"publishers": publishers, "subscriptions": subscriptions}
+
+    def scan_topic_node_thread(self, topics):
+        time_begin = time()
+        for topic in topics:
+            self.get_topic_nodes_list(topic)
+        self.scan_thread = None
+        time_taken = time() - time_begin
+        self.ros_viewer.get_logger().info(f"Scanning topics took {time_taken} seconds")
