@@ -4,14 +4,6 @@ from sensor_msgs.msg import Image
 import json
 import base64
 from videostream import VideoStream
-from rclpy.qos import QoSProfile
-from rclpy.qos import (
-    QoSReliabilityPolicy,
-    QoSHistoryPolicy,
-    QoSDurabilityPolicy,
-    QoSLivelinessPolicy,
-)
-from builtin_interfaces.msg import Duration
 
 
 def encode_bytes_to_base64(data):
@@ -40,7 +32,8 @@ class DiagnosticNode(Node):
         self.oakdPreview = VideoStream()
         self.oakdSubscription = self.create_subscription(
             Image,
-            "/oakd/rgb/preview/image_raw",
+            "/stereo/depth",
+            # "/oakd/rgb/preview/image_raw",
             self.oakdPreview.cv_raw_callback,
             10,
         )
