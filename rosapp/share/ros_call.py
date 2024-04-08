@@ -142,6 +142,8 @@ class RosPyManager:
             0
         ].qos_profile
 
+        qos_profile.history = QoSHistoryPolicy.KEEP_LAST
+
         return self.simple_subscriber.add_subscription(
             topic_name,
             self.service_type_resolution(topic_type),
