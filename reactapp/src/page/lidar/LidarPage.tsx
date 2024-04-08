@@ -1,10 +1,10 @@
-import { Flex, FlexProps, Image, VStack } from "@chakra-ui/react";
-import { TopicItem } from "../topic/TopicPage";
+import { Switch, VStack } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { rosSocket } from "../../connect/socket/subscribe";
 import { Body3 } from "../../design/text/textsystem";
 import { VideoStream } from "../../design/other/video";
+import { httpGet, httpPost } from "../../connect/http/request";
 
 export interface LidarScan {
   angle_min: number;
@@ -23,13 +23,38 @@ export const LidarBlock = () => {
     range_max: 0,
   });
 
+  const [running, setRunning] = useState<boolean>(false);
+
+  const run = useCallback((open: Boolean) => {
+    if (open) {
+      httpPost("/ros/lidar/start")
+        .onSuccess(() => {
+          setRunning(true);
+        })
+        .fetch();
+    } else {
+      httpPost("/ros/lidar/stop")
+        .onSuccess(() => {
+          setRunning(false);
+        })
+        .fetch();
+    }
+  }, []);
+
   useEffect(() => {
     rosSocket.subscribe("/lidar/scan", (msg: LidarScan) => {
       setScan(msg);
     });
+
+    httpGet("/ros/lidar/status")
+      .onSuccess((data: { status: boolean }) => {
+        setRunning(data.status);
+      })
+      .fetch();
   }, []);
   return (
     <VStack>
+      <Switch isChecked={running} onChange={(v) => run(v.target.checked)} />
       <Body3>angle_min: {scan.angle_min}</Body3>
       <Body3>angle_max: {scan.angle_max}</Body3>
       <Body3>angle_increment: {scan.angle_increment}</Body3>
