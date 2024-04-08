@@ -4,6 +4,7 @@ import {
   Grid,
   HStack,
   IconButton,
+  Input,
   VStack,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
@@ -38,12 +39,66 @@ export const TopicPreviewBoard = () => {
   >([]);
 };
 
+const TopicToolbar = observer(
+  ({
+    topicSearchText,
+    setTopicSearchText,
+  }: {
+    topicSearchText: string;
+    setTopicSearchText: (text: string) => void;
+  }) => {
+    return (
+      <VStack>
+        <Flex
+          style={{
+            width: "100%",
+          }}
+          wrap="wrap"
+        >
+          <Checkbox
+            isChecked={Object.values(topicStore.topicGroupChecked).every(
+              (value) => value === true
+            )}
+            onChange={(e) => {
+              topicStore.updateTopicGroupChecked("all", e.target.checked);
+            }}
+          >
+            All
+          </Checkbox>
+          {Object.keys(topicStore.topicGroup).map((key, i) => (
+            <Checkbox
+              key={key}
+              isChecked={topicStore.topicGroupChecked[key]}
+              onChange={(e) => {
+                topicStore.updateTopicGroupChecked(key, e.target.checked);
+              }}
+            >
+              {key}
+            </Checkbox>
+          ))}
+          <IconButton
+            aria-label="Search database"
+            icon={<RepeatIcon />}
+            onClick={() => topicStore.fetchGetTopicList()}
+          />
+        </Flex>
+        <Input
+          value={topicSearchText}
+          onChange={(e) => setTopicSearchText(e.target.value)}
+        />
+      </VStack>
+    );
+  }
+);
+
 const TopicBoard = observer(() => {
   useEffect(() => {
     topicStore.fetchGetTopicList();
   }, []);
 
   const [topicVisibleList, setTopicVisibleList] = useState<string[]>([]);
+
+  const [topicSearchText, setTopicSearchText] = useState<string>("");
 
   const [onFetchingAlert, setOnFetchingAlert] = useState(false);
 
@@ -64,44 +119,6 @@ const TopicBoard = observer(() => {
     return () => dispose();
   }, []);
 
-  const TopicToolbar = observer(() => {
-    return (
-      <Flex
-        style={{
-          width: "100%",
-        }}
-        wrap="wrap"
-      >
-        <Checkbox
-          isChecked={Object.values(topicStore.topicGroupChecked).every(
-            (value) => value === true
-          )}
-          onChange={(e) => {
-            topicStore.updateTopicGroupChecked("all", e.target.checked);
-          }}
-        >
-          All
-        </Checkbox>
-        {Object.keys(topicStore.topicGroup).map((key, i) => (
-          <Checkbox
-            key={key}
-            isChecked={topicStore.topicGroupChecked[key]}
-            onChange={(e) => {
-              topicStore.updateTopicGroupChecked(key, e.target.checked);
-            }}
-          >
-            {key}
-          </Checkbox>
-        ))}
-        <IconButton
-          aria-label="Search database"
-          icon={<RepeatIcon />}
-          onClick={() => topicStore.fetchGetTopicList()}
-        />
-      </Flex>
-    );
-  });
-
   const navigate = useNavigate();
 
   return (
@@ -111,11 +128,16 @@ const TopicBoard = observer(() => {
         padding: "1rem",
       }}
     >
-      <TopicToolbar />
-      <Grid templateColumns="repeat(4, 1fr)" gap={6}>
+      <TopicToolbar
+        topicSearchText={topicSearchText}
+        setTopicSearchText={setTopicSearchText}
+      />
+      <Flex wrap={"wrap"} gap={6}>
         {topicStore.topics.map(
           (topic, i) =>
-            (topicVisibleList.includes(topic.topic) || topic.running) && (
+            ((topicVisibleList.includes(topic.topic) &&
+              topic.topic.includes(topicSearchText)) ||
+              topic.running) && (
               <TopicItem
                 key={topic.topic}
                 topic={topic}
@@ -126,7 +148,7 @@ const TopicBoard = observer(() => {
               />
             )
         )}
-      </Grid>
+      </Flex>
       {
         /* 
             A loading bar floating on top of the topic list

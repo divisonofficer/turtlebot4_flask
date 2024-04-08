@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
 import { TopicSpec } from "../data/Topic";
+import { TopicNodes } from "../page/TopicBoard";
 
 class TopicStore {
   topics: TopicSpec[] = [];
@@ -62,13 +63,21 @@ class TopicStore {
   fetchGetTopicList() {
     httpGet("/ros/topic/list")
       .onSuccess(
-        (data: { topic: string; type: string[]; running: boolean }[]) => {
+        (
+          data: {
+            topic: string;
+            type: string[];
+            running: boolean;
+            nodes?: TopicNodes;
+          }[]
+        ) => {
           this.updateTopics(
             data.map((topic) => {
               return {
                 topic: topic.topic,
                 type: topic.type[0],
                 running: topic.running,
+                nodes: topic.nodes,
               };
             })
           );
