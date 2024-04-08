@@ -15,3 +15,9 @@ class ClientController(Controller):
         self.diagnostic.callback = lambda x: socketio.emit(
             "/turtlebot/diagnostic", x, namespace="/socket/ros"
         )
+
+    def start_lidar_node(self):
+        self.lidar.is_running = True
+
+    def stop_lidar_node(self):
+        self.lidar.is_running = False

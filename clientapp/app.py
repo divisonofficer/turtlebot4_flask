@@ -201,10 +201,10 @@ def get_ros_nodes_detail(node_name):
     return jsonify(controller.rospy.get_node_detail(node_name, "/"))
 
 
-@app.route("/ros/video/lidar")
-def get_ros_video_lidar_stream():
+@app.route("/ros/video/lidar/<timestamp>")
+def get_ros_video_lidar_stream(timestamp):
     return Response(
-        controller.lidar.stream.generate_preview(),
+        controller.lidar.stream.generate_preview(timestamp),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -226,6 +226,23 @@ def delete_ros_video_oakd_preview_stream(timestamp):
 @socketio.on("connect", namespace="/socket/ros")
 def handle_connect_camera_info():
     print("ReactApp connected")
+
+
+@app.route("/ros/lidar/start", methods=["POST"])
+def post_start_lidar():
+    controller.start_lidar_node()
+    return Response(status=200)
+
+
+@app.route("/ros/lidar/stop", methods=["POST"])
+def post_stop_lidar():
+    controller.stop_lidar_node()
+    return Response(status=200)
+
+
+@app.route("/ros/lidar/status", methods=["GET"])
+def get_lidar_status():
+    return jsonify({"status": controller.lidar.is_running})
 
 
 from geometry_msgs.msg import Twist
