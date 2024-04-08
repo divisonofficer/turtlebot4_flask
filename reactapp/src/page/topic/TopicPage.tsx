@@ -12,6 +12,7 @@ import { topicStore } from "../../stores/TopicStore";
 import { PageRoot } from "../../design/other/flexs";
 import { useNavigate } from "react-router-dom";
 import { nodeStore } from "../../stores/NodeStore";
+import { Color } from "../../design/color";
 
 export type TopicOutput = {
   interval: number;
@@ -231,15 +232,29 @@ const TopicItem = ({
 }) => {
   const [hover, setHover] = useState(false);
   const open = topicStore.getTopic(topic?.topic!)?.running || false;
+  const publishing =
+    (topicStore.getTopic(topic?.topic!)?.nodes?.publishers.length ?? 0) > 0;
+  const subscribing =
+    (topicStore.getTopic(topic?.topic!)?.nodes?.subscriptions.length ?? 0) > 0;
 
   const status = open
     ? {
         color: "#4AA785",
         text: "Listening",
       }
+    : publishing && subscribing
+    ? {
+        color: Color.Blue,
+        text: "Communicating",
+      }
+    : publishing
+    ? {
+        color: Color.Mint,
+        text: "Publishing",
+      }
     : {
         color: "#F2C94C",
-        text: "Not Listening",
+        text: "Not Publishing",
       };
 
   const topicOpen = (status: Boolean) => {

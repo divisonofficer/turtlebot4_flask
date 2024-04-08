@@ -6,6 +6,7 @@ import { Flex, Grid, VStack } from "@chakra-ui/react";
 import { Color } from "../../design/color";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { VideoStream } from "../../design/other/video";
 
 export const DiagnosticView = observer(
   (prop: { di: Diagnotic; idx: number }) => {
@@ -62,8 +63,8 @@ export const DiagnosticPage = observer(() => {
         {Object.values(diagnoticsStore.message).map((diagnotic, index) => {
           return <DiagnosticView key={index} di={diagnotic} idx={index} />;
         })}
-        <img
-          src="/ros/video/oakd_preview"
+        <VideoStream
+          url="/ros/video/oakd_preview"
           style={{
             width: "20rem",
             height: "10rem",
