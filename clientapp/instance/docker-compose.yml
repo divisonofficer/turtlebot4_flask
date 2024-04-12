@@ -26,6 +26,17 @@ services:
   #   ipc: host
   #   pid: host
 
+  laptop_monitor:
+    build: ./laptop
+    privileged: true
+    volumes:
+      - /sys:/sys:ro
+      - /dev:/dev:ro
+    network_mode: "host"
+    ipc: host
+    pid: host
+
+
 
 networks:
   slam_node_network:
