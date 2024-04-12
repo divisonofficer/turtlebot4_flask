@@ -1,0 +1,15 @@
+FROM python:3.8
+
+
+
+# 환경 변수 설정으로 대화형 프롬프트 비활성화
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+COPY . /app
+WORKDIR /app
+RUN pip3 install -r requirements.txt
+
+ENV container docker
+
+CMD ["python3", "monitor_app.py"]
