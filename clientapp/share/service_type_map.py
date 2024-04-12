@@ -29,7 +29,7 @@ from irobot_create_msgs.msg import (
 from geometry_msgs.msg import Twist
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 from nav_msgs.msg import Odometry
-from rcl_interfaces.msg import ParameterEvent
+from rcl_interfaces.msg import ParameterEvent, Log
 from lifecycle_msgs.msg import TransitionEvent
 from tf2_msgs.msg import TFMessage
 from theora_image_transport.msg import Packet
@@ -39,6 +39,7 @@ from rclpy.qos import QoSPresetProfiles
 
 
 service_type_map = {
+    "rcl_interfaces/msg/Log": Log,
     "sensor_msgs/msg/BatteryState": BatteryState,
     "irobot_create_msgs/msg/AudioNoteVector": AudioNoteVector,
     "irobot_create_msgs/msg/LightringLeds": LightringLeds,
