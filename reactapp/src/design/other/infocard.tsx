@@ -65,6 +65,7 @@ const InfoCardBtn = (props: {
   color?: string;
   Icon: string | ElementType;
   onClick?: () => void;
+  fontSize?: string;
 }) => {
   const [hover, setHover] = useState(false);
 
@@ -104,7 +105,13 @@ const InfoCardBtn = (props: {
       <H3
         style={{
           color: "white",
+          width: "100%",
+          textAlign: "center",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
+        fontSize={props.fontSize || "1.6rem"}
       >
         {props.title}
       </H3>
