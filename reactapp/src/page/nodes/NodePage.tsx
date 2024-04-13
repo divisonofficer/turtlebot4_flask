@@ -8,6 +8,16 @@ import { observer } from "mobx-react";
 import { nodeStore } from "../../stores/NodeStore";
 import { useNavigate } from "react-router-dom";
 import { topicStore } from "../../stores/TopicStore";
+import { Color } from "../../design/color";
+import { InfoCardBtn } from "../../design/other/infocard";
+import {
+  Camera,
+  ChartPie,
+  Robot,
+  SteeringWheel,
+  Toolbox,
+} from "@phosphor-icons/react";
+import { SettingsIcon } from "@chakra-ui/icons";
 
 export interface Node {
   name: string;
@@ -54,6 +64,22 @@ const TopicBlock = ({ act }: { act: Act }) => {
       {act.name}
     </Btn>
   );
+};
+
+const NodeHighlightColor = {
+  Create3: Color.Blue,
+  Turtlebot: Color.Orange,
+  ClientApp: Color.Indigo,
+  "OAK-D": Color.Purple,
+  Other: "#A1A1A1",
+};
+
+const NodeHighlightIcon = {
+  Create3: SteeringWheel,
+  Turtlebot: Robot,
+  ClientApp: Toolbox,
+  "OAK-D": Camera,
+  Other: SettingsIcon,
 };
 
 export const NodeDetailView = observer(({ node }: { node?: Node }) => {
@@ -112,23 +138,46 @@ export const NodePage = observer(() => {
   useEffect(() => {
     nodeStore.fetchGetNodeList();
   }, []);
+
   return (
     <PageRoot title="Nodes">
-      <Flex width="100%" flexWrap="wrap" gap={2}>
-        {nodeStore.nodes.map((node) => {
-          return (
-            <Btn
-              onClick={() => {
-                nodeStore.nodeDetailView = node;
-                navigate("/nodes/detail");
+      {nodeStore.nodes.map((list, idx) => {
+        const accentColor =
+          NodeHighlightColor[
+            list.category as keyof typeof NodeHighlightColor
+          ] || NodeHighlightColor.Other;
+        const Icon =
+          NodeHighlightIcon[list.category as keyof typeof NodeHighlightIcon] ||
+          NodeHighlightIcon.Other;
+        return (
+          <>
+            <VStack
+              style={{
+                alignItems: "flex-start",
+                width: "100%",
               }}
-              key={node.name}
             >
-              {node.name}
-            </Btn>
-          );
-        })}
-      </Flex>
+              <H3>{list.category}</H3>
+              <Flex width="100%" flexWrap="wrap" gap={2}>
+                {list.nodes.map((node) => {
+                  return (
+                    <InfoCardBtn
+                      title={node.name}
+                      onClick={() => {
+                        nodeStore.nodeDetailView = node;
+                        navigate("/nodes/detail");
+                      }}
+                      Icon={Icon}
+                      color={accentColor}
+                      fontSize="0.6rem"
+                    />
+                  );
+                })}
+              </Flex>
+            </VStack>
+          </>
+        );
+      })}
     </PageRoot>
   );
 });
