@@ -7,7 +7,10 @@ class NodeStore {
     makeAutoObservable(this);
   }
 
-  nodes: Node[] = [];
+  nodes: {
+    category: string;
+    nodes: Node[];
+  }[] = [];
 
   nodeDetailView: Node | undefined = undefined;
   nodeDetail: NodeDetail | undefined = undefined;
