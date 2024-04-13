@@ -29,7 +29,7 @@ class DiagnosticNode(Node):
 
     def __init__(self):
         super().__init__("client_diagnostic_node")
-        self.create_timer(20, self.timer_callback)
+        self.create_timer(8, self.timer_callback)
         self.subscription = self.create_subscription(
             DiagnosticArray, "/diagnostics", self.diagnostic_callback, 10
         )
@@ -125,9 +125,14 @@ class DiagnosticNode(Node):
     def diagnostic_turtlebot_battery(self):
         if "turtlebot4_diagnostics: Battery Percentage" not in self.diagnostic_dict:
             return 0
-        return self.diagnostic_dict["turtlebot4_diagnostics: Battery Percentage"][
-            "values"
-        ]["Battery Percentage"]
+        return (
+            float(
+                self.diagnostic_dict["turtlebot4_diagnostics: Battery Percentage"][
+                    "values"
+                ]["Battery Percentage"]
+            )
+            * 100
+        )
 
     def diagnostic_lidar_running(self):
         if "turtlebot4_diagnostics: /scan topic status" not in self.diagnostic_dict:
