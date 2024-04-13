@@ -11,3 +11,4 @@ clientapp/share/__pycache__/ros_call.cpython-310.pyc
 temp.json
 clientapp/instance/.env
 mypy.ini
+.vscode/*

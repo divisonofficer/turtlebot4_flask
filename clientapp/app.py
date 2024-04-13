@@ -245,7 +245,7 @@ def get_lidar_status():
     return jsonify({"status": controller.lidar.is_running})
 
 
-from geometry_msgs.msg import Twist
+import os
 
 
 @socketio.on("/drive", namespace="/socket/ros")
@@ -257,6 +257,14 @@ with app.app_context():
     controller.init(socketio, "/socket/ros")
     socketIoClientManager.ros_socket_launch_thread(socketio)
 
+    ROS_DOMAIN_ID = os.environ.get("ROS_DOMAIN_ID")
+    RMW_IMPLEMENTATION = os.environ.get("RMW_IMPLEMENTATION")
+    ROS_DISCOVERY_SERVER = os.environ.get("ROS_DISCOVERY_SERVER")
+
+    print(f"ROS_DOMAIN_ID: {ROS_DOMAIN_ID}")
+    print(f"RMW_IMPLEMENTATION: {RMW_IMPLEMENTATION}")
+    print(f"ROS_DISCOVERY_SERVER: {ROS_DISCOVERY_SERVER}")
+
 if __name__ == "__main__":
 
-    socketio.run(app, port=5001, host="0.0.0.0")
+    socketio.run(app, port=5001, allow_unsafe_werkzeug=True)
