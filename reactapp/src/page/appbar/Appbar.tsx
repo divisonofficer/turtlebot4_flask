@@ -10,6 +10,7 @@ export const Appbar = () => {
         justifyContent: "flex-end",
         height: "2rem",
         overflowX: "hidden",
+        overflowY: "hidden",
         zIndex: 100,
       }}
     >
