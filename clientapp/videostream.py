@@ -13,11 +13,14 @@ class VideoStream:
     def __init__(self, create_subscriber=None):
         self.running = {}
         self.bridge = CvBridge()
+        self.topic_time = time.time()
+        self.yield_time = time.time()
         if create_subscriber is None:
             return
         self.subscriber = create_subscriber(self.cv_raw_callback)
 
     output_frame = None
+    interval_callback = None
     lock = threading.Lock()
 
     def cv_raw_callback(self, msg: Union[Image, CompressedImage]):
@@ -37,15 +40,16 @@ class VideoStream:
         self.running[timeStamp] = False
 
     def generate_preview(self, timeStamp: Union[str, None] = None, isGrayScale=False):
-        if timeStamp:
-            self.running[timeStamp] = True
+        # if timeStamp:
+        #     self.running[timeStamp] = True
         while True:
-            if not self.running[timeStamp]:
-                break
+            # if not self.running[timeStamp]:
+            #     break
             with self.lock:
                 if self.output_frame is None:
                     continue
-
+                self.topic_time_interval = time.time() - self.topic_time
+                self.topic_time = time.time()
                 if isGrayScale:
                     self.output_frame = cv2.cvtColor(
                         self.output_frame, cv2.COLOR_BGR2GRAY
@@ -60,5 +64,12 @@ class VideoStream:
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + bytearray(encodedImage) + b"\r\n"
             )
+
+            self.yield_time_interval = time.time() - self.yield_time
+            self.yield_time = time.time()
             self.output_frame = None
-            time.sleep(0.1)
+
+            if self.interval_callback:
+                self.interval_callback(
+                    self.topic_time_interval, self.yield_time_interval
+                )
