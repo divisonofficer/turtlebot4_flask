@@ -13,6 +13,7 @@ import { NodeDetailPage, NodePage } from "./page/nodes/NodePage";
 import { TopicDetailPage } from "./page/topic/TopicDetailPage";
 import { LaunchPage } from "./page/launch/LaunchPage";
 import { SlamPage } from "./page/slam/SlamPage";
+import { Appbar } from "./page/appbar/Appbar";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -53,12 +54,23 @@ function App() {
           ) : (
             <HStack
               style={{
-                width: "100%",
+                width: "100vw",
                 height: "100vh",
+                overflowX: "hidden",
+                left: 0,
+                position: "absolute",
               }}
             >
               <Menus />
-              <RouteTable />
+              <VStack
+                style={{
+                  width: "100%",
+                  height: "100vh",
+                }}
+              >
+                <Appbar />
+                <RouteTable />
+              </VStack>
             </HStack>
           )}
         </HashRouter>
