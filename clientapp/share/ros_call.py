@@ -79,6 +79,7 @@ class RosPyManager:
         rclpy.init()
         self.simple_subscriber = SimpleSubscriber()
         self.ros_viewer = Node("client_viewer")
+        self.ros_viewer.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
         self.topic_nodes_dict = {}
 
     def ros2_message_to_dictionary(self, message):
