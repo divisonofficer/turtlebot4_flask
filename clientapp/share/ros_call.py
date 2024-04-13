@@ -327,7 +327,7 @@ class RosPyManager:
         }
         for name, namespace in result:
             key = "Other"
-            if namespace == "_internal":
+            if "_internal" in namespace:
                 key = "Create3"
             if name in [
                 "motion_control",
