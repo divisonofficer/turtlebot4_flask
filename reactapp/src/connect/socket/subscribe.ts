@@ -36,4 +36,5 @@ class SocketWrapper {
 
 const rosSocket = new SocketWrapper("/socket/ros");
 const slamSocket = new SocketWrapper("/slam", "/slam/socket.io");
-export { rosSocket, slamSocket };
+const laptopSocket = new SocketWrapper("/socket/battery", "/laptop/socket.io");
+export { rosSocket, slamSocket, laptopSocket };
