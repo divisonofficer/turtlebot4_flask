@@ -317,7 +317,47 @@ class RosPyManager:
         Get list of nodes
         """
         result = self.ros_viewer.get_node_names_and_namespaces()
-        return [{"name": name, "namespace": namespace} for name, namespace in result]
+        nodes_category_dict = {}
+        nodes_category_order = {
+            "Turtlebot": 0,
+            "OAK-D": 1,
+            "ClientApp": 2,
+            "Create3": 3,
+            "Other": 10,
+        }
+        for name, namespace in result:
+            key = "Other"
+            if namespace == "_internal":
+                key = "Create3"
+            if name in [
+                "motion_control",
+            ]:
+                key = "Create3"
+            if "turtlebot4" in name:
+                key = "Turtlebot"
+            if "oakd" in name:
+                key = "OAK-D"
+            if "joy" in name:
+                key = "Turtlebot"
+            if "client" in name:
+                key = "ClientApp"
+            if "lidar" in name:
+                key = "Turtlebot"
+            if not key in nodes_category_dict:
+                nodes_category_dict[key] = []
+            nodes_category_dict[key].append({"name": name, "namespace": namespace})
+        nodes_category_list = []
+        for key, value in nodes_category_dict.items():
+            nodes_category_list.append({"category": key, "nodes": value})
+
+        nodes_category_list.sort(
+            key=lambda x: (
+                nodes_category_order[x["category"]]
+                if x["category"] in nodes_category_order
+                else 7
+            )
+        )
+        return nodes_category_list
 
     def get_services_list(self):
         """
