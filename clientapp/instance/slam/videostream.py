@@ -18,10 +18,12 @@ class VideoStream:
     def cv_raw_callback(self, msg):
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        self.output_frame = cv_image
+        with self.lock:
+            self.output_frame = cv_image
 
     def cv_ndarray_callback(self, image):
-        self.output_frame = image
+        with self.lock:
+            self.output_frame = image
 
     def stop(self, timeStamp: str):
         self.running[timeStamp] = False
