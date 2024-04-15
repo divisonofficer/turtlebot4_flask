@@ -11,10 +11,11 @@ from flask_socketio import SocketIO
 
 
 class BatteryMonitor:
-    battery_data: list[dict] = []
+    battery_data: list[dict]
 
     def __init__(self, socketio):
         self.socketio = socketio
+        self.battery_data = []
 
     def read_battery_file(self, file_path):
         """Utility function to read a file from the battery info directory."""
