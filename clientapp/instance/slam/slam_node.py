@@ -48,6 +48,7 @@ class SlamApp(Node):
     __map_msg: Optional[OccupancyGrid]
     __map_size: Optional[MapInfo]
     __lidar_position: List[Tuple[float, float]]
+    __slam_metadata: dict
 
     def __init__(self, sockets, launch):
         """
@@ -61,7 +62,7 @@ class SlamApp(Node):
 
         self.sockets = sockets
         self.launch = launch
-        self.timer_ = self.create_timer(10, self.timer_callback)
+        self.timer_ = self.create_timer(30, self.timer_callback)
         self.map_subscription = self.create_subscription(
             OccupancyGrid, "/map", self.map_callback, 10
         )
@@ -81,7 +82,14 @@ class SlamApp(Node):
         self.__map_msg = None
         self.__map_size = None
         self.__position = None
-
+        self.__slam_metadata = {
+            "pos_interval": 9999,
+            "pos_timestamp": time.time(),
+            "map_interval": 9999,
+            "map_timestamp": time.time(),
+            "lidar_interval": 9999,
+            "lidar_timestamp": time.time(),
+        }
         self.topic_timestamps = {}
 
     ############################################################################################################
@@ -95,6 +103,11 @@ class SlamApp(Node):
         Args:
             msg: The map message.
         """
+        self.__slam_metadata["map_interval"] = (
+            time.time() - self.__slam_metadata["map_timestamp"]
+        )
+        self.__slam_metadata["map_timestamp"] = time.time()
+
         slam_map_opencv(msg, self.__position, self.__markers, self.__lidar_position)
         self.__map_origin = Point3D.from_msg(msg.info.origin.position)
         self.__map_size = MapInfo(msg.info.width, msg.info.height, msg.info.resolution)
@@ -108,6 +121,11 @@ class SlamApp(Node):
         Args:
             msg: The position message.
         """
+        self.__slam_metadata["pos_interval"] = (
+            time.time() - self.__slam_metadata["pos_timestamp"]
+        )
+        self.__slam_metadata["pos_timestamp"] = time.time()
+
         self.__position = Pose3D.from_msg(msg.pose.pose)
         self.__euler_orientation = QuaternionAngle.from_msg(
             msg.pose.pose.orientation
@@ -120,7 +138,13 @@ class SlamApp(Node):
         self.topic_timestamps["pose"] = msg.header.stamp
 
     def lidar_callback(self, msg: LaserScan):
+        self.__slam_metadata["lidar_interval"] = (
+            time.time() - self.__slam_metadata["lidar_timestamp"]
+        )
+        self.__slam_metadata["lidar_timestamp"] = time.time()
+
         self.__lidar_position = self.laser_to_position_array(msg)
+        self.emit_slam_status()
 
     ############################################################################################################
     # Service Call
@@ -268,6 +292,7 @@ class SlamApp(Node):
             "map_origin": self.__map_origin,
             "map_size": self.__map_size,
             "markers": [marker for marker in self.__markers],
+            "slam_metadata": self.__slam_metadata,
         }
 
     def get_map_json(self):
