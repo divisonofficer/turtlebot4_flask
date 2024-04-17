@@ -1,11 +1,14 @@
-import { Flex, HStack } from "@chakra-ui/react";
+import { Flex, HStack, VStack } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 import { rosSocket } from "../../../connect/socket/subscribe";
 import RingIcon from "../../../design/other/Ring";
 import { Color } from "../../../design/color";
 import { InfoCard } from "../../../design/other/infocard";
+import { diagnoticsStore } from "../../../stores/DiagnoticsStore";
+import { observer } from "mobx-react";
+import { Body3, H2 } from "../../../design/text/textsystem";
 
-export const RobotMonitor = () => {
+export const RobotMonitor = observer(() => {
   const [robotMonitorData, setRobotMonitorData] = useState<RobotMonitorData>({
     topic_time: 0,
     topic_interval: 0,
@@ -50,11 +53,7 @@ export const RobotMonitor = () => {
         icon={require("../../../resource/icon_robot.png")}
         active={robotMonitorData.robot_ros_status}
       />
-      <MonitorIcon
-        name="Turtle"
-        icon={require("../../../resource/icon_turtle.png")}
-        active={robotMonitorData.robot_node_status}
-      />
+      <TurtlebotNodeMonitorIcon />
       <MonitorIcon
         name="Create3"
         icon={require("../../../resource/icon_wheel.png")}
@@ -80,7 +79,65 @@ export const RobotMonitor = () => {
       />
     </HStack>
   );
-};
+});
+
+export const TurtlebotNodeMonitorIcon = observer(() => {
+  return (
+    <MonitorIconHover
+      hoverView={
+        <VStack
+          style={{
+            borderRadius: "0.5rem",
+            background: "white",
+            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+            overflow: "hidden",
+          }}
+        >
+          <Flex
+            style={{
+              background: Color.Cyan,
+              width: "10rem",
+              height: "8rem",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              style={{
+                width: "3rem",
+                height: "3rem",
+              }}
+              src={require("../../../resource/icon_turtle.png")}
+              alt="TurtleBot"
+            />
+          </Flex>
+          <Flex
+            style={{
+              padding: "0.5rem",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "6rem",
+              flexDirection: "column",
+            }}
+          >
+            <H2 color="black">{diagnoticsStore.message_timestamp_passed}sec</H2>
+            <Body3 color="black">Last Message</Body3>
+          </Flex>
+        </VStack>
+      }
+    >
+      <img
+        src={require("../../../resource/icon_turtle.png")}
+        alt="TurtleBot"
+        style={{
+          ...(!diagnoticsStore.message_session_active && {
+            filter: "grayscale(100%) opacity(50%)",
+          }),
+        }}
+      />
+    </MonitorIconHover>
+  );
+});
 
 export const MonitorIcon = ({
   icon,
