@@ -12,3 +12,5 @@ temp.json
 clientapp/instance/.env
 mypy.ini
 .vscode/*
+clientapp/instance/jai/.vscode/settings.json
+clientapp/instance/jai/.vscode/c_cpp_properties.json
