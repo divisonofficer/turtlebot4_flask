@@ -1,5 +1,6 @@
 #include <Acquire.h>
 #include <Logger.h>
+#include <PvBufferWriter.h>
 #include <PvSampleUtils.h>
 
 AcquireManager& AcquireManager::getInstance() { return instance; }
@@ -10,11 +11,59 @@ void AcquireManager::AcquireImages(PvDevice* aDevice, PvStream* aStream) {
   StreamMonitor monitor;
   streamExecute(aDevice, params);
   streamConsume(aDevice, aStream, params, monitor);
+
+  PvGetChar();  // Flush key buffer for next stop.
+  cout << endl << endl;
+
+  // Tell the device to stop sending images.
+  cout << "Sending AcquisitionStop command to the device" << endl;
+  streamPause(aDevice, params);
+
+  streamDestroy(aDevice, aStream, params, monitor);
+}
+
+void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
+  PvGenParam params = parseGenParams(aDevice, aStream);
+  StreamMonitor monitor;
+  streamExecute(aDevice, params);
+  PvBuffer* result = nullptr;
+  while (!PvKbHit() && !result) {
+    PvBuffer* lBuffer = NULL;
+    PvResult lOperationResult;
+
+    // Retrieve next buffer
+    PvResult lResult =
+        aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
+
+    if (!lResult.IsOK()) {
+      continue;
+    }
+
+    if (!lOperationResult.IsOK()) {
+    } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
+      aStream->QueueBuffer(lBuffer);
+    } else {
+      result = lBuffer;
+      Debug << "Image acquired";
+    }
+  }
+
+  if (result) {
+    PvBufferWriter writer;
+    std::string path = "output/single.png";
+    writer.Store(result, path.c_str(), PvBufferFormatPNG);
+  }
+  streamPause(aDevice, params);
+
   streamDestroy(aDevice, aStream, params, monitor);
 }
 
 void AcquireManager::streamExecute(PvDevice* aDevice, PvGenParam& params) {
   params.lStart->Execute();
+}
+
+void AcquireManager::streamPause(PvDevice* aDevice, PvGenParam& params) {
+  params.lStop->Execute();
 }
 
 PvGenParam AcquireManager::parseGenParams(PvDevice* aDevice,
@@ -43,47 +92,40 @@ PvGenParam AcquireManager::parseGenParams(PvDevice* aDevice,
 void AcquireManager::streamConsume(PvDevice* aDevice, PvStream* aStream,
                                    PvGenParam& params, StreamMonitor& monitor) {
   while (!PvKbHit()) {
-    PvBuffer* lBuffer = NULL;
-    PvResult lOperationResult;
-
-    // Retrieve next buffer
-    PvResult lResult =
-        aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
-    if (lResult.IsOK()) {
-      if (lOperationResult.IsOK()) {
-        //
-        // We now have a valid buffer. This is where you would typically process
-        // the buffer.
-        // -----------------------------------------------------------------------------------------
-        // ...
-        payloadProcess(lBuffer, lResult, params, monitor);
-      } else {
-        // Non OK operational result
-        cout << monitor.lDoodle[monitor.lDoodleIndex] << " "
-             << lOperationResult.GetCodeString().GetAscii() << "\r";
-      }
-
-      // Re-queue the buffer in the stream object
-      aStream->QueueBuffer(lBuffer);
-    } else {
-      // Retrieve buffer failure
-      cout << monitor.lDoodle[monitor.lDoodleIndex] << " "
-           << lResult.GetCodeString().GetAscii() << "\r";
-    }
+    bufferProcess(aDevice, aStream, params, monitor);
 
     ++monitor.lDoodleIndex %= 6;
   }
 }
 
+void AcquireManager::bufferProcess(PvDevice* aDevice, PvStream* aStream,
+                                   PvGenParam& params, StreamMonitor& monitor) {
+  PvBuffer* lBuffer = NULL;
+  PvResult lOperationResult;
+
+  // Retrieve next buffer
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
+
+  if (!lResult.IsOK()) {
+    Debug << monitor.lDoodle[monitor.lDoodleIndex] << " "
+          << lResult.GetCodeString().GetAscii() << "\r";
+    return;
+  }
+
+  if (lOperationResult.IsOK()) {
+    payloadProcess(lBuffer, lResult, params, monitor);
+  } else {
+    // Non OK operational result
+    Debug << monitor.lDoodle[monitor.lDoodleIndex] << " "
+          << lOperationResult.GetCodeString().GetAscii() << "\r";
+  }
+
+  // Re-queue the buffer in the stream object
+  aStream->QueueBuffer(lBuffer);
+}
+
 void AcquireManager::streamDestroy(PvDevice* aDevice, PvStream* aStream,
                                    PvGenParam& params, StreamMonitor& monitor) {
-  PvGetChar();  // Flush key buffer for next stop.
-  cout << endl << endl;
-
-  // Tell the device to stop sending images.
-  cout << "Sending AcquisitionStop command to the device" << endl;
-  params.lStop->Execute();
-
   // Disable streaming on the device
   cout << "Disable streaming on the controller." << endl;
   aDevice->StreamDisable();
@@ -100,8 +142,15 @@ void AcquireManager::streamDestroy(PvDevice* aDevice, PvStream* aStream,
 }
 
 void AcquireManager::payloadImageProcess(PvBuffer* lBuffer) {
-  Debug << "  W: " << dec << lBuffer->GetImage()->GetWidth()
-        << " H: " << lBuffer->GetImage()->GetHeight();
+  auto image = lBuffer->GetImage();
+  Debug << " Image with " << image->GetWidth() << "x" << image->GetHeight()
+        << " pixels"
+        << " and " << image->GetPixelType() << " " << image->GetBitsPerPixel()
+        << " bits per pixel";
+
+  PvBufferWriter writer;
+  std::string path = "output/" + std::to_string(lBuffer->GetBlockID()) + ".png";
+  writer.Store(lBuffer, path.c_str(), PvBufferFormatPNG);
 }
 
 void AcquireManager::payloadChuckDataProcess(PvBuffer* lBuffer) {

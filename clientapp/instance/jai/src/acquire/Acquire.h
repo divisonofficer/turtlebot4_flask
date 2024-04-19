@@ -33,21 +33,6 @@ class AcquireManager {
    */
   void AcquireImages(PvDevice* aDevice, PvStream* aStream);
 
- private:
-  static AcquireManager instance;
-  /**
-   * @brief DecompressionFilter instance
-   * Used to decompress payload data which is compressed
-   * Used to validate the payload data is compressed or not
-   */
-  PvDecompressionFilter lDecompressionFilter;
-  /**
-   * @brief Parse the GenCommand and GenFloat parameters
-   * @param aDevice Device to parse the GenParams
-   * @param aStream Stream to parse the GenParams
-   */
-  PvGenParam parseGenParams(PvDevice* aDevice, PvStream* aStream);
-
   /**
    * @brief Execute the GenCommand to start the streaming
    * @param aDevice Device to start the streaming
@@ -66,11 +51,35 @@ class AcquireManager {
   void streamConsume(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
                      StreamMonitor& monitor);
 
+  void streamPause(PvDevice* aDevice, PvGenParam& params);
+
+  void AcquireSingleImage(PvDevice* aDevice, PvStream* aStream);
+
+ private:
+  static AcquireManager instance;
+  /**
+   * @brief DecompressionFilter instance
+   * Used to decompress payload data which is compressed
+   * Used to validate the payload data is compressed or not
+   */
+  PvDecompressionFilter lDecompressionFilter;
+  /**
+   * @brief Parse the GenCommand and GenFloat parameters
+   * @param aDevice Device to parse the GenParams
+   * @param aStream Stream to parse the GenParams
+   */
+  PvGenParam parseGenParams(PvDevice* aDevice, PvStream* aStream);
+
   /**
    * @brief Destroy the stream data
    */
   void streamDestroy(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
                      StreamMonitor& monitor);
+
+  void bufferProcess(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
+                     StreamMonitor& monitor);
+
+  void bufferProcess(PvStream* aStream, PvBuffer*& buffer);
 
   /**
    * @brief Process the payload data
