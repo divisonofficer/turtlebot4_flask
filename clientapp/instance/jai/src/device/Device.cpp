@@ -1,6 +1,7 @@
 #include <Device.h>
 #include <Logger.h>
 #include <PvSampleUtils.h>
+#include <PvSystem.h>
 DeviceManager &DeviceManager::getInstance() { return staticInstance; }
 DeviceManager DeviceManager::staticInstance;
 
@@ -15,6 +16,61 @@ bool DeviceManager::SelectDevice(PvString &aConnectionID, PvDevice *&aDevice) {
   }
   aDevice = DeviceConnectToDevice(aConnectionID);
   if (aDevice == NULL) {
+    return false;
+  }
+  return true;
+}
+
+bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
+                               std::string &displayName) {
+  PvSystem lSystem;
+  PvDeviceInfo *aDeviceInfo = nullptr;
+  PvResult lResult;
+  lSystem.Find();
+
+  // Find the first GEV Device
+  for (int i = 0; i < lSystem.GetInterfaceCount(); i++) {
+    const PvInterface *lInterface = lSystem.GetInterface(i);
+    for (int j = 0; j < lInterface->GetDeviceCount(); j++) {
+      const PvDeviceInfo *lDeviceInfo = lInterface->GetDeviceInfo(j);
+      if (!lDeviceInfo) continue;
+      if (lDeviceInfo->GetType() != PvDeviceInfoTypeGEV) continue;
+
+      aDeviceInfo = const_cast<PvDeviceInfo *>(lDeviceInfo);
+    }
+  }
+  // Get the connection ID and Display Name
+  aConnectionID = aDeviceInfo->GetConnectionID();
+  displayName = aDeviceInfo->GetDisplayID().GetAscii();
+  if (!aDeviceInfo) {
+    Error << "No device found.";
+    return false;
+  }
+  Info << "Device found: " << aDeviceInfo->GetDisplayID().GetAscii();
+
+  // if IP Configuration is not valid, force new IP Address
+  if (aDeviceInfo->IsConfigurationValid() == false) {
+    // Force New IP Address
+    const PvDeviceInfoGEV *lDeviceGEV =
+        dynamic_cast<const PvDeviceInfoGEV *>(aDeviceInfo);
+    if (!lDeviceGEV) {
+      Error << "Not a Valid GEV Device";
+      return false;
+    }
+    // @todo : Get available IP address from somewhere
+    lResult = PvDeviceGEV::SetIPConfiguration(
+        lDeviceGEV->GetMACAddress().GetAscii(), "192.168.185.11",
+        lDeviceGEV->GetSubnetMask().GetAscii(),
+        lDeviceGEV->GetDefaultGateway().GetAscii());
+    if (!lResult.IsOK()) {
+      Error << "Unable to force new IP address.";
+      return false;
+    }
+  }
+
+  aDevice = DeviceConnectToDevice(aConnectionID);
+  if (aDevice == NULL) {
+    Error << "Unable to connect to device.";
     return false;
   }
   return true;

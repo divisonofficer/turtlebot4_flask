@@ -13,6 +13,15 @@ class DeviceManager {
 
   bool SelectDevice(PvString &aConnectionID, PvDevice *&aDevice);
 
+  /**
+   * Get the first GEV Device
+   * @param aConnectionID where the connection ID is stored
+   * @param aDevice where the device is stored
+   * @param displayName where the display name is stored
+   */
+  bool findDevice(PvString &aConnectionID, PvDevice *&aDevice,
+                  std::string &displayName);
+
   PvDevice *DeviceConnectToDevice(const PvString &aConnectionID);
 
   static DeviceManager &getInstance();
