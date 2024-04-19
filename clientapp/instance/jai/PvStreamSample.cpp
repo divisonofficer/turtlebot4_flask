@@ -40,28 +40,27 @@ int main() {
         << "\n\n";
 
   PvString lConnectionID;
-  if (PvSelectDevice(&lConnectionID)) {
-    lDevice = DeviceManager::getInstance().DeviceConnectToDevice(lConnectionID);
-    if (NULL != lDevice) {
-      lStream = StreamManager::getInstance().OpenStream(lConnectionID);
-      if (NULL != lStream) {
-        StreamManager::getInstance().ConfigureStream(lDevice, lStream);
-        StreamManager::getInstance().CreateStreamBuffers(lDevice, lStream,
-                                                         &lBufferList);
-        AcquireManager::getInstance().AcquireImages(lDevice, lStream);
-        StreamManager::getInstance().FreeStreamBuffers(&lBufferList);
 
-        // Close the stream
-        cout << "Closing stream" << endl;
-        lStream->Close();
-        PvStream::Free(lStream);
-      }
+  if (DeviceManager::getInstance().SelectDevice(lConnectionID, lDevice)) {
+    lStream = StreamManager::getInstance().OpenStream(lConnectionID);
+    if (NULL != lStream) {
+      StreamManager::getInstance().ConfigureStream(lDevice, lStream);
+      StreamManager::getInstance().CreateStreamBuffers(lDevice, lStream,
+                                                       &lBufferList);
+      AcquireManager::getInstance().AcquireSingleImage(lDevice, lStream);
+      //  AcquireManager::getInstance().AcquireImages(lDevice, lStream);
+      StreamManager::getInstance().FreeStreamBuffers(&lBufferList);
 
-      // Disconnect the device
-      cout << "Disconnecting device" << endl;
-      lDevice->Disconnect();
-      PvDevice::Free(lDevice);
+      // Close the stream
+      cout << "Closing stream" << endl;
+      lStream->Close();
+      PvStream::Free(lStream);
     }
+
+    // Disconnect the device
+    cout << "Disconnecting device" << endl;
+    lDevice->Disconnect();
+    PvDevice::Free(lDevice);
   }
 
   cout << endl;
