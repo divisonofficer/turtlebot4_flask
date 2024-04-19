@@ -29,7 +29,33 @@ PV_INIT_SIGNAL_HANDLER();
 //
 // Main function
 //
-int main() {
+
+void print_help_run_stream() {
+  std::cout << "Commands: " << std::endl;
+  std::cout << "capture_single: Capture a single image" << std::endl;
+  std::cout << "capture: Capture images" << std::endl;
+  std::cout << "exit: Exit the program" << std::endl;
+}
+void run_stream(PvDevice* lDevice, PvStream* lStream, std::string displayName) {
+  std::string command;
+  while (command != "exit") {
+    std::cout << "[" << displayName << "]" << std::endl;
+    std::cout << "Enter a command: ";
+    std::cin >> command;
+    PvGetChar();
+    PvGetChar();
+    if (command == "help") {
+      print_help_run_stream();
+    }
+    if (command == "capture_single") {
+      AcquireManager::getInstance().AcquireSingleImage(lDevice, lStream);
+    }
+    if (command == "capture") {
+      AcquireManager::getInstance().AcquireImages(lDevice, lStream);
+    }
+  }
+}
+int run() {
   PvDevice* lDevice = NULL;
   PvStream* lStream = NULL;
   BufferList lBufferList;
@@ -40,34 +66,59 @@ int main() {
         << "\n\n";
 
   PvString lConnectionID;
-
-  if (DeviceManager::getInstance().SelectDevice(lConnectionID, lDevice)) {
+  std::string displayName;
+  // DeviceManager::getInstance().SelectDevice(lConnectionID, lDevice)
+  if (DeviceManager::getInstance().findDevice(lConnectionID, lDevice,
+                                              displayName)) {
     lStream = StreamManager::getInstance().OpenStream(lConnectionID);
     if (NULL != lStream) {
       StreamManager::getInstance().ConfigureStream(lDevice, lStream);
       StreamManager::getInstance().CreateStreamBuffers(lDevice, lStream,
                                                        &lBufferList);
-      AcquireManager::getInstance().AcquireSingleImage(lDevice, lStream);
-      //  AcquireManager::getInstance().AcquireImages(lDevice, lStream);
+
+      run_stream(lDevice, lStream, displayName);
+
+      AcquireManager::getInstance().streamDestroy(lDevice, lStream);
       StreamManager::getInstance().FreeStreamBuffers(&lBufferList);
 
       // Close the stream
-      cout << "Closing stream" << endl;
+      std::cout << "Closing stream" << endl;
       lStream->Close();
       PvStream::Free(lStream);
     }
 
     // Disconnect the device
-    cout << "Disconnecting device" << endl;
+    std::cout << "Disconnecting device" << endl;
     lDevice->Disconnect();
     PvDevice::Free(lDevice);
   }
 
-  cout << endl;
-  cout << "<press a key to exit>" << endl;
+  std::cout << endl;
+  std::cout << "<press a key to exit>" << endl;
   PvWaitForKeyPress();
 
   PV_SAMPLE_TERMINATE();
 
+  return 0;
+}
+
+void print_help_main() {
+  std::cout << "Commands: " << std::endl;
+  std::cout << "run: Run the program" << std::endl;
+  std::cout << "exit: Exit the program" << std::endl;
+}
+
+int main() {
+  std::string command = "";
+  while (command != "exit") {
+    std::cout << "Enter a command: ";
+    std::cin >> command;
+    if (command == "help") {
+      print_help_main();
+    }
+    if (command == "run") {
+      run();
+    }
+  }
   return 0;
 }

@@ -55,6 +55,16 @@ class AcquireManager {
 
   void AcquireSingleImage(PvDevice* aDevice, PvStream* aStream);
 
+  /**
+   * @brief Destroy the stream data
+   */
+  void streamDestroy(PvDevice* aDevice, PvStream* aStream);
+
+  /**
+   * @brief Destroy the stream buffer
+   */
+  void bufferDestroy(PvDevice* aDevice, PvStream* aStream);
+
  private:
   static AcquireManager instance;
   /**
@@ -69,12 +79,6 @@ class AcquireManager {
    * @param aStream Stream to parse the GenParams
    */
   PvGenParam parseGenParams(PvDevice* aDevice, PvStream* aStream);
-
-  /**
-   * @brief Destroy the stream data
-   */
-  void streamDestroy(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
-                     StreamMonitor& monitor);
 
   void bufferProcess(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
                      StreamMonitor& monitor);
