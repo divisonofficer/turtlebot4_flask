@@ -10,6 +10,9 @@ class DeviceManager {
    * @brief Run Device Connect Process
    * @param aConnectionID Connection ID of the device to connect
    */
+
+  bool SelectDevice(PvString &aConnectionID, PvDevice *&aDevice);
+
   PvDevice *DeviceConnectToDevice(const PvString &aConnectionID);
 
   static DeviceManager &getInstance();
