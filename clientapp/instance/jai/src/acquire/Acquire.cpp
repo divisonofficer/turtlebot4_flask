@@ -12,14 +12,12 @@ void AcquireManager::AcquireImages(PvDevice* aDevice, PvStream* aStream) {
   streamExecute(aDevice, params);
   streamConsume(aDevice, aStream, params, monitor);
 
-  PvGetChar();  // Flush key buffer for next stop.
+  // Flush key buffer for next stop.
   cout << endl << endl;
 
   // Tell the device to stop sending images.
   cout << "Sending AcquisitionStop command to the device" << endl;
   streamPause(aDevice, params);
-
-  streamDestroy(aDevice, aStream, params, monitor);
 }
 
 void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
@@ -27,6 +25,7 @@ void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
   StreamMonitor monitor;
   streamExecute(aDevice, params);
   PvBuffer* result = nullptr;
+
   while (!PvKbHit() && !result) {
     PvBuffer* lBuffer = NULL;
     PvResult lOperationResult;
@@ -54,8 +53,6 @@ void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
     writer.Store(result, path.c_str(), PvBufferFormatPNG);
   }
   streamPause(aDevice, params);
-
-  streamDestroy(aDevice, aStream, params, monitor);
 }
 
 void AcquireManager::streamExecute(PvDevice* aDevice, PvGenParam& params) {
@@ -124,8 +121,7 @@ void AcquireManager::bufferProcess(PvDevice* aDevice, PvStream* aStream,
   aStream->QueueBuffer(lBuffer);
 }
 
-void AcquireManager::streamDestroy(PvDevice* aDevice, PvStream* aStream,
-                                   PvGenParam& params, StreamMonitor& monitor) {
+void AcquireManager::streamDestroy(PvDevice* aDevice, PvStream* aStream) {
   // Disable streaming on the device
   cout << "Disable streaming on the controller." << endl;
   aDevice->StreamDisable();
@@ -140,6 +136,8 @@ void AcquireManager::streamDestroy(PvDevice* aDevice, PvStream* aStream,
     aStream->RetrieveBuffer(&lBuffer, &lOperationResult);
   }
 }
+
+void AcquireManager::bufferDestroy(PvDevice* aDevice, PvStream* aStream) {}
 
 void AcquireManager::payloadImageProcess(PvBuffer* lBuffer) {
   auto image = lBuffer->GetImage();
