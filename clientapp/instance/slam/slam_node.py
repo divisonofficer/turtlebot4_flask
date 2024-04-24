@@ -1,11 +1,12 @@
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from slam_opencv import slam_map_opencv
 
 from sensor_msgs.msg import LaserScan
-from slam_toolbox.srv import SaveMap
+from slam_toolbox.srv import SaveMap, DeserializePoseGraph, SerializePoseGraph
 
 from slam_types import (
     QuaternionAngle,
@@ -21,6 +22,9 @@ import math
 
 import time
 from typing import Union, List, Optional, Tuple
+
+from spinner import Spinner
+from std_msgs.msg import String
 
 
 class SlamApp(Node):
@@ -50,15 +54,17 @@ class SlamApp(Node):
     __lidar_position: List[Tuple[float, float]]
     __slam_metadata: dict
 
-    def __init__(self, sockets, launch):
+    def __init__(self, sockets, launch, spinner: Spinner):
         """
         Initializes the SlamApp node.
 
         Args:
             sockets: The sockets used for communication.
         """
-        rclpy.init()
         super().__init__("client_slam_node")
+
+        spinner.add_node(self)
+        self.spinner = spinner
 
         self.sockets = sockets
         self.launch = launch
@@ -136,6 +142,7 @@ class SlamApp(Node):
             namespace="/slam",
         )
         self.topic_timestamps["pose"] = msg.header.stamp
+        self.emit_slam_status()
 
     def lidar_callback(self, msg: LaserScan):
         self.__slam_metadata["lidar_interval"] = (
@@ -144,24 +151,43 @@ class SlamApp(Node):
         self.__slam_metadata["lidar_timestamp"] = time.time()
 
         self.__lidar_position = self.laser_to_position_array(msg)
-        self.emit_slam_status()
 
     ############################################################################################################
     # Service Call
     ############################################################################################################
 
-    def service_call_save_map(self, filename: str):
-        request = SaveMap.Request()
-        request.name = filename
-        client = self.create_client(SaveMap, "/slam_toolbox/save_map")
+    def service_call(self, service_type, service_name, request):
+        client = self.create_client(service_type, service_name)
         while not client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info("Service not available, waiting...")
+        self.get_logger().info(f"Service available, calling service... {service_name}")
         future = client.call_async(request)
-        rclpy.spin_until_future_complete(self, future)
-        if future.result() is not None:
-            return future.result().success
-        else:
-            return False
+        result = self.spinner.call_future_sync(service_name, future)
+
+        self.get_logger().info(f"Service call result: {result}")
+        return result
+
+    def service_call_save_map_png(self, filename: str):
+        request = SaveMap.Request()
+        request_name = String()
+        request_name.data = filename
+        request.name = request_name
+
+        return self.service_call(SaveMap, "/slam_toolbox/save_map", request)
+
+    def service_call_save_map(self, filename: str):
+        request = SerializePoseGraph.Request()
+        request.filename = filename
+        return self.service_call(
+            SerializePoseGraph, "/slam_toolbox/serialize_map", request
+        )
+
+    def service_call_load_map(self, filename: str):
+        request = DeserializePoseGraph.Request()
+        request.filename = filename
+        return self.service_call(
+            DeserializePoseGraph, "/slam_toolbox/deserialize_map", request
+        )
 
     ############################################################################################################
     # Marker Functions
@@ -253,6 +279,10 @@ class SlamApp(Node):
         """
         Timer callback function.
         """
+        if self.launch.process:
+            self.get_logger().info("Slam App is Running")
+        else:
+            self.get_logger().info("Slam App is not Running")
         self.emit_slam_status()
 
     #############################################################################################################
@@ -264,18 +294,18 @@ class SlamApp(Node):
         Emits the slam status.
         """
         if self.launch.process:
-            self.get_logger().info("Slam App is Running")
             if self.__position:
-                self.get_logger().info(f"Robot Pose: {self.__position}")
+                # self.get_logger().info(f"Robot Pose: {self.__position}")
+                pass
             if self.__map_origin:
-                self.get_logger().info(f"Map Origin: {self.__map_origin}")
+                # self.get_logger().info(f"Map Origin: {self.__map_origin}")
+                pass
             self.sockets.emit(
                 "slam_status",
                 dictValueConversion(self.get_slam_status()),
                 namespace="/slam",
             )
         else:
-            self.get_logger().info("Slam App is not Running")
             self.sockets.emit(
                 "slam_status",
                 {"status": "error", "message": "Slam not running"},
@@ -283,6 +313,15 @@ class SlamApp(Node):
             )
 
     def get_slam_status(self):
+
+        if (
+            time.time() - self.__slam_metadata["pos_timestamp"]
+            > self.__slam_metadata["pos_interval"] * 2
+        ):
+            self.__slam_metadata["pos_interval"] = (
+                time.time() - self.__slam_metadata["pos_timestamp"]
+            )
+
         return {
             "status": "success",
             "message": "Slam running",
