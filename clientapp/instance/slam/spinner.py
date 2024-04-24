@@ -43,8 +43,6 @@ class Spinner:
             result = future.result()
             with self.lock:
                 del self.future_flag_map[service_name]
-            if result and result.result == 255:
-                result = None
             return result
 
         return None

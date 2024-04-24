@@ -36,20 +36,20 @@ services:
     ipc: host
     pid: host
 
-  client_app:
-    build: ../
-    privileged: true
-    environment:
-      - ROS_DISCOVERY_SERVER=192.168.185.3:11811
-      - ROS_DOMAIN_ID=0
-      - FASTRTPS_LOG_LEVEL=Info
-      - UID=1000
-      - GID=1000
-      - DOCKER=1
-    network_mode: "host"
-    ipc: host
-    pid: host
-    cpu_count: 4
+  # client_app:
+  #   build: ../
+  #   privileged: true
+  #   environment:
+  #     - ROS_DISCOVERY_SERVER=192.168.185.3:11811
+  #     - ROS_DOMAIN_ID=0
+  #     - FASTRTPS_LOG_LEVEL=Info
+  #     - UID=1000
+  #     - GID=1000
+  #     - DOCKER=1
+  #   network_mode: "host"
+  #   ipc: host
+  #   pid: host
+  #   cpu_count: 4
 
 
 

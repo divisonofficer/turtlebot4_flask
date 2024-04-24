@@ -1,4 +1,4 @@
-from flask import Flask, Response, request
+from flask import Flask, Response, request, send_file
 from flask_socketio import SocketIO
 
 
@@ -9,7 +9,7 @@ import threading
 from slam_opencv import stream
 from spinner import Spinner
 from slam_node import SlamApp
-
+from slam_repo import SlamRepo
 from typing import Optional
 
 
@@ -74,6 +74,7 @@ sockets = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 spinner = Spinner()
 launch = SlamLaunch(sockets)
 node = SlamApp(sockets, launch, spinner)
+repo = SlamRepo()
 
 
 @app.route("/launch", methods=["GET"])
@@ -176,13 +177,23 @@ def get_map_data():
 
 @app.route("/map/save", methods=["POST"])
 def save_map():
-    filename = request.json.get("filename", "map")
-    if not node.service_call_save_map_png(filename):
+    file = request.json.get("filename", "map")
+    overlap_possible = request.json.get("overwrite", False)
+
+    filename = repo.save_map_available(file)
+
+    if not filename and not overlap_possible:
+        return {
+            "status": "error",
+            "message": "Filename unavailable",
+        }
+
+    if not node.service_call_save_map(filename):
         return {
             "status": "error",
             "message": "Failed to save map",
         }
-    if not node.service_call_save_map(filename):
+    if not node.service_call_save_map_png(filename):
         return {
             "status": "error",
             "message": "Failed to save map png",
@@ -195,8 +206,13 @@ def save_map():
 
 @app.route("/map/load", methods=["POST"])
 def load_serialized_map():
-
-    filename = request.json.get("filename", "map")
+    file = request.json.get("filename", "map")
+    filename = repo.load_map_available(file)
+    if not filename:
+        return {
+            "status": "error",
+            "message": "Filename unavailable",
+        }
     if not node.service_call_load_map(filename):
         return {
             "status": "error",
@@ -206,6 +222,22 @@ def load_serialized_map():
         "status": "success",
         "message": "Map loaded",
     }
+
+
+@app.route("/map/list", methods=["GET"])
+def get_saved_map_list():
+    return repo.get_map_list()
+
+
+@app.route("/map/<map_name>/image", methods=["GET"])
+def get_map_image(map_name):
+    path = repo.get_map_image(map_name)
+    if path:
+        return send_file(path, mimetype="image/jpeg")
+    return Response(
+        status=404,
+        response="Map image not found",
+    )
 
 
 if __name__ == "__main__":
