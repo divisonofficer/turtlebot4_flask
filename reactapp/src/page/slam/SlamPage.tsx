@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PageRoot } from "../../design/other/flexs";
 import { VideoStream } from "../../design/other/video";
 import { slamSocket } from "../../connect/socket/subscribe";
@@ -27,6 +27,8 @@ import {
   SlamMapMarkerProps,
   SlamMarkerHover,
 } from "./MapMarker";
+import { MapData, MapListModalBtn } from "./MapList";
+import { MapSaveBtn } from "./MapSaveBtn";
 
 const SlamPostionInfo = ({
   slamStatus,
@@ -97,6 +99,25 @@ const SlamPostionInfo = ({
         value={`${robotOrientationQuat.x}, ${robotOrientationQuat.y}, ${robotOrientationQuat.z}, ${robotOrientationQuat.w}`}
         color={Color.Green}
       />
+      {slamStatus?.slam_metadata && (
+        <>
+          <InfoCard
+            title="Position Interval"
+            value={`${slamStatus.slam_metadata.pos_interval.toFixed(4)}`}
+            color={Color.Cyan}
+          />
+          <InfoCard
+            title="Map Interval"
+            value={`${slamStatus.slam_metadata.map_interval.toFixed(4)}`}
+            color={Color.Cyan}
+          />
+          <InfoCard
+            title="Lidar Interval"
+            value={`${slamStatus.slam_metadata.lidar_interval.toFixed(4)}`}
+            color={Color.Cyan}
+          />
+        </>
+      )}
     </Flex>
   );
 };
@@ -151,7 +172,8 @@ export const SlamMap = ({
         id="video-stream"
         url="/slam/map/stream"
         width="100%"
-        height="100%"
+        height="auto"
+        play={true}
       />
       <Body3
         style={{
@@ -195,6 +217,16 @@ export const SlamView = () => {
   const [markers, setMarkers] = useState<{ id: number; pose: SlamRobotPose }[]>(
     []
   );
+
+  const fetchLoadMap = (map: MapData) => {
+    if (slamStatus?.status !== "success") {
+      return false;
+    }
+    httpPost("/slam/map/load", {
+      filename: map.name,
+    }).fetch();
+    return true;
+  };
 
   const fetchSlamStart = () => {
     httpGet("/slam/launch").fetch();
@@ -244,6 +276,12 @@ export const SlamView = () => {
         <Btn onClick={fetchAddMarkerSelf} color={Color.Blue}>
           Add Self Marker
         </Btn>
+        <MapListModalBtn
+          onClickMapWithCallback={(map, closeCallback) => {
+            if (fetchLoadMap(map)) closeCallback();
+          }}
+        />
+        <MapSaveBtn />
       </HStack>
 
       <SlamMap origin={slamStatus?.map_origin} map_size={slamStatus?.map_size}>

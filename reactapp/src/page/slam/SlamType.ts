@@ -8,6 +8,7 @@ export interface SlamStatus {
     id: number;
     pose: SlamRobotPose;
   }[];
+  slam_metadata?: SlamMetaData;
 }
 export interface MapSize {
   width: number;
@@ -37,4 +38,10 @@ export interface SlamRobotPose {
   z: number;
   orientation: SlamRobotOrientation;
   orientation_quaternion: SlamRobotOrientationQuat;
+}
+
+export interface SlamMetaData {
+  pos_interval: number;
+  map_interval: number;
+  lidar_interval: number;
 }
