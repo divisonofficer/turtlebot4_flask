@@ -2,9 +2,15 @@
 #include <Logger.h>
 #include <PvBufferWriter.h>
 #include <PvSampleUtils.h>
+#include <PvStreamGEV.h>
 
-AcquireManager& AcquireManager::getInstance() { return instance; }
-AcquireManager AcquireManager::instance;
+AcquireManager::AcquireManager() {
+  lDecompressionFilter = new PvDecompressionFilter();
+}
+AcquireManager::~AcquireManager() {
+  free(lDecompressionFilter);
+  lDecompressionFilter = nullptr;
+}
 
 void AcquireManager::AcquireImages(PvDevice* aDevice, PvStream* aStream) {
   PvGenParam params = parseGenParams(aDevice, aStream);
@@ -13,10 +19,11 @@ void AcquireManager::AcquireImages(PvDevice* aDevice, PvStream* aStream) {
   streamConsume(aDevice, aStream, params, monitor);
 
   // Flush key buffer for next stop.
-  cout << endl << endl;
+  Debug << "\n\n";
 
   // Tell the device to stop sending images.
-  cout << "Sending AcquisitionStop command to the device" << endl;
+  Debug << "Sending AcquisitionStop command to the device"
+        << "\n";
   streamPause(aDevice, params);
 }
 
@@ -35,6 +42,7 @@ void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
         aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
 
     if (!lResult.IsOK()) {
+      Debug << lResult.GetCodeString().GetAscii();
       continue;
     }
 
@@ -179,8 +187,8 @@ void AcquireManager::payloadPleoraCompressedProcess(PvBuffer* lBuffer,
 
   PvBuffer lDecompressedBuffer;
   // If the buffer is compressed, start by decompressing it
-  if (lDecompressionFilter.IsCompressed(lBuffer)) {
-    lResult = lDecompressionFilter.Execute(lBuffer, &lDecompressedBuffer);
+  if (lDecompressionFilter->IsCompressed(lBuffer)) {
+    lResult = lDecompressionFilter->Execute(lBuffer, &lDecompressedBuffer);
     if (!lResult.IsOK()) {
       return;
     }
@@ -236,3 +244,6 @@ void AcquireManager::payloadProcess(PvBuffer* lBuffer, PvResult& lResult,
   cout << "  " << monitor.lFrameRateVal << " FPS  "
        << (monitor.lBandwidthVal / 1000000.0) << " Mb/s   \r";
 }
+
+AcquireManager& AcquireManager::getInstance() { return instance; }
+AcquireManager AcquireManager::instance;
