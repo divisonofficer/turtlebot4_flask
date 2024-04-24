@@ -19,6 +19,9 @@ class DiagnoticsStore {
     this.message_session_active = Date.now() - this.message_timestamp < 5000;
     this.message_timestamp_passed =
       (Date.now() - this.message_timestamp) / 1000;
+    if (this.message_timestamp_passed > 1000) {
+      this.message_timestamp_passed = 1000;
+    }
   }, 627);
 
   constructor() {
@@ -34,7 +37,9 @@ class DiagnoticsStore {
     rosSocket.subscribe("/turtlebot/diagnostic", (message: any) => {
       runInAction(() => {
         this.message = JSON.parse(message);
-        this.message_timestamp = Date.now();
+        if (Object.keys(this.message).length > 0) {
+          this.message_timestamp = Date.now();
+        }
       });
     });
   }
