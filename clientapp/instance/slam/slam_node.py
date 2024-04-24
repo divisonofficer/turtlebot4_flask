@@ -2,7 +2,7 @@ import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose2D
 from slam_opencv import slam_map_opencv
 
 from sensor_msgs.msg import LaserScan
@@ -165,6 +165,9 @@ class SlamApp(Node):
         result = self.spinner.call_future_sync(service_name, future)
 
         self.get_logger().info(f"Service call result: {result}")
+
+        if hasattr(result, "result") and result.result == 255:
+            return None
         return result
 
     def service_call_save_map_png(self, filename: str):
@@ -184,7 +187,13 @@ class SlamApp(Node):
 
     def service_call_load_map(self, filename: str):
         request = DeserializePoseGraph.Request()
+
         request.filename = filename
+        request.match_type = DeserializePoseGraph.Request.START_AT_GIVEN_POSE
+        request.initial_pose = Pose2D()
+        request.initial_pose.x = self.__position.position.x
+        request.initial_pose.y = self.__position.position.y
+        request.initial_pose.theta = self.__euler_orientation.yaw
         return self.service_call(
             DeserializePoseGraph, "/slam_toolbox/deserialize_map", request
         )
