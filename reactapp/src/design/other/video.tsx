@@ -5,10 +5,10 @@ import { NotAllowedIcon } from "@chakra-ui/icons";
 import { PlayCircle } from "@phosphor-icons/react";
 
 export const VideoStream = (
-  props: HTMLProps<HTMLImageElement> & { url: string }
+  props: HTMLProps<HTMLImageElement> & { url: string; play?: boolean }
 ) => {
   const [url, setUrl] = useState<string | undefined>(undefined);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(props.play || false);
 
   const [isHover, setIsHover] = useState(false);
   useEffect(() => {
@@ -18,16 +18,27 @@ export const VideoStream = (
     };
   }, []);
 
-  useEffect(()=>{
-    if(!isPlaying){
-      setUrl(undefined)
-    }
-    else{
+  useEffect(() => {
+    if (!isPlaying) {
+      setUrl(undefined);
+    } else {
       setUrl(props.url + "/" + Date.now());
     }
-  },[isPlaying])
+  }, [isPlaying]);
 
-  return (
+  return props.play ? (
+    <img
+      {...props}
+      style={{
+        width: "100%",
+        height: "auto",
+        objectFit: "cover",
+        flexGrow: 1,
+      }}
+      src={url}
+      alt="video"
+    />
+  ) : (
     <div
       {...props}
       onMouseEnter={() => setIsHover(true)}
@@ -49,8 +60,9 @@ export const VideoStream = (
         <img
           style={{
             width: "100%",
-            height: "100%",
+            height: "auto",
             objectFit: "cover",
+            flexGrow: 1,
           }}
           src={url}
           alt="video"

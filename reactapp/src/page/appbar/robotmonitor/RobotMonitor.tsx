@@ -95,7 +95,9 @@ export const TurtlebotNodeMonitorIcon = observer(() => {
         >
           <Flex
             style={{
-              background: Color.Cyan,
+              background: diagnoticsStore.message_session_active
+                ? Color.Cyan
+                : "Black",
               width: "10rem",
               height: "8rem",
               alignItems: "center",
@@ -122,6 +124,9 @@ export const TurtlebotNodeMonitorIcon = observer(() => {
           >
             <H2 color="black">{diagnoticsStore.message_timestamp_passed}sec</H2>
             <Body3 color="black">Last Message</Body3>
+            {!diagnoticsStore.message_session_active && (
+              <Body3 color="black">No topic response</Body3>
+            )}
           </Flex>
         </VStack>
       }
