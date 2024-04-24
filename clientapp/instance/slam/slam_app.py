@@ -7,8 +7,10 @@ import subprocess
 import threading
 
 from slam_opencv import stream
-import rclpy
+from spinner import Spinner
 from slam_node import SlamApp
+
+from typing import Optional
 
 
 class SlamLaunch:
@@ -21,7 +23,7 @@ class SlamLaunch:
     def std_callback(self, msg):
         print(msg)
 
-    def launch(self):
+    def launch(self, map_name: Optional[str] = None):
         """
         run subprocess asynchronously using Threading
         and lively get stdout, stderr.
@@ -69,22 +71,29 @@ app = Flask(__name__)
 sockets = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
+spinner = Spinner()
 launch = SlamLaunch(sockets)
-node = SlamApp(sockets, launch)
-
-
-def spin_ros2_node():
-
-    def spin():
-        rclpy.spin(node)
-
-    threading.Thread(target=spin).start()
+node = SlamApp(sockets, launch, spinner)
 
 
 @app.route("/launch", methods=["GET"])
 def launch_slam():
     if not launch.process:
         launch.launch()
+        return {
+            "status": "success",
+            "message": "Slam launched successfully",
+        }
+    return {
+        "status": "error",
+        "message": "Slam already running",
+    }
+
+
+@app.route("/launch/<map_name>", methods=["GET"])
+def launch_slam_open_map(map_name):
+    if not launch.process:
+        launch.launch(map_name)
         return {
             "status": "success",
             "message": "Slam launched successfully",
@@ -165,6 +174,40 @@ def get_map_data():
     return data
 
 
+@app.route("/map/save", methods=["POST"])
+def save_map():
+    filename = request.json.get("filename", "map")
+    if not node.service_call_save_map_png(filename):
+        return {
+            "status": "error",
+            "message": "Failed to save map",
+        }
+    if not node.service_call_save_map(filename):
+        return {
+            "status": "error",
+            "message": "Failed to save map png",
+        }
+    return {
+        "status": "success",
+        "message": "Map saved",
+    }
+
+
+@app.route("/map/load", methods=["POST"])
+def load_serialized_map():
+
+    filename = request.json.get("filename", "map")
+    if not node.service_call_load_map(filename):
+        return {
+            "status": "error",
+            "message": "Failed to load map",
+        }
+    return {
+        "status": "success",
+        "message": "Map loaded",
+    }
+
+
 if __name__ == "__main__":
-    spin_ros2_node()
+    spinner.spin_async()
     sockets.run(app, port=5010, host="0.0.0.0", allow_unsafe_werkzeug=True)
