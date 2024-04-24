@@ -245,6 +245,12 @@ def get_lidar_status():
     return jsonify({"status": controller.lidar.is_running})
 
 
+@app.route("/ros/daemon/restart", methods=["POST"])
+def post_ros_daemon_restart():
+    controller.restart_daemon()
+    return Response(status=200)
+
+
 import os
 
 
@@ -267,4 +273,4 @@ with app.app_context():
 
 if __name__ == "__main__":
 
-    socketio.run(app, port=5001, allow_unsafe_werkzeug=True)
+    socketio.run(app, port=5001, allow_unsafe_werkzeug=True, host="0.0.0.0")

@@ -7,11 +7,13 @@ from datetime import datetime
 from flask import Flask
 from flask_socketio import SocketIO
 
+from typing import List, Dict
+
 # Global list to hold battery information
 
 
 class BatteryMonitor:
-    battery_data: list[dict]
+    battery_data: List[Dict]
 
     def __init__(self, socketio):
         self.socketio = socketio

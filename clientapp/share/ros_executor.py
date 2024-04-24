@@ -1,12 +1,20 @@
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import (
+    MultiThreadedExecutor,
+    ThreadPoolExecutor,
+    SingleThreadedExecutor,
+    Executor,
+)
+
+from rclpy.context import Context
 from rclpy.node import Node
 import threading
 import rclpy
+from typing import Set
 
 
 class RosExecutor:
-    nodes = set()
-    executor = None
+    nodes: Set[Node] = set()
+    executor: Executor = None
 
     def add_node_runtime(self, node):
         if node not in self.nodes:
@@ -28,13 +36,14 @@ class RosExecutor:
             self.executor.shutdown()
 
     def executor_thread(self, nodes: list[Node]):
-        self.executor = MultiThreadedExecutor()
+        self.executor = MultiThreadedExecutor(num_threads=4)
 
         def _spin():
             try:
                 for node in nodes:
                     self.executor.add_node(node)
                 self.executor.spin()
+
             finally:
                 rclpy.shutdown()
 
