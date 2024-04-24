@@ -97,6 +97,12 @@ class Controller:
             return "Topic does not exist", 400
         return self.manualTopicManager.topics[topic_name].get_dict()
 
+    def restart_daemon(self):
+        import subprocess
+
+        subprocess.run(["ros2", "daemon", "stop"])
+        return subprocess.run(["ros2", "daemon", "start"])
+
 
 def print_help(controller: Controller):
     print("Usage: python3 controller.py <command>")

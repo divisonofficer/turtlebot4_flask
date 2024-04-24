@@ -1,6 +1,8 @@
-flask_socketio
 flask
+opencv-python
+opencv-python-headless
+flask-socketio
+flask_cors
+numpy
 requests
 websocket-client
-numpy
-opencv-python-headless

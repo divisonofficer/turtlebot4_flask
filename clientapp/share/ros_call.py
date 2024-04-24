@@ -14,6 +14,10 @@ import subprocess
 import re
 import json
 import threading
+import os
+
+from rclpy.topic_endpoint_info import TopicEndpointInfo
+from .ros_cli import RosCliManager
 
 ROBOT_NAMESPACE = ""  # "cgbot1/"
 
@@ -21,7 +25,7 @@ ROBOT_NAMESPACE = ""  # "cgbot1/"
 import numpy as np
 from time import time
 
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, List, Dict, Callable
 
 
 class SimpleSubscriber(Node):
@@ -76,10 +80,20 @@ class RosPyManager:
     scan_thread: Optional[threading.Thread] = None
 
     def __init__(self):
-        rclpy.init()
+        rclpy.init(domain_id=0)
         self.simple_subscriber = SimpleSubscriber()
-        self.ros_viewer = Node("client_viewer")
-        self.ros_viewer.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        # self.ros_viewer = rclpy.create_node(
+        #     "client_ros_viewer", allow_undeclared_parameters=True
+        # )
+        # self.ros_viewer.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        if os.environ.get("DOCKER"):
+            self.ros_viewer = RosCliManager()
+        else:
+            self.ros_viewer = rclpy.create_node(
+                "client_ros_viewer", allow_undeclared_parameters=True
+            )
+            self.ros_viewer.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
+
         self.topic_nodes_dict = {}
 
     def ros2_message_to_dictionary(self, message):
@@ -139,10 +153,11 @@ class RosPyManager:
         #     self.get_qos_profile(topic_name)["Publishers"][0]["QoS profile"]
         # )
 
-        qos_profile = self.ros_viewer.get_publishers_info_by_topic(topic_name)[
-            0
-        ].qos_profile
-
+        publisher = self.ros_viewer.get_publishers_info_by_topic(topic_name)[0]
+        if type(publisher) is dict:
+            qos_profile = self.create_qos_profile_from_dict(publisher["qosProfile"])
+        else:
+            qos_profile = publisher.qos_profile
         qos_profile.history = QoSHistoryPolicy.KEEP_LAST
 
         return self.simple_subscriber.add_subscription(
@@ -217,13 +232,13 @@ class RosPyManager:
         )
 
         reliability = reliability_map.get(
-            qos_dict["Reliability"], QoSReliabilityPolicy.SYSTEM_DEFAULT
+            qos_dict["reliability"], QoSReliabilityPolicy.SYSTEM_DEFAULT
         )
         durability = durability_map.get(
-            qos_dict["Durability"], QoSDurabilityPolicy.SYSTEM_DEFAULT
+            qos_dict["durability"], QoSDurabilityPolicy.SYSTEM_DEFAULT
         )
         liveliness = liveliness_map.get(
-            qos_dict["Liveliness"], QoSLivelinessPolicy.SYSTEM_DEFAULT
+            qos_dict["liveliness"], QoSLivelinessPolicy.SYSTEM_DEFAULT
         )
 
         # Create the QoSProfile
@@ -297,6 +312,7 @@ class RosPyManager:
         """
         Get list of topics
         """
+        # result = self.ros_viewer.get_topic_names_and_types()
         result = self.ros_viewer.get_topic_names_and_types()
         self.scan_topic_node_thread([topic for topic, _ in result])
         return [
@@ -317,8 +333,8 @@ class RosPyManager:
         Get list of nodes
         """
         result = self.ros_viewer.get_node_names_and_namespaces()
-        nodes_category_dict = {}
-        nodes_category_order = {
+        nodes_category_dict: Dict[str, List[Dict[str, str]]] = {}
+        nodes_category_order: Dict[str, int] = {
             "Turtlebot": 0,
             "OAK-D": 1,
             "ClientApp": 2,
@@ -341,7 +357,7 @@ class RosPyManager:
                 key = "Turtlebot"
             if "client" in name:
                 key = "ClientApp"
-            if "lidar" in name:
+            if "rplidar" in name:
                 key = "Turtlebot"
             if not key in nodes_category_dict:
                 nodes_category_dict[key] = []
@@ -401,23 +417,25 @@ class RosPyManager:
         publishers = self.ros_viewer.get_publishers_info_by_topic(topic_name)
         subscriptions = self.ros_viewer.get_subscriptions_info_by_topic(topic_name)
 
-        def endpointinfo_dict(info):
-            return {
-                "name": info.node_name,
-                "namespace": info.node_namespace,
-                "topicType": info.topic_type,
-                "endpointType": info.endpoint_type.name,
-                "gid": info.endpoint_gid,
-                "qosProfile": {
-                    "reliability": info.qos_profile.reliability.name,
-                    "depthHistory": info.qos_profile.history.name,
-                    "durability": info.qos_profile.durability.name,
-                    "lifespan": info.qos_profile.lifespan.nanoseconds,
-                    "deadline": info.qos_profile.deadline.nanoseconds,
-                    "liveliness": info.qos_profile.liveliness.name,
-                    "livelinessLeaseDuration": info.qos_profile.liveliness_lease_duration.nanoseconds,
-                },
-            }
+        def endpointinfo_dict(info: Union[Dict, TopicEndpointInfo]):
+            if isinstance(info, TopicEndpointInfo):
+                return {
+                    "name": info.node_name,
+                    "namespace": info.node_namespace,
+                    "topicType": info.topic_type,
+                    "endpointType": info.endpoint_type.name,
+                    "gid": info.endpoint_gid,
+                    "qosProfile": {
+                        "reliability": info.qos_profile.reliability.name,
+                        "depthHistory": info.qos_profile.history.name,
+                        "durability": info.qos_profile.durability.name,
+                        "lifespan": info.qos_profile.lifespan.nanoseconds,
+                        "deadline": info.qos_profile.deadline.nanoseconds,
+                        "liveliness": info.qos_profile.liveliness.name,
+                        "livelinessLeaseDuration": info.qos_profile.liveliness_lease_duration.nanoseconds,
+                    },
+                }
+            return info
 
         publishers = [endpointinfo_dict(publisher) for publisher in publishers]
         subscriptions = [
@@ -435,4 +453,6 @@ class RosPyManager:
             self.get_topic_nodes_list(topic)
         self.scan_thread = None
         time_taken = time() - time_begin
-        self.ros_viewer.get_logger().info(f"Scanning topics took {time_taken} seconds")
+        self.simple_subscriber.get_logger().info(
+            f"Scanning topics took {time_taken} seconds"
+        )
