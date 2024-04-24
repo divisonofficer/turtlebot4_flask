@@ -24,7 +24,8 @@ PvStream* StreamManager::OpenStream(const PvString& aConnectionID) {
   return lStream;
 }
 
-void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream) {
+void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
+                                    u_int32_t channel = 0) {
   // If this is a GigE Vision device, configure GigE Vision specific streaming
   // parameters
   PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*>(aDevice);
@@ -36,7 +37,7 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream) {
 
     // Configure device streaming destination
     lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
-                                     lStreamGEV->GetLocalPort());
+                                     lStreamGEV->GetLocalPort(), channel);
   }
 }
 

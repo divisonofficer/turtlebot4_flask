@@ -15,7 +15,7 @@ class StreamManager {
    * @param aDevice Device to configure the stream
    * @param aStream Stream to configure
    */
-  void ConfigureStream(PvDevice *aDevice, PvStream *aStream);
+  void ConfigureStream(PvDevice *aDevice, PvStream *aStream, u_int32_t channel);
   /**
    * @brief Create stream buffers
    * @param aDevice Device to create the stream buffers

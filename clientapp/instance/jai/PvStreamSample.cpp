@@ -35,23 +35,38 @@ void print_help_run_stream() {
   std::cout << "capture_single: Capture a single image" << std::endl;
   std::cout << "capture: Capture images" << std::endl;
   std::cout << "exit: Exit the program" << std::endl;
+  std::cout << "nir: Configure stream to NIR" << std::endl;
+  std::cout << "rgb: Configure stream to RGB" << std::endl;
 }
-void run_stream(PvDevice* lDevice, PvStream* lStream, std::string displayName) {
+void run_stream(PvDevice* lDevice, PvStream* lStream, std::string displayName,
+                BufferList* lBufferList) {
   std::string command;
   while (command != "exit") {
     std::cout << "[" << displayName << "]" << std::endl;
     std::cout << "Enter a command: ";
     std::cin >> command;
     PvGetChar();
-    PvGetChar();
+
+    auto streamManager = StreamManager::getInstance();
+    auto acquireManager = AcquireManager::getInstance();
     if (command == "help") {
       print_help_run_stream();
     }
     if (command == "capture_single") {
-      AcquireManager::getInstance().AcquireSingleImage(lDevice, lStream);
+      acquireManager.AcquireSingleImage(lDevice, lStream);
     }
     if (command == "capture") {
-      AcquireManager::getInstance().AcquireImages(lDevice, lStream);
+      acquireManager.AcquireImages(lDevice, lStream);
+    }
+    if (command == "nir") {
+      streamManager.FreeStreamBuffers(lBufferList);
+      streamManager.ConfigureStream(lDevice, lStream, 1);
+      streamManager.CreateStreamBuffers(lDevice, lStream, lBufferList);
+    }
+    if (command == "rgb") {
+      streamManager.FreeStreamBuffers(lBufferList);
+      streamManager.ConfigureStream(lDevice, lStream, 0);
+      streamManager.CreateStreamBuffers(lDevice, lStream, lBufferList);
     }
   }
 }
@@ -72,14 +87,13 @@ int run() {
                                               displayName)) {
     lStream = StreamManager::getInstance().OpenStream(lConnectionID);
     if (NULL != lStream) {
-      StreamManager::getInstance().ConfigureStream(lDevice, lStream);
+      StreamManager::getInstance().ConfigureStream(lDevice, lStream, 0);
       StreamManager::getInstance().CreateStreamBuffers(lDevice, lStream,
                                                        &lBufferList);
 
-      run_stream(lDevice, lStream, displayName);
-
-      AcquireManager::getInstance().streamDestroy(lDevice, lStream);
+      run_stream(lDevice, lStream, displayName, &lBufferList);
       StreamManager::getInstance().FreeStreamBuffers(&lBufferList);
+      AcquireManager::getInstance().streamDestroy(lDevice, lStream);
 
       // Close the stream
       std::cout << "Closing stream" << endl;

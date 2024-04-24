@@ -126,7 +126,7 @@ OBJS      += $(SRC_CS:%.c=%.o)
 all: $(EXEC)
 
 clean:
-	rm -rf $(OBJS) $(EXEC) $(SRC_MOC) $(SRC_QRC)
+	rm -rf $(OBJS) $(SRC_MOC) $(SRC_QRC)
 
 moc_%.cxx: %.h
 	$(MOC) $< -o $@ 

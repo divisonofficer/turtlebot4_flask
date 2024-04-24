@@ -19,6 +19,9 @@ struct StreamMonitor {
 
 class AcquireManager {
  public:
+  AcquireManager();
+  ~AcquireManager();
+
   /**
    * @brief Get the AcquireManager singleton instance
    * @return AcquireManager
@@ -64,15 +67,16 @@ class AcquireManager {
    * @brief Destroy the stream buffer
    */
   void bufferDestroy(PvDevice* aDevice, PvStream* aStream);
-
- private:
-  static AcquireManager instance;
   /**
    * @brief DecompressionFilter instance
    * Used to decompress payload data which is compressed
    * Used to validate the payload data is compressed or not
    */
-  PvDecompressionFilter lDecompressionFilter;
+  PvDecompressionFilter* lDecompressionFilter;
+
+ private:
+  static AcquireManager instance;
+
   /**
    * @brief Parse the GenCommand and GenFloat parameters
    * @param aDevice Device to parse the GenParams
