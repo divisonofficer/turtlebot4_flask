@@ -11,6 +11,7 @@ process_map = {
 }
 
 import subprocess
+import signal
 
 
 class ProcessManager:
@@ -73,4 +74,11 @@ def process_status():
 
 
 if __name__ == "__main__":
+
+    def signal_handler(sig, frame):
+        for process_key in [key for key in process_manager.processes.keys()]:
+            process_manager.cancel_process(process_key)
+        exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
     app.run(port=5000)
