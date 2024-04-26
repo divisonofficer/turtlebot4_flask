@@ -1,21 +1,26 @@
 from cv_bridge import CvBridge
 import cv2
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan
 from dataclasses import dataclass
 
 from slam_types import Pose3D
+from typing import List
+import numpy as np
 
 
 class ImageBytes:
     width: int
     height: int
-    data: bytes
+    data: List[int]
+    image: np.ndarray
+    topic: str
 
     def __init__(self, image: Image, topic: str = "/oakd/rgb/preview/image_raw"):
         self.width = image.width
         self.height = image.height
         self.data = image.data.tolist()
         self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
+        self.topic = topic
         if topic == "/stereo/depth":
             self.image = cv2.normalize(
                 self.image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1
@@ -26,6 +31,7 @@ class ImageBytes:
         return {
             "width": self.width,
             "height": self.height,
+            "topic": self.topic,
         }
 
 
@@ -35,11 +41,11 @@ class CaptureLiDAR:
     angle_increment: float
     ranges: list[float]
 
-    def __init__(self, angle_min, angle_max, angle_increment, ranges):
-        self.angle_min = angle_min
-        self.angle_max = angle_max
-        self.angle_increment = angle_increment
-        self.ranges = ranges
+    def __init__(self, lidar_msg: LaserScan):
+        self.angle_min = lidar_msg.angle_min
+        self.angle_max = lidar_msg.angle_max
+        self.angle_increment = lidar_msg.angle_increment
+        self.ranges = lidar_msg.ranges.tolist()
 
     def to_dict(self):
         return {
@@ -56,7 +62,7 @@ class CaptureSingleScene:
     timestamp: int
     robot_pose: Pose3D
     lidar_position: CaptureLiDAR
-    picture_oakd_mono: ImageBytes
+    picture_list: List[ImageBytes]
 
     def __init__(
         self,
@@ -65,14 +71,14 @@ class CaptureSingleScene:
         timestamp,
         robot_pose,
         lidar_position,
-        picture_oakd_mono,
+        picture_list,
     ):
         self.capture_id = capture_id
         self.scene_id = scene_id
         self.timestamp = timestamp
         self.robot_pose = robot_pose
         self.lidar_position = lidar_position
-        self.picture_oakd_mono = picture_oakd_mono
+        self.picture_list = picture_list
 
     def to_dict(self):
         return {
@@ -89,9 +95,7 @@ class CaptureSingleScene:
                 if type(self.lidar_position) == CaptureLiDAR
                 else self.lidar_position
             ),
-            "picture_oakd_mono": (
-                self.picture_oakd_mono.to_dict()
-                if type(self.picture_oakd_mono) == ImageBytes
-                else self.picture_oakd_mono
-            ),
+            "picture_list": [
+                x.to_dict() if type(x) == ImageBytes else x for x in self.picture_list
+            ],
         }
