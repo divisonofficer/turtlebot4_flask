@@ -133,9 +133,7 @@ class SlamApp(Node):
         self.__slam_metadata["pos_timestamp"] = time.time()
 
         self.__position = Pose3D.from_msg(msg.pose.pose)
-        self.__euler_orientation = QuaternionAngle.from_msg(
-            msg.pose.pose.orientation
-        ).to_euler()
+        self.__euler_orientation = self.__position.orientation
         self.sockets.emit(
             "robot_pose",
             self.__position.to_dict_point(),
@@ -267,7 +265,7 @@ class SlamApp(Node):
         if self.__euler_orientation is None:
             return []
 
-        angleStart = msg.angle_min + self.__euler_orientation.roll + math.pi / 2
+        angleStart = msg.angle_min + self.__euler_orientation.yaw + math.pi / 2
         angleIncrement = msg.angle_increment
         ranges = msg.ranges
         positionArray: List[Tuple[float, float]] = []
