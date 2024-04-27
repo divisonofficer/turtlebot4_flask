@@ -1,6 +1,7 @@
 import os
 import time
 from PIL import Image
+import yaml
 
 
 class SlamRepo:
@@ -42,6 +43,26 @@ class SlamRepo:
             return None
 
         return self.ROOT + "/" + map_name
+
+    def get_map_metadata(self, map_name):
+        yaml_path = f"{self.ROOT}/{map_name}.yaml"
+        if not os.path.exists(yaml_path):
+            return None
+        with open(yaml_path, "r") as file:
+            metadata = yaml.safe_load(file)
+
+            image = Image.open(f"{self.ROOT}/{map_name}.pgm")
+            metadata["map_size"] = {
+                "width": image.width,
+                "height": image.height,
+                "resolution": metadata["resolution"],
+            }
+            metadata["map_origin"] = {
+                "x": metadata["origin"][0],
+                "y": metadata["origin"][1],
+            }
+
+            return metadata
 
     def load_map_available(self, map_name):
         """
