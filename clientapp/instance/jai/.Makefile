@@ -7,7 +7,7 @@ ifeq ($(SRC_CS) $(SRC_CPPS),)
   $(error No source files specified)
 endif
 
-ifeq ($(EXEC),)
+ifeq ($(EXEC_SRC),)
   $(error No executable file specified)
 endif
 
@@ -123,10 +123,11 @@ export LD_LIBRARY_PATH
 OBJS      += $(SRC_CPPS:%.cpp=%.o)
 OBJS      += $(SRC_CS:%.c=%.o)
 
-all: $(EXEC)
+
+all: $(EXEC_SRC)
 
 clean:
-	rm -rf $(OBJS) $(SRC_MOC) $(SRC_QRC)
+	rm -rf $(OBJS) $(SRC_MOC) $(SRC_QRC) $(EXEC_SRC:%.cpp=%.o)
 
 moc_%.cxx: %.h
 	$(MOC) $< -o $@ 
@@ -140,10 +141,11 @@ qrc_%.cxx: %.qrc
 %.o: %.cpp
 	$(CXX) -c $(CPPFLAGS) -o $@ $<
 
+
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-$(EXEC): $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS) 
+$(EXEC_SRC): $(OBJS)
+	echo $@ && $(CXX) -c $(CPPFLAGS) -o $(@:%.cpp=%.o) $@ && $(CXX) $(OBJS) $(@:%.cpp=%.o) -o $(@:%.cpp=%) $(LDFLAGS) 
 
 .PHONY: all clean
