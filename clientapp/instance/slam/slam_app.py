@@ -229,6 +229,17 @@ def get_saved_map_list():
     return repo.get_map_list()
 
 
+@app.route("/map/<map_name>", methods=["GET"])
+def get_map_metadata(map_name):
+    metadata = repo.get_map_metadata(map_name)
+    if metadata:
+        return metadata
+    return Response(
+        status=404,
+        response="Map not found",
+    )
+
+
 @app.route("/map/<map_name>/image", methods=["GET"])
 def get_map_image(map_name):
     path = repo.get_map_image(map_name)

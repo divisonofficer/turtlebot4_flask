@@ -68,6 +68,11 @@ def capture_result_list(space_id):
     return capture_storage.get_space_metadata(int(space_id))
 
 
+@app.route("/result/<space_id>/captures")
+def capture_result_all_captures(space_id):
+    return capture_storage.get_space_all_captures(int(space_id))
+
+
 @app.route("/result/<space_id>/scenes")
 def capture_result_all_scenes(space_id):
     return capture_storage.get_space_all_scenes(int(space_id))

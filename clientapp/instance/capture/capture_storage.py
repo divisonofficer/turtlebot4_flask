@@ -33,16 +33,25 @@ class CaptureStorage:
                     scene = json.loads(raw)
 
                     files = os.listdir(scene_dir)
+                    del scene["lidar_position"]
                     scene["images"] = [
                         f"{scene_dir_http}/{f}"
                         for f in files
                         if f.endswith(".jpg") and f != "oakd_mono_data.json"
                     ]
+                    scene["space_id"] = space_id
+                    scene["capture_id"] = capture_id
+                    scene["scene_id"] = int(scene_id)
                     scenes.append(scene)
             except FileNotFoundError:
                 continue
-
-        return scenes
+        if len(scenes) == 0:
+            return None
+        return {
+            "space_id": space_id,
+            "capture_id": capture_id,
+            "scenes": scenes,
+        }
 
     def get_capture_scene(
         self, space_id: int, capture_id: int, scene_id: int, filename: str
@@ -51,12 +60,25 @@ class CaptureStorage:
             CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), filename
         )
 
+    def get_space_all_captures(self, space_id: int):
+        capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
+        captures = os.listdir(capture_dir)
+        return [
+            x
+            for x in [self.get_capture_metadata(space_id, int(c)) for c in captures]
+            if x is not None
+        ]
+
     def get_space_all_scenes(self, space_id: int):
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
         captures = os.listdir(capture_dir)
         scenes = []
         for capture_id in captures:
-            scenes.extend(self.get_capture_metadata(space_id, int(capture_id)))
+            scenes.extend(
+                (self.get_capture_metadata(space_id, int(capture_id)) or {}).get(
+                    "scenes", []
+                )
+            )
         return scenes
 
     def store_captured_scene(
