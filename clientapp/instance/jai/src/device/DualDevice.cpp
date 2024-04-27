@@ -14,8 +14,6 @@ DualDevice::DualDevice(PvString &connection_ID) {
   nir_stream =
       static_cast<PvStreamGEV *>(streamManager->OpenStream(connection_ID));
 
-  rgb_buffer_list.reserve(128);
-  nir_buffer_list.reserve(128);
   StreamManager::getInstance()->ConfigureStream(nir_device, nir_stream, 1);
   StreamManager::getInstance()->ConfigureStream(rgb_device, rgb_stream, 0);
 

@@ -31,6 +31,9 @@ class AcquireManager {
    * @return AcquireManager
    */
   static AcquireManager* getInstance();
+
+  PvBuffer* AcquireBuffer(PvStream* aStream);
+
   /**
    * @brief Acquire images from the device
    * @param aDevice Device to acquire images from. Obtained from DeviceManager
@@ -79,10 +82,10 @@ class AcquireManager {
    * Used to validate the payload data is compressed or not
    */
   PvDecompressionFilter* lDecompressionFilter;
+  bool queueBuffer(PvStream* aStream, PvBuffer* aBuffer);
 
  private:
   PvBufferWriter* writer;
-  bool queueBuffer(PvStream* aStream, PvBuffer* aBuffer);
 
   std::map<PvDevice*, PvGenParam> deviceGenParams;
   static AcquireManager instance;

@@ -44,30 +44,7 @@ void AcquireManager::AcquireSingleImageDual(DualDevice* device) {
     // Retrieve next buffer
     for (int i = 0; i < 2; i++) {
       Debug << "Retrieving buffer from Stream " << i;
-      PvResult lResult = device->getStream(i)->RetrieveBuffer(
-          &lBuffer, &lOperationResult, 1000);
-
-      if (!lResult.IsOK()) {
-        Debug << "Failed to retrieve buffer:";
-        Debug << lResult.GetCodeString().GetAscii();
-        if (lBuffer) queueBuffer(device->getStream(i), lBuffer);
-        continue;
-      }
-      if (!lBuffer) {
-        Debug << "Buffer is null";
-        continue;
-      }
-
-      if (!lOperationResult.IsOK()) {
-        Debug << "Operation result is not OK : "
-              << lOperationResult.GetCodeString().GetAscii();
-        queueBuffer(device->getStream(i), lBuffer);
-      } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
-        queueBuffer(device->getStream(i), lBuffer);
-      } else {
-        result[i] = lBuffer;
-        Debug << "Image acquired";
-      }
+      result[i] = AcquireBuffer(device->getStream(i));
     }
   }
 
@@ -97,35 +74,7 @@ void AcquireManager::AcquireSingleImage(PvDevice* aDevice, PvStream* aStream) {
   PvGetChar();
   while (!PvKbHit() && !result && error_count < 5) {
     error_count++;
-    PvBuffer* lBuffer = nullptr;
-    PvResult lOperationResult;
-
-    // Retrieve next buffer
-    Debug << "Retrieving buffer";
-    PvResult lResult =
-        aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
-
-    if (!lResult.IsOK()) {
-      Debug << "Failed to retrieve buffer:";
-      Debug << lResult.GetCodeString().GetAscii();
-      if (lBuffer) queueBuffer(aStream, lBuffer);
-      continue;
-    }
-    if (!lBuffer) {
-      Debug << "Buffer is null";
-      continue;
-    }
-
-    if (!lOperationResult.IsOK()) {
-      Debug << "Operation result is not OK : "
-            << lOperationResult.GetCodeString().GetAscii();
-      queueBuffer(aStream, lBuffer);
-    } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
-      queueBuffer(aStream, lBuffer);
-    } else {
-      result = lBuffer;
-      Debug << "Image acquired";
-    }
+    result = AcquireBuffer(aStream);
   }
 
   if (result) {
@@ -151,6 +100,39 @@ bool AcquireManager::queueBuffer(PvStream* aStream, PvBuffer* buffer) {
     return false;
   }
   return true;
+}
+
+PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
+  PvBuffer* lBuffer = nullptr;
+  PvResult lOperationResult;
+
+  // Retrieve next buffer
+  Debug << "Retrieving buffer";
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
+
+  if (!lResult.IsOK()) {
+    Debug << "Failed to retrieve buffer:";
+    Debug << lResult.GetCodeString().GetAscii();
+    if (lBuffer) queueBuffer(aStream, lBuffer);
+    return nullptr;
+  }
+  if (!lBuffer) {
+    Debug << "Buffer is null";
+    return nullptr;
+  }
+
+  if (!lOperationResult.IsOK()) {
+    Debug << "Operation result is not OK : "
+          << lOperationResult.GetCodeString().GetAscii();
+  } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
+    Debug << "Payload type is not Image";
+
+  } else {
+    Debug << "Image acquired";
+    return lBuffer;
+  }
+  queueBuffer(aStream, lBuffer);
+  return nullptr;
 }
 
 void AcquireManager::streamExecute(PvGenParam& params) {
