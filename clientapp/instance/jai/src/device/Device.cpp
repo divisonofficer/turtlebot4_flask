@@ -2,7 +2,7 @@
 #include <Logger.h>
 #include <PvSampleUtils.h>
 #include <PvSystem.h>
-DeviceManager &DeviceManager::getInstance() { return staticInstance; }
+DeviceManager *DeviceManager::getInstance() { return &staticInstance; }
 DeviceManager DeviceManager::staticInstance;
 
 bool DeviceManager::connectDevice() {
@@ -23,6 +23,30 @@ bool DeviceManager::SelectDevice(PvString &aConnectionID, PvDevice *&aDevice) {
 
 bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
                                std::string &displayName) {
+  if (!findDeviceConnectionID(aConnectionID, displayName)) {
+    return false;
+  }
+
+  aDevice = DeviceConnectToDevice(aConnectionID);
+  if (aDevice == NULL) {
+    Error << "Unable to connect to device.";
+    return false;
+  }
+  return true;
+}
+
+DualDevice *DeviceManager::connectDualDevice() {
+  PvString lConnectionID;
+  std::string displayName;
+  if (!findDeviceConnectionID(lConnectionID, displayName)) {
+    return nullptr;
+  }
+  DualDevice *dualDevice = new DualDevice(lConnectionID);
+  return dualDevice;
+}
+
+bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
+                                           std::string &displayName) {
   PvSystem lSystem;
   PvDeviceInfo *aDeviceInfo = nullptr;
   PvResult lResult;
@@ -50,6 +74,7 @@ bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
 
   // if IP Configuration is not valid, force new IP Address
   if (aDeviceInfo->IsConfigurationValid() == false) {
+    Info << "Device IP Configuration is not valid. Attempting to force new IP ";
     // Force New IP Address
     const PvDeviceInfoGEV *lDeviceGEV =
         dynamic_cast<const PvDeviceInfoGEV *>(aDeviceInfo);
@@ -66,12 +91,6 @@ bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
       Error << "Unable to force new IP address.";
       return false;
     }
-  }
-
-  aDevice = DeviceConnectToDevice(aConnectionID);
-  if (aDevice == NULL) {
-    Error << "Unable to connect to device.";
-    return false;
   }
   return true;
 }

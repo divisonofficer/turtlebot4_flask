@@ -11,6 +11,7 @@
 
 #include <Acquire.h>
 #include <Device.h>
+#include <DualDevice.h>
 #include <Logger.h>
 #include <PvBuffer.h>
 #include <PvDevice.h>
@@ -18,9 +19,9 @@
 #include <PvStream.h>
 #include <Stream.h>
 
-#include <list>
+#include <vector>
 
-typedef std::list<PvBuffer*> BufferList;
+typedef std::vector<PvBuffer*> BufferList;
 
 PV_INIT_SIGNAL_HANDLER();
 
@@ -41,35 +42,56 @@ void print_help_run_stream() {
 void run_stream(PvDevice* lDevice, PvStream* lStream, std::string displayName,
                 BufferList* lBufferList) {
   std::string command;
+
   while (command != "exit") {
+    auto streamManager = StreamManager::getInstance();
+    auto acquireManager = AcquireManager::getInstance();
     std::cout << "[" << displayName << "]" << std::endl;
     std::cout << "Enter a command: ";
     std::cin >> command;
-    PvGetChar();
 
-    auto streamManager = StreamManager::getInstance();
-    auto acquireManager = AcquireManager::getInstance();
     if (command == "help") {
       print_help_run_stream();
     }
     if (command == "capture_single") {
-      acquireManager.AcquireSingleImage(lDevice, lStream);
+      acquireManager->AcquireSingleImage(lDevice, lStream);
     }
     if (command == "capture") {
-      acquireManager.AcquireImages(lDevice, lStream);
-    }
-    if (command == "nir") {
-      streamManager.FreeStreamBuffers(lBufferList);
-      streamManager.ConfigureStream(lDevice, lStream, 1);
-      streamManager.CreateStreamBuffers(lDevice, lStream, lBufferList);
-    }
-    if (command == "rgb") {
-      streamManager.FreeStreamBuffers(lBufferList);
-      streamManager.ConfigureStream(lDevice, lStream, 0);
-      streamManager.CreateStreamBuffers(lDevice, lStream, lBufferList);
+      acquireManager->AcquireImages(lDevice, lStream);
     }
   }
 }
+
+int dual_device_run() {
+  DualDevice* dualDevice = nullptr;
+  std::string command;
+  auto dbm = DeviceManager::getInstance();
+  if (dualDevice = dbm->connectDualDevice()) {
+    while (true) {
+      std::cout << "Enter a command: rgb / nir / exit ";
+      std::cin >> command;
+      if (command == "exit") {
+        break;
+      }
+      if (command == "rgb") {
+        auto stream = dualDevice->getStream(0);
+        auto device = dualDevice->getDevice(0);
+        run_stream(device, stream, "RGB", dualDevice->getBufferList(0));
+      }
+      if (command == "nir") {
+        auto stream = dualDevice->getStream(1);
+        auto device = dualDevice->getDevice(1);
+        run_stream(device, stream, "NIR", dualDevice->getBufferList(1));
+      }
+      if (command == "both") {
+        AcquireManager::getInstance()->AcquireSingleImageDual(dualDevice);
+      }
+    }
+  }
+
+  return 0;
+}
+
 int run() {
   PvDevice* lDevice = NULL;
   PvStream* lStream = NULL;
@@ -83,17 +105,17 @@ int run() {
   PvString lConnectionID;
   std::string displayName;
   // DeviceManager::getInstance().SelectDevice(lConnectionID, lDevice)
-  if (DeviceManager::getInstance().findDevice(lConnectionID, lDevice,
-                                              displayName)) {
-    lStream = StreamManager::getInstance().OpenStream(lConnectionID);
+  if (DeviceManager::getInstance()->findDevice(lConnectionID, lDevice,
+                                               displayName)) {
+    lStream = StreamManager::getInstance()->OpenStream(lConnectionID);
     if (NULL != lStream) {
-      StreamManager::getInstance().ConfigureStream(lDevice, lStream, 0);
-      StreamManager::getInstance().CreateStreamBuffers(lDevice, lStream,
-                                                       &lBufferList);
+      StreamManager::getInstance()->ConfigureStream(lDevice, lStream, 0);
+      StreamManager::getInstance()->CreateStreamBuffers(lDevice, lStream,
+                                                        &lBufferList);
 
       run_stream(lDevice, lStream, displayName, &lBufferList);
-      StreamManager::getInstance().FreeStreamBuffers(&lBufferList);
-      AcquireManager::getInstance().streamDestroy(lDevice, lStream);
+      StreamManager::getInstance()->FreeStreamBuffers(&lBufferList);
+      AcquireManager::getInstance()->streamDestroy(lDevice, lStream);
 
       // Close the stream
       std::cout << "Closing stream" << endl;
@@ -120,6 +142,7 @@ void print_help_main() {
   std::cout << "Commands: " << std::endl;
   std::cout << "run: Run the program" << std::endl;
   std::cout << "exit: Exit the program" << std::endl;
+  std::cout << "run_dual: Run the program with dual devices" << std::endl;
 }
 
 int main() {
@@ -132,6 +155,9 @@ int main() {
     }
     if (command == "run") {
       run();
+    }
+    if (command == "run_dual") {
+      dual_device_run();
     }
   }
   return 0;
