@@ -2,7 +2,7 @@
 #include <PvDevice.h>
 #include <PvStream.h>
 
-#include <list>
+#include <vector>
 class StreamManager {
  public:
   /**
@@ -23,13 +23,13 @@ class StreamManager {
    * @param aBufferList List of buffers to create
    */
   void CreateStreamBuffers(PvDevice *aDevice, PvStream *aStream,
-                           std::list<PvBuffer *> *aBufferList);
+                           std::vector<PvBuffer *> *aBufferList);
   /**
    * @brief Free the stream buffers
    * @param aBufferList List of buffers to free
    */
-  void FreeStreamBuffers(std::list<PvBuffer *> *aBufferList);
-  static StreamManager &getInstance();
+  void FreeStreamBuffers(std::vector<PvBuffer *> *aBufferList);
+  static StreamManager *getInstance();
 
  private:
   static StreamManager staticInstance;

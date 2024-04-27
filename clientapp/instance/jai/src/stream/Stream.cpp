@@ -1,10 +1,11 @@
 #include <Logger.h>
+#include <ParamManager.h>
 #include <PvBuffer.h>
 #include <PvDeviceGEV.h>
 #include <PvStreamGEV.h>
 #include <Stream.h>
 
-#include <list>
+#include <vector>
 
 PvStream* StreamManager::OpenStream(const PvString& aConnectionID) {
   PvStream* lStream;
@@ -36,13 +37,65 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     lDeviceGEV->NegotiatePacketSize();
 
     // Configure device streaming destination
-    lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
-                                     lStreamGEV->GetLocalPort(), channel);
+
+    Debug << "Setting Device Stream Destination"
+          << "\n"
+          << "IP: " << lStreamGEV->GetLocalIPAddress().GetAscii() << "\n"
+          << "Port: " << lStreamGEV->GetLocalPort() << "\n"
+          << "Channel: " << channel << "\n";
+
+    auto localIpAddress = lStreamGEV->GetLocalIPAddress().GetAscii();
+    int64_t localIpDecimal = 0;
+    int64_t localIpDecimalParts = 0;
+    for (; *localIpAddress != '\0'; localIpAddress++) {
+      if (*localIpAddress != '.') {
+        localIpDecimalParts =
+            localIpDecimalParts * 10 + (*localIpAddress - '0');
+      }
+
+      if (*localIpAddress == '.' || *(localIpAddress + 1) == '\0') {
+        localIpDecimal = (localIpDecimal << 8) + localIpDecimalParts;
+        localIpDecimalParts = 0;
+      }
+    }
+
+    if (channel == 1) {
+      ParamManager::setParam(lDeviceGEV->GetParameters(),
+                             "GevStreamChannelSelector", channel);
+      ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCDA",
+                             localIpDecimal);
+      ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPHostPort",
+                             lStreamGEV->GetLocalPort());
+
+    }
+
+    else
+      lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
+                                       lStreamGEV->GetLocalPort(), channel);
+
+    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "SourceSelector",
+                               channel);
+    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "ExposureAuto",
+                               true);
+    ParamManager::setParam(lDeviceGEV->GetParameters(),
+                           "ExposureAutoControlMax", 150000.0f);
+    ParamManager::setParam(lDeviceGEV->GetParameters(), "GainAutoControlMax",
+                           15.0f);
+    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "GainAuto", true);
+
+    // int param_count = lDeviceGEV->GetParameters()->GetCount();
+    // for (int i = 0; i < param_count; i++) {
+    //   PvGenParameter* param = lDeviceGEV->GetParameters()->Get(i);
+    //   if (param->IsAvailable()) {
+    //     Debug << "Parameter: " << param->GetName().GetAscii() << " "
+    //           << param->GetUpdatesEnabled() << "\n";
+    //   }
+    // }
   }
 }
 
 void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
-                                        std::list<PvBuffer*>* aBufferList) {
+                                        std::vector<PvBuffer*>* aBufferList) {
   // Reading payload size from device
   uint32_t lSize = aDevice->GetPayloadSize();
 
@@ -64,24 +117,22 @@ void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
   }
 
   // Queue all buffers in the stream
-  std::list<PvBuffer*>::iterator lIt = aBufferList->begin();
-  while (lIt != aBufferList->end()) {
-    aStream->QueueBuffer(*lIt);
-    lIt++;
+  for (auto buffer : *aBufferList) {
+    aStream->QueueBuffer(buffer);
   }
 }
 
-void StreamManager::FreeStreamBuffers(std::list<PvBuffer*>* aBufferList) {
+void StreamManager::FreeStreamBuffers(std::vector<PvBuffer*>* aBufferList) {
   // Go through the buffer list
-  std::list<PvBuffer*>::iterator lIt = aBufferList->begin();
-  while (lIt != aBufferList->end()) {
-    delete *lIt;
-    lIt++;
+  for (auto buffer : *aBufferList) {
+    // Release the buffer
+    buffer->Free();
+    delete buffer;
   }
 
   // Clear the buffer list
   aBufferList->clear();
 }
 
-StreamManager& StreamManager::getInstance() { return staticInstance; }
+StreamManager* StreamManager::getInstance() { return &staticInstance; }
 StreamManager StreamManager::staticInstance;

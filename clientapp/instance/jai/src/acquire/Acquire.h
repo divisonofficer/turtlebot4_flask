@@ -1,8 +1,12 @@
+#include <DualDevice.h>
+#include <PvBufferWriter.h>
 #include <PvDecompressionFilter.h>
 #include <PvDevice.h>
 #include <PvGenCommand.h>
 #include <PvGenFloat.h>
 #include <PvStream.h>
+
+#include <map>
 
 struct PvGenParam {
   PvGenCommand *lStart, *lStop;
@@ -26,7 +30,7 @@ class AcquireManager {
    * @brief Get the AcquireManager singleton instance
    * @return AcquireManager
    */
-  static AcquireManager& getInstance();
+  static AcquireManager* getInstance();
   /**
    * @brief Acquire images from the device
    * @param aDevice Device to acquire images from. Obtained from DeviceManager
@@ -41,7 +45,7 @@ class AcquireManager {
    * @param aDevice Device to start the streaming
    * @param params GenParams to start the streaming
    */
-  void streamExecute(PvDevice* aDevice, PvGenParam& params);
+  void streamExecute(PvGenParam& params);
 
   /**
    * @brief Consume the stream data, in while loop until the user stops the
@@ -54,9 +58,11 @@ class AcquireManager {
   void streamConsume(PvDevice* aDevice, PvStream* aStream, PvGenParam& params,
                      StreamMonitor& monitor);
 
-  void streamPause(PvDevice* aDevice, PvGenParam& params);
+  void streamPause(PvGenParam& params);
 
   void AcquireSingleImage(PvDevice* aDevice, PvStream* aStream);
+
+  void AcquireSingleImageDual(DualDevice* device);
 
   /**
    * @brief Destroy the stream data
@@ -75,6 +81,10 @@ class AcquireManager {
   PvDecompressionFilter* lDecompressionFilter;
 
  private:
+  PvBufferWriter* writer;
+  bool queueBuffer(PvStream* aStream, PvBuffer* aBuffer);
+
+  std::map<PvDevice*, PvGenParam> deviceGenParams;
   static AcquireManager instance;
 
   /**

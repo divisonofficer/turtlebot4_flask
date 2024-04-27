@@ -1,5 +1,5 @@
+#include <DualDevice.h>
 #include <PvDevice.h>
-
 class DeviceManager {
  public:
   /**
@@ -24,8 +24,12 @@ class DeviceManager {
 
   PvDevice *DeviceConnectToDevice(const PvString &aConnectionID);
 
-  static DeviceManager &getInstance();
+  DualDevice *connectDualDevice();
+
+  static DeviceManager *getInstance();
 
  private:
   static DeviceManager staticInstance;
+  bool findDeviceConnectionID(PvString &aConnectionID,
+                              std::string &displayName);
 };
