@@ -6,10 +6,10 @@ import {
   VStack,
   useMediaQuery,
 } from "@chakra-ui/react";
-import { H1, H2 } from "../text/textsystem";
-import { Color } from "../color";
+import { H1 } from "../text/textsystem";
 import { useNavigate } from "react-router-dom";
 import { Btn } from "../button/button";
+import { useEffect } from "react";
 
 const VStackAdj = (props: FlexProps) => {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -26,18 +26,25 @@ export const PageRoot = (
       title: string;
       path: string;
     };
+    runOnMount?: () => void;
   }
 ) => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    props.runOnMount && props.runOnMount();
+  }, [props]);
+
   return (
     <Flex
       direction="column"
       style={{
         ...props.style,
         width: "100%",
-        height: "100vh",
+        height: "100%",
         alignItems: "flex-start",
         justifyContent: "flex-start",
+        overflowY: "auto",
       }}
     >
       <HStack>
@@ -60,8 +67,16 @@ export const PageRoot = (
       </HStack>
 
       <Divider />
-
-      {props.children}
+      <VStack
+        style={{
+          width: "100%",
+          height: "100%",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
+        {props.children}
+      </VStack>
     </Flex>
   );
 };
