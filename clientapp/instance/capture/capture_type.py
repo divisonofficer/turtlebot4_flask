@@ -81,6 +81,13 @@ class CaptureSingleScene:
         self.picture_list = picture_list
 
     def to_dict(self):
+        light_dict = self.to_dict_light()
+        light_dict["lidar_position"] = (
+            self.lidar_position.to_dict() if self.lidar_position else None
+        )
+        return light_dict
+
+    def to_dict_light(self):
         return {
             "capture_id": self.capture_id,
             "scene_id": self.scene_id,
@@ -89,11 +96,6 @@ class CaptureSingleScene:
                 self.robot_pose.to_dict()
                 if type(self.robot_pose) == Pose3D
                 else self.robot_pose
-            ),
-            "lidar_position": (
-                self.lidar_position.to_dict()
-                if type(self.lidar_position) == CaptureLiDAR
-                else self.lidar_position
             ),
             "picture_list": [
                 x.to_dict() if type(x) == ImageBytes else x for x in self.picture_list
