@@ -30,68 +30,68 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
   // If this is a GigE Vision device, configure GigE Vision specific streaming
   // parameters
   PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*>(aDevice);
-  if (lDeviceGEV != NULL) {
-    PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*>(aStream);
-
-    // Negotiate packet size
-    lDeviceGEV->NegotiatePacketSize();
-
-    // Configure device streaming destination
-
-    Debug << "Setting Device Stream Destination"
-          << "\n"
-          << "IP: " << lStreamGEV->GetLocalIPAddress().GetAscii() << "\n"
-          << "Port: " << lStreamGEV->GetLocalPort() << "\n"
-          << "Channel: " << channel << "\n";
-
-    auto localIpAddress = lStreamGEV->GetLocalIPAddress().GetAscii();
-    int64_t localIpDecimal = 0;
-    int64_t localIpDecimalParts = 0;
-    for (; *localIpAddress != '\0'; localIpAddress++) {
-      if (*localIpAddress != '.') {
-        localIpDecimalParts =
-            localIpDecimalParts * 10 + (*localIpAddress - '0');
-      }
-
-      if (*localIpAddress == '.' || *(localIpAddress + 1) == '\0') {
-        localIpDecimal = (localIpDecimal << 8) + localIpDecimalParts;
-        localIpDecimalParts = 0;
-      }
-    }
-
-    if (channel == 1) {
-      ParamManager::setParam(lDeviceGEV->GetParameters(),
-                             "GevStreamChannelSelector", channel);
-      ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCDA",
-                             localIpDecimal);
-      ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPHostPort",
-                             lStreamGEV->GetLocalPort());
-
-    }
-
-    else
-      lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
-                                       lStreamGEV->GetLocalPort(), channel);
-
-    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "SourceSelector",
-                               channel);
-    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "ExposureAuto",
-                               true);
-    ParamManager::setParam(lDeviceGEV->GetParameters(),
-                           "ExposureAutoControlMax", 150000.0f);
-    ParamManager::setParam(lDeviceGEV->GetParameters(), "GainAutoControlMax",
-                           15.0f);
-    ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "GainAuto", true);
-
-    // int param_count = lDeviceGEV->GetParameters()->GetCount();
-    // for (int i = 0; i < param_count; i++) {
-    //   PvGenParameter* param = lDeviceGEV->GetParameters()->Get(i);
-    //   if (param->IsAvailable()) {
-    //     Debug << "Parameter: " << param->GetName().GetAscii() << " "
-    //           << param->GetUpdatesEnabled() << "\n";
-    //   }
-    // }
+  if (!lDeviceGEV) {
+    return;
   }
+  PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*>(aStream);
+
+  // Negotiate packet size
+  lDeviceGEV->NegotiatePacketSize();
+
+  // lDeviceGEV->GetParameters()->ExecuteCommand("AcquisitionStart");
+  // lDeviceGEV->GetParameters()->ExecuteCommand("AcquisitionStop");
+
+  // Configure device streaming destination
+
+  Debug << "Setting Device Stream Destination"
+        << "\n"
+        << "IP: " << lStreamGEV->GetLocalIPAddress().GetAscii() << "\n"
+        << "Port: " << lStreamGEV->GetLocalPort() << "\n"
+        << "Channel: " << channel << "\n";
+
+  auto localIpAddress = lStreamGEV->GetLocalIPAddress().GetAscii();
+  int64_t localIpDecimal = 0;
+  int64_t localIpDecimalParts = 0;
+  for (; *localIpAddress != '\0'; localIpAddress++) {
+    if (*localIpAddress != '.') {
+      localIpDecimalParts = localIpDecimalParts * 10 + (*localIpAddress - '0');
+    }
+
+    if (*localIpAddress == '.' || *(localIpAddress + 1) == '\0') {
+      localIpDecimal = (localIpDecimal << 8) + localIpDecimalParts;
+      localIpDecimalParts = 0;
+    }
+  }
+
+  ParamManager::setParam(lDeviceGEV->GetParameters(), "AcquisitionFrameRate",
+                         1.0f);
+
+  // ParamManager::setParam(lDeviceGEV->GetParameters(),
+  // "GevSCPSFireTestPacket",
+  //                        false);
+
+  // ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPSDoNotFragment",
+  //                        false);
+
+  ParamManager::setParam(lDeviceGEV->GetParameters(),
+                         "GevStreamChannelSelector", channel);
+
+  if (channel) {
+    ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCDA",
+                           localIpDecimal);
+    ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPHostPort",
+                           lStreamGEV->GetLocalPort());
+  }
+  // ParamManager::setParam(lStreamGEV->GetParameters(),
+  // "MaximumPendingResends",
+  //                        100);
+  //  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 5000);
+  //  ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 5000);
+  // ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout",
+  // 3000);
+  if (channel == 0)
+    lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
+                                     lStreamGEV->GetLocalPort(), 0);
 }
 
 void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
