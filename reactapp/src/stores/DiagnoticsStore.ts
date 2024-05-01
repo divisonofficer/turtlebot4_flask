@@ -16,12 +16,14 @@ class DiagnoticsStore {
   detailMessageKey: string = "";
 
   sessionCheckDaemon = setInterval(() => {
-    this.message_session_active = Date.now() - this.message_timestamp < 5000;
-    this.message_timestamp_passed =
-      (Date.now() - this.message_timestamp) / 1000;
-    if (this.message_timestamp_passed > 1000) {
-      this.message_timestamp_passed = 1000;
-    }
+    runInAction(() => {
+      this.message_session_active = Date.now() - this.message_timestamp < 5000;
+      this.message_timestamp_passed =
+        (Date.now() - this.message_timestamp) / 1000;
+      if (this.message_timestamp_passed > 1000) {
+        this.message_timestamp_passed = 1000;
+      }
+    });
   }, 627);
 
   constructor() {

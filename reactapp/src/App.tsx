@@ -14,6 +14,8 @@ import { TopicDetailPage } from "./page/topic/TopicDetailPage";
 import { LaunchPage } from "./page/launch/LaunchPage";
 import { SlamPage } from "./page/slam/SlamPage";
 import { Appbar } from "./page/appbar/Appbar";
+import { CapturePage } from "./page/capture/CapturePage";
+import { AlertView } from "./page/appbar/AlertView";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -33,6 +35,7 @@ function App() {
         <Route path="/topic/detail" element={<TopicDetailPage />} />
         <Route path="/launch" element={<LaunchPage />} />
         <Route path="/slam" element={<SlamPage />} />
+        <Route path="/capture" element={<CapturePage />} />
       </Routes>
     );
   };
@@ -62,6 +65,7 @@ function App() {
               }}
             >
               <Menus />
+              <AlertView />
               <VStack
                 style={{
                   width: "100%",

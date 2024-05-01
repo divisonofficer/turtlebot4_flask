@@ -1,11 +1,23 @@
 const DEBUG = true;
 
+class NotSuccessResponseError extends Error {
+  httpCode: number;
+  body?: string;
+  constructor(httpCode: number, body?: string) {
+    super(`NotSuccessResponseError: ${httpCode} ${body}`);
+    this.name = "NotSuccessResponseError";
+    this.httpCode = httpCode;
+    this.body = body;
+  }
+}
+
 class RequestManager {
   request = async (url: string, method: string, data: any) => {
     if (DEBUG) {
       console.log("RequestManager.request", url, method, data);
     }
-    const response = await fetch(url, {
+
+    const fetchPromise = fetch(url, {
       method: method,
       headers: {
         "Content-Type": "application/json",
@@ -15,15 +27,28 @@ class RequestManager {
       body: JSON.stringify(data),
     });
 
-    if (DEBUG) {
-      console.log("RequestManager.request", response.status);
-    }
+    let response;
 
-    // 200이 아닌 경우
+    try {
+      response = await fetchPromise;
+    } catch (e) {
+      console.log(e);
+      throw new Error(`RequestManager.request: ${e}`);
+    }
+    if (DEBUG) {
+      console.log("RequestManager.request", url, response.status);
+    } // 200이 아닌 경우
     if (response.status !== 200) {
-      throw new Error(
-        `RequestManager.request: ${response.status} ${response.statusText}`
-      );
+      try {
+        throw new NotSuccessResponseError(
+          response.status,
+          await response.text()
+        );
+      } catch (e) {
+        throw new Error(
+          `RequestManager.request: ${response.status} ${response.statusText}`
+        );
+      }
     }
 
     // 200인데 empty인 경우
@@ -106,13 +131,15 @@ class Call implements ICall {
         this.callbackOnSuccess(body);
       },
       (e) => {
-        if (
+        if (e instanceof NotSuccessResponseError) {
+          this.callbackOnError(e.httpCode, e.body, undefined);
+        } else if (
           e instanceof Error &&
           e.message.startsWith("RequestManager.request: ")
         ) {
           const code = parseInt(e.message.split(" ")[1]);
           const message = e.message.split(" ").slice(2).join(" ");
-          this.callbackOnError(code, message, e);
+          this.callbackOnError(code, message, undefined);
         } else {
           this.callbackOnError(undefined, undefined, e);
         }

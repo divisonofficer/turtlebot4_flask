@@ -1,8 +1,8 @@
 export interface SlamStatus {
   status: string;
   message: string;
-  robot_pose?: { x: number; y: number };
-  map_origin?: { x: number; y: number };
+  robot_pose?: SlamRobotPosition;
+  map_origin?: SlamRobotPosition;
   map_size?: { width: number; height: number; resolution: number };
   markers?: {
     id: number;
@@ -10,6 +10,12 @@ export interface SlamStatus {
   }[];
   slam_metadata?: SlamMetaData;
 }
+
+export interface SlamMapMetaData {
+  map_origin: SlamRobotPosition;
+  map_size: MapSize;
+}
+
 export interface MapSize {
   width: number;
   height: number;
@@ -38,6 +44,11 @@ export interface SlamRobotPose {
   z: number;
   orientation: SlamRobotOrientation;
   orientation_quaternion: SlamRobotOrientationQuat;
+}
+
+export interface RobotPose {
+  orientation: SlamRobotOrientation;
+  position: SlamRobotPosition;
 }
 
 export interface SlamMetaData {

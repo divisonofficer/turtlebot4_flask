@@ -29,6 +29,8 @@ import {
 } from "./MapMarker";
 import { MapData, MapListModalBtn } from "./MapList";
 import { MapSaveBtn } from "./MapSaveBtn";
+import { slamStore } from "../../stores/SlamStore";
+import { observer } from "mobx-react";
 
 const SlamPostionInfo = ({
   slamStatus,
@@ -122,101 +124,204 @@ const SlamPostionInfo = ({
   );
 };
 
-export const SlamMap = ({
-  origin,
-  map_size,
-  children,
-}: {
-  children?: React.ReactNode;
-  map_size?: MapSize;
-  origin?: { x: number; y: number };
-}) => {
-  const [videoSize, setVideoSize] = useState<{ width: number; height: number }>(
-    {
-      width: 0,
-      height: 0,
-    }
-  );
+export const SlamZoomFlex = (props: { children: React.ReactNode }) => {
+  const ZOOM_RANGE = [1, 10];
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomOrigin, setZoomOrigin] = useState({ x: 0, y: 0 });
 
-  const handleVideoResize = () => {
-    const videoElement = document.getElementById("video-stream");
-    if (videoElement) {
-      const { width, height } = videoElement.getBoundingClientRect();
-      setVideoSize({
-        width,
-        height:
-          height > 0
-            ? height
-            : (width * (map_size?.height || 1)) / (map_size?.width || 1),
-      });
-    }
-  };
+  const [rootSize, setRootSize] = useState({ width: 0, height: 0 });
+
+  const [adjustPad, setAdjustPad] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    handleVideoResize();
-    window.addEventListener("resize", handleVideoResize);
-    return () => {
-      window.removeEventListener("resize", handleVideoResize);
-    };
-  }, []);
+    const rect = document.getElementById("zoom-root")!.getBoundingClientRect();
+    const x = rect.right < rootSize.width ? rootSize.width - rect.right : 0;
+    const y = rect.bottom < rootSize.height ? rootSize.height - rect.bottom : 0;
+    setAdjustPad({ x, y });
+  }, [zoomScale, zoomOrigin, rootSize.width, rootSize.height]);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (rootRef.current) {
+      const { width, height } = rootRef.current.getBoundingClientRect();
+      setRootSize({ width, height });
+    }
+  }, [rootRef.current]);
 
   return (
     <Flex
       style={{
-        background: Color.Cyan,
+        overflow: "hidden",
         width: "100%",
-        position: "relative",
+        height: "auto",
       }}
+      ref={rootRef}
     >
-      <VideoStream
-        id="video-stream"
-        url="/slam/map/stream"
-        width="100%"
-        height="auto"
-        play={true}
-      />
-      <Body3
+      <Flex
+        id="zoom-root"
         style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
+          width: "100%",
+          transform: `scale(${zoomScale})`,
+          transformOrigin: `${zoomOrigin.x - adjustPad.x / 2}px ${
+            zoomOrigin.y - adjustPad.y / 2
+          }px`,
+          position: "relative",
+
+          transition: "transform 0.1s",
         }}
-      >{`Map Layout Size: ${videoSize.width.toFixed(
-        2
-      )} x ${videoSize.height.toFixed(2)}`}</Body3>
-      {origin && map_size && (
-        <>
-          {React.Children.map(children, (child, index) => {
-            return (
-              React.isValidElement(child) &&
-              React.cloneElement(
-                child as React.ReactElement<SlamMapMarkerProps>,
-                {
-                  x:
-                    ((map_size.width -
-                      (child.props.x - origin!.x) / map_size.resolution) *
-                      videoSize.width) /
-                    map_size.width,
-                  y:
-                    (((child.props.y - origin!.y) / map_size.resolution) *
-                      videoSize.width) /
-                    map_size.width,
-                }
-              )
+        onWheel={(e) => {
+          if (e.shiftKey) {
+            e.preventDefault();
+            const delta = e.deltaY;
+            const scale = zoomScale;
+            const origin = zoomOrigin;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - (rect.left + rect.right) / 2;
+            const y = e.clientY - (rect.top + rect.bottom) / 2;
+            const factor = 0.1;
+            const newScale = Math.min(
+              Math.max(scale + (delta > 0 ? -1 : 1) * factor, ZOOM_RANGE[0]),
+              ZOOM_RANGE[1]
             );
-          })}
-        </>
-      )}
+            const newOrigin = {
+              x: Math.min(
+                Math.max(x * (scale - newScale / scale) + origin.x, 0),
+                (rect.width * newScale) / scale - rootRef.current!.clientWidth
+              ),
+              y: Math.min(
+                Math.max(y * (scale - newScale / scale) + origin.y, 0),
+                (rect.height * newScale) / scale - rootRef.current!.clientHeight
+              ),
+            };
+            setZoomScale(newScale);
+            setZoomOrigin(newOrigin);
+          }
+        }}
+      >
+        {props.children}
+      </Flex>
     </Flex>
   );
 };
 
-export const SlamView = () => {
-  const [slamStatus, setSlamStatus] = useState<SlamStatus>();
-  const [slamRobotPose, setSlamRobotPose] = useState<SlamRobotPose>();
-  const [markers, setMarkers] = useState<{ id: number; pose: SlamRobotPose }[]>(
-    []
-  );
+export const SlamMap = observer(
+  ({
+    children,
+    savedMapName,
+  }: {
+    children?: React.ReactNode;
+    savedMapName?: string;
+  }) => {
+    const { map_origin, map_size } =
+      (savedMapName ? slamStore.mapMetadataView : slamStore.slamStatus) || {};
+
+    const [videoSize, setVideoSize] = useState<{
+      width: number;
+      height: number;
+    }>({
+      width: 0,
+      height: 0,
+    });
+
+    const handleVideoResize = () => {
+      const videoElement = document.getElementById("video-stream");
+      if (videoElement) {
+        const { width, height } = videoElement.getBoundingClientRect();
+        setVideoSize({
+          width,
+          height:
+            height > 0
+              ? height
+              : (width * (map_size?.height || 1)) / (map_size?.width || 1),
+        });
+      }
+    };
+
+    useEffect(() => {
+      if (savedMapName) {
+        slamStore.fetchGetMapMetadata(savedMapName);
+      }
+    }, [savedMapName]);
+
+    useEffect(() => {
+      handleVideoResize();
+      window.addEventListener("resize", handleVideoResize);
+      return () => {
+        window.removeEventListener("resize", handleVideoResize);
+      };
+    }, []);
+
+    return (
+      <Flex
+        style={{
+          background: Color.Cyan,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {savedMapName ? (
+          <img
+            src={`/slam/map/${savedMapName}/image`}
+            id="video-stream"
+            width="100%"
+            height="auto"
+            style={{
+              rotate: "180deg",
+            }}
+            alt=""
+          />
+        ) : (
+          <VideoStream
+            id="video-stream"
+            url={"/slam/map/stream"}
+            width="100%"
+            height="auto"
+            play={true}
+          />
+        )}
+
+        <Body3
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+          }}
+        >{`Map Layout Size: ${videoSize.width.toFixed(
+          2
+        )} x ${videoSize.height.toFixed(2)}`}</Body3>
+        {map_origin && map_size && (
+          <>
+            {React.Children.map(children, (child, index) => {
+              return (
+                React.isValidElement(child) &&
+                React.cloneElement(
+                  child as React.ReactElement<SlamMapMarkerProps>,
+                  {
+                    x:
+                      ((map_size.width -
+                        (child.props.x - map_origin!.x) / map_size.resolution) *
+                        videoSize.width) /
+                      map_size.width,
+                    y:
+                      (((child.props.y - map_origin!.y) / map_size.resolution) *
+                        videoSize.width) /
+                      map_size.width,
+                  }
+                )
+              );
+            })}
+          </>
+        )}
+      </Flex>
+    );
+  }
+);
+
+export const SlamView = observer(() => {
+  const slamStatus = slamStore.slamStatus;
+  const slamRobotPose = slamStore.slamRobotPose;
+  const markers = slamStore.markers;
 
   const fetchLoadMap = (map: MapData) => {
     if (slamStatus?.status !== "success") {
@@ -240,25 +345,6 @@ export const SlamView = () => {
     httpPost("/slam/map/add_marker_self", {}).fetch();
   };
 
-  useEffect(() => {
-    slamSocket.subscribe("slam_status", (data: SlamStatus) => {
-      setSlamStatus(data);
-      if (data.markers) {
-        setMarkers(data.markers);
-      }
-    });
-
-    slamSocket.subscribe("robot_pose", (data: SlamRobotPose) => {
-      setSlamRobotPose(data);
-    });
-
-    slamSocket.subscribe(
-      "markers",
-      (data: { id: number; pose: SlamRobotPose }[]) => {
-        setMarkers(data);
-      }
-    );
-  }, []);
   return (
     <VStack width="100%">
       <SlamPostionInfo slamStatus={slamStatus} robotPose={slamRobotPose} />
@@ -284,7 +370,7 @@ export const SlamView = () => {
         <MapSaveBtn />
       </HStack>
 
-      <SlamMap origin={slamStatus?.map_origin} map_size={slamStatus?.map_size}>
+      <SlamMap>
         {slamStatus?.robot_pose && (
           <SlamMapMarker
             x={slamRobotPose?.x || 0}
@@ -299,7 +385,7 @@ export const SlamView = () => {
                 height: "2rem",
                 color: Color.Red,
                 rotate: `${
-                  180 - ((slamRobotPose?.orientation.roll || 0) * 180) / Math.PI
+                  180 - ((slamRobotPose?.orientation.yaw || 0) * 180) / Math.PI
                 }deg`,
               }}
             />
@@ -318,7 +404,7 @@ export const SlamView = () => {
       <SlamMapJsonFetch />
     </VStack>
   );
-};
+});
 
 const SlamMapJsonFetch = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
