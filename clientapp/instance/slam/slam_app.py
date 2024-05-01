@@ -180,24 +180,24 @@ def save_map():
     file = request.json.get("filename", "map")
     overlap_possible = request.json.get("overwrite", False)
 
-    filename = repo.save_map_available(file)
+    filename = repo.save_map_available(str(file))
 
     if not filename and not overlap_possible:
-        return {
-            "status": "error",
-            "message": "Filename unavailable",
-        }
+        return Response(
+            status=400,
+            response="Filename unavailable",
+        )
 
     if not node.service_call_save_map(filename):
-        return {
-            "status": "error",
-            "message": "Failed to save map",
-        }
+        return Response(
+            status=500,
+            response="Failed to save map",
+        )
     if not node.service_call_save_map_png(filename):
-        return {
-            "status": "error",
-            "message": "Failed to save map png",
-        }
+        return Response(
+            status=500,
+            response="Failed to save map image",
+        )
     return {
         "status": "success",
         "message": "Map saved",
@@ -207,7 +207,7 @@ def save_map():
 @app.route("/map/load", methods=["POST"])
 def load_serialized_map():
     file = request.json.get("filename", "map")
-    filename = repo.load_map_available(file)
+    filename = repo.load_map_available(str(file))
     if not filename:
         return {
             "status": "error",

@@ -2,13 +2,17 @@ from time import time, sleep
 from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Image, LaserScan
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 import os
 import threading
 import rclpy
 from capture_type import ImageBytes, CaptureLiDAR, CaptureSingleScene
 from slam_types import Pose3D
 from capture_storage import CaptureStorage, CAPTURE_TEMP
+from flask_socketio import SocketIO
+
+
+from slam_source import SlamSource
 
 
 class NoLidarSignal(Exception):
@@ -46,37 +50,70 @@ class CaptureMessage:
 
 
 class CaptureNode(Node):
-    space_id: int
+    space_id: Optional[int]
     capture_id: int
     capture_msg: Optional[CaptureMessage]
     image_topics: List[str] = ["/oakd/rgb/preview/image_raw"]
-    subscriptions_image: List[Subscription]
+    subscriptions_image: Dict[str, Subscription]
+    socketIO: SocketIO
 
-    def __init__(self, storage: CaptureStorage):
+    def __init__(self, storage: CaptureStorage, socketIO: SocketIO = None):
         super().__init__("client_capture_node")
 
+        # Subscribe to Pose and LiDAR topics
         self.subscription_pose = self.create_subscription(
             PoseWithCovarianceStamped, "/pose", self.pose_callback, 10
         )
         self.subscription_lidar = self.create_subscription(
             LaserScan, "/scan", self.lidar_callback, 3
         )
-        self.subscriptions_image = []
+        self.subscriptions_image = {}
 
         self.publisher_cmd_vel = self.create_publisher(Twist, "/cmd_vel", 10)
 
-        self.space_id = 0
+        self.space_id = None
         self.flag_capture_running = False
 
         self.storage = storage
+        self.socketIO = socketIO
 
-        if not os.path.exists(f"{CAPTURE_TEMP}/{self.space_id}"):
-            os.mkdir(f"{CAPTURE_TEMP}/{self.space_id}")
+        self.slam_source = SlamSource()
 
-    def init_space(self, space_id: Optional[int] = None):
+    def init_space(
+        self, space_id: Optional[int] = None, space_name: Optional[str] = None
+    ):
+        if self.space_id:
+            return {"status": "error", "message": "Space is already initialized"}
+
         if not space_id:
             space_id = int(time())
+            if not space_name:
+                space_name = f"Space {space_id}"
+            self.storage.store_space_metadata(space_id, space_name)
+            if self.slam_source.request_map_save(space_id):
+                return {"status": "error", "message": "Failed to init slam"}
+        else:
+            meta = self.storage.get_space_metadata(space_id)
+            if not meta:
+                return {"status": "error", "message": "Space not found"}
+            space_name = meta["space_name"]
+            self.slam_source.request_map_load(space_id)
+
         self.space_id = space_id
+        self.space_name = space_name
+        return {
+            "status": "success",
+            "space_id": self.space_id,
+        }
+
+    def empty_space(self):
+        if self.space_id:
+            self.storage.store_space_metadata(self.space_id)
+            self.slam_source.request_map_save_and_clean(self.space_id)
+        else:
+            return None
+        self.space_id = None
+        return True
 
     def init_subscriptions(self):
         """
@@ -84,20 +121,20 @@ class CaptureNode(Node):
         If there are existing subscriptions, destroy them
         for each image topic, create a new subscription
         """
-        if len(self.subscriptions_image) > 0:
-            for sub in self.subscriptions_image:
-                sub.destroy()
-            self.subscriptions_image = []
-
-        self.subscriptions_image = []
         for topic in self.image_topics:
-            self.subscriptions_image.append(
-                self.create_subscription(
+            if not topic in self.subscriptions_image:
+                self.subscriptions_image[topic] = self.create_subscription(
                     Image, topic, self.get_image_callback(topic), 3
                 )
-            )
 
     def run_capture_queue_thread(self):
+        """
+        Request Capture Rotation Queue
+        Robot begins to rotate and capture images, asynchrnously
+        """
+        with self.check_capture_call_available() as error:
+            if error:
+                return error
         self.init_subscriptions()
 
         self._logger.info(f"Capture started on topic {self.image_topic}")
@@ -110,22 +147,45 @@ class CaptureNode(Node):
             "capture_id": self.capture_id,
         }
 
-    def run_capture_queue_single(self):
-        """
-        Request Single Scene Capture
-        return : bool
-        """
+    def capture_single_job(self):
         self.init_subscriptions()
         self.capture_id = int(time())
         scene = self.run_single_capture()
         if not scene:
             return None
-        self.storage.store_captured_scene(self.space_id, self.capture_id, 0, scene)
+        self.storage.store_captured_scene(
+            space_id=self.space_id, capture_id=self.capture_id, scene_id=0, scene=scene
+        )
+
+    def run_capture_queue_single(self):
+        """
+        Request Single Scene Capture
+
+        """
+        error = self.check_capture_call_available()
+        if error:
+            return error
+
+        threading.Thread(target=self.capture_single_job).start()
+
         return {
             "status": "success",
             "space_id": self.space_id,
             "capture_id": self.capture_id,
         }
+
+    def check_capture_call_available(self):
+        if self.space_id is None:
+            return {
+                "status": "error",
+                "message": "Space ID is not initialized",
+            }
+        if self.flag_capture_running:
+            return {
+                "status": "error",
+                "message": "Capture is already running",
+            }
+        return None
 
     def run_capture_queue(self):
         """
@@ -142,7 +202,7 @@ class CaptureNode(Node):
                 self.get_logger().info("Capture aborted")
                 break
 
-            scene = self.run_single_capture()
+            scene = self.run_single_capture(scene_id=scene_id)
             if not scene:
                 continue
             self.storage.store_captured_scene(
@@ -174,7 +234,7 @@ class CaptureNode(Node):
 
         return callback
 
-    def run_single_capture(self):
+    def run_single_capture(self, scene_id=0):
         try:
             # get map pose information
             self.capture_msg = CaptureMessage(self.image_topics)
@@ -203,10 +263,9 @@ class CaptureNode(Node):
                 raise NoImageSignal(
                     f"{len(capture_msg.image_msg_dict.values())} images received out of {len(capture_msg.image_topics)}"
                 )
-
-            return CaptureSingleScene(
-                capture_id=0,
-                scene_id=0,
+            scene = CaptureSingleScene(
+                capture_id=self.capture_id,
+                scene_id=scene_id,
                 timestamp=int(time()),
                 robot_pose=pose,
                 lidar_position=lidar,
@@ -215,6 +274,14 @@ class CaptureNode(Node):
                     for topic, msg in capture_msg.image_msg_dict.items()
                 ],
             )
+            if self.socketIO:
+                serialized_scene = scene.to_dict_light()
+                serialized_scene["space_id"] = self.space_id
+                self.socketIO.emit(
+                    "/recent_scene", serialized_scene, namespace="/socket"
+                )
+
+            return scene
         except NoImageSignal:
             self.get_logger().info("No image signal received")
 
