@@ -13,7 +13,9 @@ MultiSpectralCamera::MultiSpectralCamera() {
 
 void MultiSpectralCamera::addStreamCallback(
     int source, std::function<void(PvBuffer*)> callback) {
+  Info << "Registering Callback from " << source;
   streamCallback[source] = callback;
+  Info << "Callback Registeration Successful";
 }
 
 void MultiSpectralCamera::openStream() {
