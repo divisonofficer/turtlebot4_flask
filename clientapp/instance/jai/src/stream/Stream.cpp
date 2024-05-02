@@ -34,14 +34,7 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     return;
   }
   PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*>(aStream);
-
-  // Negotiate packet size
-  lDeviceGEV->NegotiatePacketSize();
-
-  // lDeviceGEV->GetParameters()->ExecuteCommand("AcquisitionStart");
-  // lDeviceGEV->GetParameters()->ExecuteCommand("AcquisitionStop");
-
-  // Configure device streaming destination
+  lDeviceGEV->NegotiatePacketSize(channel);
 
   Debug << "Setting Device Stream Destination"
         << "\n"
@@ -64,34 +57,38 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
   }
 
   ParamManager::setParam(lDeviceGEV->GetParameters(), "AcquisitionFrameRate",
-                         1.0f);
+                         3.0f);
 
-  // ParamManager::setParam(lDeviceGEV->GetParameters(),
-  // "GevSCPSFireTestPacket",
-  //                        false);
+  ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "SourceSelector",
+                             channel);
+  ParamManager::setParam(lDeviceGEV->GetParameters(), "ExposureTime", 30000.0f);
+  ParamManager::setParam(lDeviceGEV->GetParameters(), "Gamma", 1.0f);
+  ParamManager::setParam(lDeviceGEV->GetParameters(), "Gain", 8.0f);
 
-  // ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPSDoNotFragment",
-  //                        false);
+  ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "AcquisitionSyncMode",
+                             1);
+
+  lDeviceGEV->SetPacketSize(1476, channel);
+
+  /**
+   *
+   * Packet Dealy in Microseconds (not miliseconds!)
+   */
 
   ParamManager::setParam(lDeviceGEV->GetParameters(),
                          "GevStreamChannelSelector", channel);
-
   if (channel) {
-    ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCDA",
-                           localIpDecimal);
-    ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPHostPort",
-                           lStreamGEV->GetLocalPort());
+    ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPD", 20000);
   }
-  // ParamManager::setParam(lStreamGEV->GetParameters(),
-  // "MaximumPendingResends",
-  //                        100);
-  //  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 5000);
-  //  ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 5000);
-  // ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout",
-  // 3000);
-  if (channel == 0)
-    lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
-                                     lStreamGEV->GetLocalPort(), 0);
+
+  ParamManager::setParam(lStreamGEV->GetParameters(), "MaximumPendingResends",
+                         1000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 5000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 5000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 3000);
+  //  if (channel == 0)
+  lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
+                                   lStreamGEV->GetLocalPort(), channel);
 }
 
 void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
