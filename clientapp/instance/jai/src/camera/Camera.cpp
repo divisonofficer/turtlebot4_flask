@@ -27,15 +27,23 @@ void MultiSpectralCamera::closeStream() {
 void MultiSpectralCamera::configureExposure(int source, float exposure) {
   ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
                              "SourceSelector", source);
-  ParamManager::setParam(dualDevice->getDevice(0)->GetParameters(),
-                         "ExposureTime", exposure);
+  double value;
+  dualDevice->getDevice(0)->GetParameters()->GetFloatValue("ExposureTime",
+                                                           value);
+  configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+    ParamManager::setParam(params, "ExposureTime", exposure + (float)value);
+  });
 }
 
 void MultiSpectralCamera::configureGain(int source, float gain) {
   ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
                              "SourceSelector", source);
-  ParamManager::setParam(dualDevice->getDevice(0)->GetParameters(), "Gain",
-                         gain);
+  double value;
+  dualDevice->getDevice(0)->GetParameters()->GetFloatValue("Gain", value);
+
+  configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+    ParamManager::setParam(params, "Gain", gain + float(value));
+  });
 }
 
 double MultiSpectralCamera::getExposure(int source) {
@@ -55,6 +63,15 @@ double MultiSpectralCamera::getGain(int source) {
   return value;
 }
 
+void MultiSpectralCamera::configureSourceRuntime(
+    int source, std::function<void(PvGenParameterArray*)> runBlock) {
+  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStop");
+  ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                             "SourceSelector", source);
+  runBlock(dualDevice->getDevice(0)->GetParameters());
+  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
+}
+
 void MultiSpectralCamera::runUntilInterrupted() {
   while (!flagInterrupted) {
     for (int i = 0; i < 2; i++) {
@@ -70,6 +87,30 @@ void MultiSpectralCamera::runUntilInterrupted() {
     }
   }
   flagInterrupted = false;
+}
+
+void MultiSpectralCamera::printCameraConfig() {
+  ParamManager::setParam(dualDevice->getDevice(0)->GetParameters(),
+                         "GevStreamChannelSelector", 0);
+  int64_t port;
+  dualDevice->getDevice(0)
+      ->GetParameters()
+      ->GetInteger("GevSCPHostPort")
+      ->GetValue(port);
+  Info << "Source 0 Port: " << port;
+  ParamManager::setParam(dualDevice->getDevice(0)->GetParameters(),
+                         "GevStreamChannelSelector", 1);
+
+  dualDevice->getDevice(0)
+      ->GetParameters()
+      ->GetInteger("GevSCPHostPort")
+      ->GetValue(port);
+  Info << "Source 1 Port: " << port;
+
+  Info << "Exposure 0: " << getExposure(0);
+  Info << "Exposure 1: " << getExposure(1);
+  Info << "Gain 0: " << getGain(0);
+  Info << "Gain 1: " << getGain(1);
 }
 
 void MultiSpectralCamera::interrupt() { flagInterrupted = true; }

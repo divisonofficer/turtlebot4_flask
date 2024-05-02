@@ -18,7 +18,6 @@ class DualDevice {
 
  private:
   PvDeviceGEV *rgb_device;
-  PvDeviceGEV *nir_device;
   PvStreamGEV *rgb_stream;
   PvStreamGEV *nir_stream;
   std::vector<PvBuffer *> rgb_buffer_list;

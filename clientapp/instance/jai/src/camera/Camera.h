@@ -21,6 +21,11 @@ class MultiSpectralCamera {
 
   void interrupt();
 
+  void printCameraConfig();
+
+  void configureSourceRuntime(
+      int source, std::function<void(PvGenParameterArray*)> runBlock);
+
  private:
   std::function<void(PvBuffer*)> streamCallback[2];
   DualDevice* dualDevice;
