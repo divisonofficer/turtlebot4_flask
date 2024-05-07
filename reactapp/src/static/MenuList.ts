@@ -7,6 +7,7 @@ import {
 import {
   ArrowBendDoubleUpLeft,
   Camera,
+  CameraSlash,
   MapPin,
   Notification,
   Robot,
@@ -77,6 +78,11 @@ export const menuList: MenuItem[] = [
     icon: MapPin,
     name: "SLAM",
     destination: "/slam",
+  },
+  {
+    icon: CameraSlash,
+    name: "JaiBridge",
+    destination: "/jaibridge",
   },
 ];
 

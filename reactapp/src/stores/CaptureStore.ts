@@ -17,12 +17,12 @@ export const CAPTURE_TOPICS = {
   },
   JAI_RGB: {
     name: "JAI RGB",
-    topic: "/jai_camera/image_raw",
+    topic: "/jai_1600/channel_0",
     default_checked: false,
   },
   JAI_NIR: {
     name: "JAI NIR",
-    topic: "/jai_camera/nir",
+    topic: "/jai_1600/channel_1",
     default_checked: false,
   },
 };
@@ -32,7 +32,7 @@ class CaptureStore {
     makeAutoObservable(this);
 
     captureSocket.subscribe("/recent_scene", (data: CaptureScene) => {
-      this.extendSceneId(data.capture_id, data.scene_id);
+      this.extendSceneId(data);
     });
   }
   /////////////////////////////////////////////
@@ -64,13 +64,16 @@ class CaptureStore {
   /////////////////////////////////////////////
   // Capture Control Action
   /////////////////////////////////////////////
-
-  extendSceneId(capture_id: number, scene_id: number) {
+  @action
+  extendSceneId(scene_meta: CaptureScene) {
     httpGet(
-      `/capture/result/${this.space_id}/${capture_id}/${scene_id}`
-    ).onSuccess((scene: CaptureScene) => {
-      this.extendScene(scene);
-    });
+      `/capture/result/${this.space_id}/${scene_meta.capture_id}/${scene_meta.scene_id}/images`
+    )
+      .onSuccess((images: string[]) => {
+        scene_meta.images = images;
+        this.extendScene(scene_meta);
+      })
+      .fetch();
   }
 
   @action
@@ -89,6 +92,9 @@ class CaptureStore {
       capture,
       ...this.captures.filter((c) => c.capture_id !== scene.capture_id),
     ];
+    this.capture_pendings_id = this.capture_pendings_id.filter(
+      (id) => id !== scene.capture_id
+    );
   }
 
   @action
