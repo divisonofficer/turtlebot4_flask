@@ -19,6 +19,15 @@ void MultiSpectralCamera::addStreamCallback(
 }
 
 void MultiSpectralCamera::openStream() {
+  // if (sourcePixelFormat.size() < 2) sourcePixelFormat.resize(2);
+  // for (int i = 0; i < 2; i++) {
+  //   dualDevice->getDevice(0)->GetParameters()->SetEnumValue("SourceSelector",
+  //                                                           i);
+  //   int64_t enumValue;
+  //   dualDevice->getDevice(0)->GetParameters()->GetEnumValue("PixelFormat",
+  //                                                           enumValue);
+  // }
+
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
 
@@ -63,6 +72,33 @@ double MultiSpectralCamera::getGain(int source) {
   double value;
   dualDevice->getDevice(0)->GetParameters()->GetFloatValue("Gain", value);
   return value;
+}
+
+void MultiSpectralCamera::configureDevice(int source, std::string command,
+                                          std::string type, std::string value) {
+  ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                             "SourceSelector", source);
+  if (type == "int") {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParam(params, command.c_str(), std::stoi(value));
+    });
+  } else if (type == "float") {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParam(params, command.c_str(), std::stof(value));
+    });
+  } else if (type == "bool") {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParam(params, command.c_str(), std::stoi(value));
+    });
+  } else if (type == "enum") {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParamEnum(params, command.c_str(), std::stoi(value));
+    });
+  } else {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParam(params, command.c_str(), value.c_str());
+    });
+  }
 }
 
 void MultiSpectralCamera::configureSourceRuntime(

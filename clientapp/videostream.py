@@ -10,11 +10,17 @@ import numpy as np
 
 
 class VideoStream:
-    def __init__(self, create_subscriber=None):
-        self.running = {}
+    def __init__(
+        self,
+        create_subscriber=None,
+        preview_compress: bool = False,
+        timestampWatermark: bool = False,
+    ):
         self.bridge = CvBridge()
         self.topic_time = time.time()
         self.yield_time = time.time()
+        self.timestampWatermark = timestampWatermark
+        self.preview_compress = preview_compress
         if create_subscriber is None:
             return
         self.subscriber = create_subscriber(self.cv_raw_callback)
@@ -29,15 +35,37 @@ class VideoStream:
             np_arr = np.frombuffer(msg.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         else:
-
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+            if msg.encoding == "bayer_rggb8":
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+
+            if self.timestampWatermark:
+                time_text = time.strftime("%H:%M:%S", time.localtime(time.time()))
+                cv2.putText(
+                    cv_image,
+                    time_text,
+                    (15, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    2,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
+
+            if self.preview_compress:
+                height = cv_image.shape[0]
+                width = cv_image.shape[1]
+                aspect_ratio = width / height
+                new_width = 256
+                new_height = int(new_width / aspect_ratio)
+                cv_image = cv2.resize(cv_image, (new_width, new_height))
         self.output_frame = cv_image
 
     def cv_ndarray_callback(self, image):
         self.output_frame = image
 
     def stop(self, timeStamp: str):
-        self.running[timeStamp] = False
+        pass
 
     def generate_preview(self, timeStamp: Union[str, None] = None, isGrayScale=False):
         # if timeStamp:
