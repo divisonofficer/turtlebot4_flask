@@ -12,6 +12,11 @@ class MultiSpectralCamera {
 
   void addStreamCallback(int source, std::function<void(PvBuffer*)> callback);
 
+  void configureDevice(int source, std::string command, std::string type,
+                       std::string value);
+
+  std::vector<std::string> sourcePixelFormat;
+
   void configureExposure(int source, float exposure);
   void configureGain(int source, float gain);
   double getExposure(int source);
