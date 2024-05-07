@@ -68,6 +68,23 @@ class CaptureStorage:
 
         return metadataList
 
+    def get_capture_scene_meta(self, space_id: int, capture_id: int, scene_id: int):
+        capture_dir = os.path.join(CAPTURE_TEMP, str(space_id), str(capture_id))
+        scene_dir = os.path.join(capture_dir, str(scene_id))
+        try:
+            with open(os.path.join(scene_dir, "meta.json"), "r") as f:
+                raw = f.read()
+                scene = json.loads(raw)
+                scene["images"] = self.get_capture_scene_images(
+                    space_id, capture_id, scene_id
+                )
+                scene["space_id"] = space_id
+                scene["capture_id"] = capture_id
+                scene["scene_id"] = scene_id
+                return scene
+        except FileNotFoundError:
+            return None
+
     def get_capture_metadata(self, space_id: int, capture_id: int):
         # get number of folders in the capture directory
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id), str(capture_id))

@@ -80,11 +80,12 @@ def capture_at():
 def capture_single():
     capture_topic = None
     if request.json is not None:
-        capture_topic = request.json.get("capture_topic")
+        capture_topic = request.json.get("topics")
     if capture_topic:
         capture_node.image_topics = capture_topic
     else:
         capture_node.image_topics = ["/oakd/rgb/preview/image_raw"]
+    print(capture_node.image_topics)
     result = capture_node.run_capture_queue_single()
     if not result:
         return Response(status=500)
@@ -126,6 +127,18 @@ def capture_result_all_scenes(space_id):
 @app.route("/result/<space_id>/<capture_id>", methods=["GET"])
 def capture_result(space_id, capture_id):
     return capture_storage.get_capture_metadata(int(space_id), int(capture_id))
+
+
+@app.route("/result/<space_id>/<capture_id>/<scene_id>", methods=["GET"])
+def capture_result_scene(space_id, capture_id, scene_id):
+    return capture_storage.get_capture_scene_meta(
+        int(space_id), int(capture_id), int(scene_id)
+    )
+
+
+@app.route("/result/<space_id>/<capture_id>/<scene_id>/images", methods=["GET"])
+def capture_result_scene_images(space_id, capture_id, scene_id):
+    return capture_storage.get_capture_scene_images(space_id, capture_id, scene_id)
 
 
 @app.route("/result/<space_id>/<capture_id>/<scene_id>/<filename>", methods=["GET"])
