@@ -15,3 +15,6 @@ mypy.ini
 clientapp/instance/jai/.vscode/settings.json
 clientapp/instance/jai/.vscode/c_cpp_properties.json
 clientapp/instance/jai/CameraNodeSample
+clientapp/instance/jai/JAI_ROS_bridge/libjai_node_lib.a
+clientapp/instance/jai/JAI_ROS_bridge/jai_node
+clientapp/instance/jai/JAI_ROS_bridge/Makefile

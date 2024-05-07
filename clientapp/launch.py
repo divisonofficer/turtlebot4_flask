@@ -8,6 +8,7 @@ process_map = {
     "main": "app.py",
     "laptop_monitor": "instance/laptop/monitor_app.py",
     "slam": "instance/slam/slam_app.py",
+    "capture": "instance/capture/capture_app.py",
 }
 
 import subprocess
