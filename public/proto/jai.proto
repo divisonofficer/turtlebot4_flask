@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+
+message ParameterInfo{
+    string name = 1;
+    string type = 2;
+    float min = 3;
+    float max = 4;
+}
+
+message ParameterValue{
+    string name = 1;
+    string type = 2;
+    string value = 3;
+}
+message ParameterUpdate{
+    repeated ParameterValue parameters = 1;
+}
+
+
+
+message DeviceInfo{
+    string name = 1;
+    int32 source_count = 2;
+    repeated string source_types = 3;
+    int32 fps = 4;
+    repeated ParameterInfo configurable = 5;
+}
