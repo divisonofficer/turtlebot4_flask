@@ -16,6 +16,7 @@ import { SlamPage } from "./page/slam/SlamPage";
 import { Appbar } from "./page/appbar/Appbar";
 import { CapturePage } from "./page/capture/CapturePage";
 import { AlertView } from "./page/appbar/AlertView";
+import { JaiBridgePage } from "./page/jaibridge/JaiBridgePage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -36,6 +37,7 @@ function App() {
         <Route path="/launch" element={<LaunchPage />} />
         <Route path="/slam" element={<SlamPage />} />
         <Route path="/capture" element={<CapturePage />} />
+        <Route path="/jaibridge" element={<JaiBridgePage />} />
       </Routes>
     );
   };
