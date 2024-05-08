@@ -29,7 +29,7 @@ bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
 
   aDevice = DeviceConnectToDevice(aConnectionID);
   if (aDevice == NULL) {
-    Error << "Unable to connect to device.";
+    ErrorLog << "Unable to connect to device.";
     return false;
   }
   return true;
@@ -67,7 +67,7 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
   aConnectionID = aDeviceInfo->GetConnectionID();
   displayName = aDeviceInfo->GetDisplayID().GetAscii();
   if (!aDeviceInfo) {
-    Error << "No device found.";
+    ErrorLog << "No device found.";
     return false;
   }
   Info << "Device found: " << aDeviceInfo->GetDisplayID().GetAscii();
@@ -79,7 +79,7 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
     const PvDeviceInfoGEV *lDeviceGEV =
         dynamic_cast<const PvDeviceInfoGEV *>(aDeviceInfo);
     if (!lDeviceGEV) {
-      Error << "Not a Valid GEV Device";
+      ErrorLog << "Not a Valid GEV Device";
       return false;
     }
     // @todo : Get available IP address from somewhere
@@ -88,7 +88,7 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
         lDeviceGEV->GetSubnetMask().GetAscii(),
         lDeviceGEV->GetDefaultGateway().GetAscii());
     if (!lResult.IsOK()) {
-      Error << "Unable to force new IP address.";
+      ErrorLog << "Unable to force new IP address.";
       return false;
     }
   }

@@ -8,6 +8,7 @@ from rclpy.subscription import Subscription
 import sys
 
 sys.path.append("../..")
+sys.path.append("../../../public/proto/python")
 from videostream import VideoStream
 import rclpy
 from rclpy.node import Node
@@ -15,34 +16,16 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from typing import List, Dict, Any, Optional
 
+from jai_pb2 import DeviceInfo, ParameterInfo, ParameterValue, ParameterUpdate
 
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
-DEVICE_INFO = [
-    {
-        "name": "jai_1600",
-        "source_count": 2,
-        "source_types": ["bgr8", "mono8"],
-        "fps": 4,
-        "configurable": [
-            {
-                "name": "ExposureTime",
-                "type": "float",
-                "min": 100,
-                "max": 50000,
-            },
-            {
-                "name": "Gain",
-                "type": "float",
-                "min": 1,
-                "max": 16,
-            },
-        ],
-    }
-]
+from google.protobuf.json_format import MessageToJson
+
+DEVICE_INFO: List[DeviceInfo] = []
 
 
 class JaiBridgeNode(Node):
@@ -78,35 +61,36 @@ class JaiBridgeNode(Node):
 
     def register_clients(self):
         for device in DEVICE_INFO:
-            self.service_clients[str(device["name"])] = []
-            self.videoStreams[str(device["name"])] = []
-            self.videoStreamSubscriptions[str(device["name"])] = []
-            self.configureSubscriptions[str(device["name"])] = []
-            for i in range(int(device["source_count"])):
-                self.service_clients[str(device["name"])].append(
+            device_name = device.name
+            self.service_clients[device_name] = []
+            self.videoStreams[device_name] = []
+            self.videoStreamSubscriptions[device_name] = []
+            self.configureSubscriptions[device_name] = []
+            for i in range(int(device.source_count)):
+                self.service_clients[device_name].append(
                     self.create_publisher(
                         String,
-                        f"/{device['name']}/channel_{i}/manual_configure",
+                        f"/{device_name}/channel_{i}/manual_configure",
                         10,
                     )
                 )
-                self.videoStreams[str(device["name"])].append(
+                self.videoStreams[device_name].append(
                     VideoStream(preview_compress=True, timestampWatermark=True)
                 )
-                self.videoStreamSubscriptions[str(device["name"])].append(
+                self.videoStreamSubscriptions[device_name].append(
                     self.create_subscription(
                         Image,
-                        f"/{device['name']}/channel_{i}",
-                        self.videoStreams[str(device["name"])][i].cv_raw_callback,
+                        f"/{device_name}/channel_{i}",
+                        self.videoStreams[device_name][i].cv_raw_callback,
                         10,
                     )
                 )
 
-                self.configureSubscriptions[str(device["name"])].append(
+                self.configureSubscriptions[device_name].append(
                     self.create_subscription(
                         String,
-                        f"/{device['name']}/channel_{i}/device_param",
-                        self.configure_callback_gen(str(device["name"]), i),
+                        f"/{device_name}/channel_{i}/device_param",
+                        self.configure_callback_gen(device_name, i),
                         10,
                     )
                 )
@@ -120,7 +104,14 @@ class JaiBridgeNode(Node):
         config_value: str,
     ):
         msg = String()
-        msg.data = f"{config_name}=<{config_type}>{config_value}"
+
+        msg_proto = ParameterUpdate()
+        msg_proto_parameter = ParameterValue()
+        msg_proto_parameter.name = config_name
+        msg_proto_parameter.value = config_value
+        msg_proto_parameter.type = config_type
+        msg_proto.parameters.extend([msg_proto_parameter])
+        msg.data = msg_proto.SerializeToString().decode("utf-8")
         self.service_clients[device_name][channel_id].publish(msg)
 
     def get_camera_params(self):
@@ -149,6 +140,9 @@ def camera_preview(device_name, channel_id, timestamp):
     )
 
 
+from time import time
+
+
 @app.route("/device/<device_name>/<channel_id>/configure", methods=["POST"])
 def configure_camera(device_name, channel_id):
     data = request.json
@@ -163,9 +157,14 @@ def configure_camera(device_name, channel_id):
     return {"status": "success"}
 
 
+from json import JSONDecoder
+
+
 @app.route("/device")
 def get_camera_device_infos():
-    return DEVICE_INFO
+    serialized = [JSONDecoder().decode(MessageToJson(device)) for device in DEVICE_INFO]
+
+    return serialized
 
 
 @app.route("/status", methods=["GET"])
@@ -174,6 +173,30 @@ def get_camera_params():
 
 
 with app.app_context():
+    device = DeviceInfo()
+    device.name = "jai_1600"
+    device.source_count = 2
+    device.source_types.extend(["bayer_rg8", "mono8"])
+    device.fps = 4
+    device.configurable.extend(
+        [
+            ParameterInfo(
+                name="ExposureTime",
+                type="float",
+                min=100,
+                max=50000,
+            ),
+            ParameterInfo(
+                name="Gain",
+                type="float",
+                min=1,
+                max=16,
+            ),
+        ]
+    )
+
+    DEVICE_INFO.append(device)
+
     rclpy.init()
     node = JaiBridgeNode()
     spin_node()

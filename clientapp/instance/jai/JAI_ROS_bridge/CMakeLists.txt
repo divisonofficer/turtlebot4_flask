@@ -5,11 +5,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
+include(FindProtobuf)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(Protobuf REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -26,7 +30,9 @@ add_executable(jai_node src/jai_node.cpp)
 
 add_library(jai_node_lib src/ros/JAINode.cpp ../src/camera/Camera.cpp ../src/acquire/Acquire.cpp ../src/device/Device.cpp
 ../src/device/DualDevice.cpp ../src/device/ParamManager.cpp
-../src/logger/Logger.cpp ../src/stream/Stream.cpp)
+../src/logger/Logger.cpp ../src/stream/Stream.cpp
+../../../../public/proto/cpp/jai.pb.cc
+)
 
 
 
@@ -37,7 +43,8 @@ set(JAI_LIBS PtConvertersLib PvAppUtils PvBase PvBuffer PvGenICam PvStream PvDev
 target_link_libraries(jai_node
   jai_node_lib
   ${JAI_LIBS}
-)
+  ${Protobuf_LIBRARIES}
+  )
 
 
 # Specify the libraries to be linked with jai_node
@@ -71,6 +78,8 @@ set(JAI_LIB_INCLUDE_DIRS
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src/logger>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src/stream>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/ros>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../public/proto/cpp>
+  
   $<BUILD_INTERFACE:${JAI_INCLUDE_DIR}>
   >
 )
