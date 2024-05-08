@@ -1,5 +1,6 @@
 #include <JAINode.h>
 #include <Logger.h>
+#include <jai.pb.h>
 
 std::vector<std::string> splitString(std::string str, std::string delimiter) {
   std::vector<std::string> parts;
@@ -151,25 +152,15 @@ void JAINode::createCameraConfigureService(int device_num, int channel_num) {
           [this, device_num,
            channel_num](const std_msgs::msg::String::SharedPtr msg) {
             this->cameras[device_num]->closeStream();
-            std::string command = msg->data;
-            std::vector<std::string> commands = splitString(command, ";");
-            for (const auto& cmd : commands) {
-              std::vector<std::string> parts = splitString(cmd, "=");
-              if (parts.size() != 2) {
-                continue;
-              }
-
-              std::string commandName = parts[0];
-              std::string value = parts[1];
-              size_t start = value.find('>') + 1;
-              size_t end = value.size();
-              std::string extractedValue = value.substr(start, end - start);
-              std::string extractedType = value.substr(1, start - 2);
+            auto msg_proto = new ParameterUpdate();
+            msg_proto->ParseFromString(msg->data);
+            for (const auto param : msg_proto->parameters()) {
               this->cameras[device_num]->configureDevice(
-                  channel_num, commandName, extractedType, extractedValue);
+                  channel_num, param.name(), param.type(), param.value());
             }
             this->cameras[device_num]->openStream();
             this->emitRosDeviceParamMsg(device_num, channel_num);
+            free(msg_proto);
           });
 }
 

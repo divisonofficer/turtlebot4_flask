@@ -80,12 +80,12 @@ bool ParamManager::isParamExists(PvGenParameterArray* params,
     Debug << "Parameter " << paramName << " found with type " << type;
     return true;
   }
-  Error << "Parameter " << paramName << " not found";
+  ErrorLog << "Parameter " << paramName << " not found";
   return false;
 }
 
 void ParamManager::printPvResult(PvResult result) {
   if (!result.IsOK()) {
-    Error << "PvResult: " << result.GetCodeString().GetAscii();
+    ErrorLog << "PvResult: " << result.GetCodeString().GetAscii();
   }
 }
