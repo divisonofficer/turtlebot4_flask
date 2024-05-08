@@ -8,18 +8,15 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
-import { JAIDeviceInfo, jaiStore } from "../../stores/JaiStore";
+import { jaiStore } from "../../stores/JaiStore";
+import { DeviceInfo } from "../../../../public/proto/ts/jai";
 import { Body3, H4 } from "../../design/text/textsystem";
 import { VideoStream } from "../../design/other/video";
 import { observer } from "mobx-react";
 import { ArrowArcRight } from "@phosphor-icons/react";
 
 export const SourceDeviceParamSlide = observer(
-  (props: {
-    device: JAIDeviceInfo;
-    sourceIndex: number;
-    paramIndex: number;
-  }) => {
+  (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
     const deviceName = props.device.name;
     const paramInfo = jaiStore.jaiCameraParams[deviceName]
       ? jaiStore.jaiCameraParams[deviceName][props.sourceIndex]
@@ -77,7 +74,7 @@ export const SourceDeviceParamSlide = observer(
 );
 
 export const JaiDeviceSource = (props: {
-  device: JAIDeviceInfo;
+  device: DeviceInfo;
   sourceIndex: number;
 }) => {
   return (
@@ -107,7 +104,7 @@ export const JaiDeviceSource = (props: {
   );
 };
 
-export const JaiDeviceControl = (props: { device: JAIDeviceInfo }) => {
+export const JaiDeviceControl = (props: { device: DeviceInfo }) => {
   return (
     <VStack>
       <H4>{props.device.name}</H4>
@@ -117,7 +114,7 @@ export const JaiDeviceControl = (props: { device: JAIDeviceInfo }) => {
         aria-label=""
       />
       <HStack>
-        {Array.from({ length: props.device.source_count }).map((_, index) => {
+        {Array.from({ length: props.device.sourceCount }).map((_, index) => {
           return (
             <JaiDeviceSource
               device={props.device}

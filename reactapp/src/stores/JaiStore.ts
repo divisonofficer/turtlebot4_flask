@@ -1,5 +1,6 @@
 import { action, makeAutoObservable } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
+import { DeviceInfo } from "../../../public/proto/ts/jai";
 
 export interface JAIParamValue {
   type: string;
@@ -11,21 +12,9 @@ export interface JAIParam {
   Gain: JAIParamValue;
 }
 
-export interface JAIDeviceInfo {
-  name: string;
-  source_count: number;
-  source_types: string[];
-  configurable: {
-    name: string;
-    type: string;
-    min: number;
-    max: number;
-  }[];
-}
-
 class JaiStore {
   jaiCameraParams: { [key: string]: JAIParam[] } = {};
-  jaiDeviceInfo: JAIDeviceInfo[] = [];
+  jaiDeviceInfo: DeviceInfo[] = [];
 
   constructor() {
     makeAutoObservable(this);
