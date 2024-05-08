@@ -39,4 +39,4 @@ class Logger {
 #define Debug Logger(LogLevel::debug)
 #define Info Logger(LogLevel::info)
 #define Warning Logger(LogLevel::warning)
-#define Error Logger(LogLevel::error)
+#define ErrorLog Logger(LogLevel::error)

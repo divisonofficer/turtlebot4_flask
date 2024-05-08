@@ -110,8 +110,8 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
 
   if (!lResult.IsOK()) {
-    Error << "Failed to retrieve buffer: "
-          << lResult.GetCodeString().GetAscii();
+    ErrorLog << "Failed to retrieve buffer: "
+             << lResult.GetCodeString().GetAscii();
     if (lBuffer) queueBuffer(aStream, lBuffer);
     return nullptr;
   }
@@ -120,8 +120,8 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     return nullptr;
   }
   if (!lOperationResult.IsOK()) {
-    Error << "Operation result is not OK : "
-          << lOperationResult.GetCodeString().GetAscii();
+    ErrorLog << "Operation result is not OK : "
+             << lOperationResult.GetCodeString().GetAscii();
   } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
     Debug << "Payload type is not Image";
 
