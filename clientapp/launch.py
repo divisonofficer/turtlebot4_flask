@@ -9,6 +9,7 @@ process_map = {
     "laptop_monitor": "instance/laptop/monitor_app.py",
     "slam": "instance/slam/slam_app.py",
     "capture": "instance/capture/capture_app.py",
+    "jai_bridge": "instance/jai_bridge/jai_bridge_app.py",
 }
 
 import subprocess
