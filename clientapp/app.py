@@ -26,6 +26,11 @@ def get_template():
     return send_from_directory("build", "index.html")
 
 
+@app.route("/static/<path:filename>", methods=["GET"])
+def get_template_static(filename):
+    return send_from_directory("build/static", filename)
+
+
 @app.route("/static/css/<path:filename>", methods=["GET"])
 def get_template_static_css(filename):
     return send_from_directory("build/static/css", filename)
