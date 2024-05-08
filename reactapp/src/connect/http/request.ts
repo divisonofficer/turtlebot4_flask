@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const DEBUG = true;
 
 class NotSuccessResponseError extends Error {
@@ -17,15 +19,39 @@ class RequestManager {
       console.log("RequestManager.request", url, method, data);
     }
 
-    const fetchPromise = fetch(url, {
+    const fetchPromise = axios({
       method: method,
+      url: url,
+      data: JSON.stringify(data),
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
         "Strict-Origin-Policy": "false",
       },
-      body: JSON.stringify(data),
+
+      httpAgent: {
+        keepAlive: true,
+        maxSockets: 100,
+        keepAliveMsecs: 1000,
+        timeout: 30000,
+      },
+      httpsAgent: {
+        keepAlive: true,
+        maxSockets: 100,
+        keepAliveMsecs: 1000,
+        timeout: 30000,
+      },
     });
+
+    // const fetchPromise = fetch(url, {
+    //   method: method,
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "Access-Control-Allow-Origin": "*",
+    //     "Strict-Origin-Policy": "false",
+    //   },
+    //   body: JSON.stringify(data),
+    // });
 
     let response;
 
@@ -42,7 +68,7 @@ class RequestManager {
       try {
         throw new NotSuccessResponseError(
           response.status,
-          await response.text()
+          await response.data()
         );
       } catch (e) {
         throw new Error(
@@ -52,17 +78,14 @@ class RequestManager {
     }
 
     // 200인데 empty인 경우
-    if (
-      response.status === 200 &&
-      response.headers.get("content-length") === "0"
-    ) {
+    if (response.status === 200 && response.headers["Content-Length"] === "0") {
       return {};
     }
 
     try {
-      return await response.json();
+      return await response.data;
     } catch (e) {
-      return await response.text();
+      return await response.data;
     }
   };
 }
