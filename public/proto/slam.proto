@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+
+message RobotPosition{
+    double x = 1;
+    double y = 2;
+    double z = 3;
+}
+
+message RobotEuilerOrientation{
+    double roll = 1;
+    double pitch = 2;
+    double yaw = 3;
+}
+
+message RobotQuaternionOrientation{
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    double w = 4;
+}
+
+message RobotPose{
+    RobotPosition position = 1;
+    RobotEuilerOrientation orientation = 2;
+}
+
+message LidarPosition{
+    double angle_min = 1;
+    double angle_max = 2;
+    double angle_increment = 3;
+    
+    repeated double ranges = 4;
+    double range_max = 5;
+}
