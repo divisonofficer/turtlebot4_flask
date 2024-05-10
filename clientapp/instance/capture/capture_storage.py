@@ -1,9 +1,13 @@
 import os
 import json
 import cv2
+import numpy as np
 from capture_type import CaptureSingleScene
 from time import time
 from typing import Optional, Dict, Any
+from capture_pb2 import CaptureAppCapture, CaptureAppScene, CaptureAppSpace
+from google.protobuf import json_format
+from google.protobuf.json_format import ParseError
 
 CAPTURE_TEMP = "/tmp/oakd_capture"
 if not os.path.exists(CAPTURE_TEMP):
@@ -43,27 +47,27 @@ class CaptureStorage:
 
     def get_space_metadata(self, space_id: int):
         metadataFile = os.path.join(CAPTURE_TEMP, str(space_id), "meta.json")
-        meta: Dict[str, Any] = {}
+        space = CaptureAppSpace()
         if not os.path.exists(metadataFile):
-            meta["space_id"] = space_id
+            space.space_id = space_id
         else:
             with open(metadataFile, "r") as f:
                 raw = f.read()
-                meta = json.loads(raw)
-        if not "map_name" in meta:
-            meta["map_name"] = str(space_id)
-        capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
-        meta["captures"] = self.get_space_all_captures(space_id)
-        return meta
+                json_format.Parse(raw, space)
+
+        if not space.map_name or not space.map_name.strip():
+            space.map_name = str(space_id)
+
+        space.captures.extend(self.get_space_all_captures(space_id))
+        return space
 
     def get_all_spaces(self):
         spaces = os.listdir(CAPTURE_TEMP)
 
-        metadataList = []
+        metadataList: list[CaptureAppSpace] = []
         for space in spaces:
             meta = self.get_space_metadata(int(space))
-            meta["space_id"] = int(space)
-            meta["captures"] = os.listdir(os.path.join(CAPTURE_TEMP, space))
+
             metadataList.append(meta)
 
         return metadataList
@@ -74,13 +78,40 @@ class CaptureStorage:
         try:
             with open(os.path.join(scene_dir, "meta.json"), "r") as f:
                 raw = f.read()
-                scene = json.loads(raw)
-                scene["images"] = self.get_capture_scene_images(
+                scene = CaptureAppScene()
+                scene.space_id = space_id
+                scene.scene_id = scene_id
+                try:
+                    json_format.Parse(raw, scene)
+                except ParseError:
+                    scene_dict = json.loads(raw)
+                    if not "range_max" in scene_dict["lidar_position"]:
+                        max_range = max(
+                            scene_dict["lidar_position"]["ranges"],
+                            default=float("-inf"),
+                            key=lambda x: x if x != float("inf") else float("-inf"),
+                        )
+                        scene_dict["lidar_position"]["range_max"] = max_range
+                    scene_dict["lidar_position"]["ranges"] = [
+                        (
+                            x
+                            if x != float("inf")
+                            else scene_dict["lidar_position"]["range_max"]
+                        )
+                        for x in scene_dict["lidar_position"]["ranges"]
+                    ]
+                    for key, value in scene_dict.items():
+                        if hasattr(scene, key):
+                            if isinstance(value, dict):
+                                json_format.ParseDict(value, getattr(scene, key))
+                            elif isinstance(value, list):
+                                getattr(scene, key).extend(value)
+                            else:
+                                setattr(scene, key, value)
+                scene.images[:] = self.get_capture_scene_images_paths(
                     space_id, capture_id, scene_id
                 )
-                scene["space_id"] = space_id
-                scene["capture_id"] = capture_id
-                scene["scene_id"] = scene_id
+
                 return scene
         except FileNotFoundError:
             return None
@@ -88,42 +119,32 @@ class CaptureStorage:
     def get_capture_metadata(self, space_id: int, capture_id: int):
         # get number of folders in the capture directory
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id), str(capture_id))
+        capture = CaptureAppCapture(space_id=space_id, capture_id=capture_id, scenes=[])
         scenes = []
         for scene_id in os.listdir(capture_dir):
-            scene_dir = os.path.join(capture_dir, scene_id)
-            scene_dir_http = f"/capture/result/{space_id}/{capture_id}/{scene_id}"
             try:
-                with open(os.path.join(scene_dir, "meta.json"), "r") as f:
-                    raw = f.read()
-                    scene = json.loads(raw)
-
-                    files = os.listdir(scene_dir)
-                    del scene["lidar_position"]
-                    scene["images"] = self.get_capture_scene_images(
-                        space_id, capture_id, int(scene_id)
-                    )
-                    scene["space_id"] = space_id
-                    scene["capture_id"] = capture_id
-                    scene["scene_id"] = int(scene_id)
+                scene = self.get_capture_scene_meta(space_id, capture_id, int(scene_id))
+                if scene:
                     scenes.append(scene)
             except FileNotFoundError:
                 continue
         if len(scenes) == 0:
             return None
-        return {
-            "space_id": space_id,
-            "capture_id": capture_id,
-            "scenes": scenes,
-        }
+        capture.scenes.extend(scenes)
+        return capture
 
-    def get_capture_scene(
+    def get_capture_scene_filepath(
         self, space_id: int, capture_id: int, scene_id: int, filename: str
     ):
+        if not "." in filename:
+            filename += ".png"
         return os.path.join(
             CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), filename
         )
 
-    def get_capture_scene_images(self, space_id: int, capture_id: int, scene_id: int):
+    def get_capture_scene_images_paths(
+        self, space_id: int, capture_id: int, scene_id: int
+    ):
         scene_dir = os.path.join(
             CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id)
         )
@@ -142,21 +163,19 @@ class CaptureStorage:
             ]
             if x is not None
         ]
-        capture_list.sort(key=lambda x: x["capture_id"], reverse=True)
+        capture_list.sort(key=lambda x: x.capture_id, reverse=True)
         return capture_list
 
     def get_space_all_scenes(self, space_id: int):
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
         captures = os.listdir(capture_dir)
-        scenes = []
+        scenes: list[CaptureAppCapture] = []
         for capture_id in captures:
             if not capture_id.isdigit():
                 continue
-            scenes.extend(
-                (self.get_capture_metadata(space_id, int(capture_id)) or {}).get(
-                    "scenes", []
-                )
-            )
+            capture = self.get_capture_metadata(space_id, int(capture_id))
+            if capture:
+                scenes.extend(capture.scenes)
         return scenes
 
     def store_captured_scene(
@@ -176,3 +195,30 @@ class CaptureStorage:
                 json.dump(image.data, f)
         with open(f"{scene_dir}/meta.json", "w") as f:
             json.dump(scene.to_dict(), f)
+
+    def gen_strokes_image(self, scene: CaptureSingleScene):
+        images_nd: list[np.ndarray] = []
+        for i in range(2):
+            topic = f"/jai_1600/channel_{i}"
+            image_topics = [f"{topic}/{x * 45}" for x in range(4)]
+            images = [x for x in scene.picture_list if x.topic in image_topics]
+            if len(images) != 4:
+                return None
+            images = [x.image for x in images]
+            if i == 0:
+                images = [
+                    cv2.cvtColor(image, cv2.COLOR_BAYER_RG2RGB) for image in images
+                ]
+            images_nd.append(np.array(images))  # Convert images to NumPy array
+        MM: np.ndarray = np.array(
+            [
+                [1, 0, 0, 0],
+                [1, 0, 0, 0],
+                [1, 0, 0, 0],
+                [1, 0, 0, 0],
+            ]
+        )
+        stacked = np.stack(images_nd)
+        strokes = MM * stacked
+
+        return strokes

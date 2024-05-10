@@ -88,16 +88,19 @@ class CaptureSingleScene:
         return light_dict
 
     def to_dict_light(self):
+        images = [
+            x.topic.replace("/", "_")
+            for x in self.picture_list
+            if type(x) == ImageBytes
+        ]
         return {
-            "capture_id": self.capture_id,
-            "scene_id": self.scene_id,
+            "captureId": self.capture_id,
+            "sceneId": self.scene_id,
             "timestamp": self.timestamp,
-            "robot_pose": (
+            "robotPose": (
                 self.robot_pose.to_dict()
                 if type(self.robot_pose) == Pose3D
                 else self.robot_pose
             ),
-            "picture_list": [
-                x.to_dict() if type(x) == ImageBytes else x for x in self.picture_list
-            ],
+            "images": images,
         }

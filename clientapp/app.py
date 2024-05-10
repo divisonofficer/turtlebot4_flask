@@ -82,23 +82,23 @@ def get_topic_list():
 
 @app.route("/ros/topic/type/format", methods=["POST"])
 def get_topic_type_format():
-    topic_type = request.json.get("topic_type")
+    topic_type = request.json.get("topic_type") if request and request.json else None
     return jsonify(controller.rospy.get_type_json_format(topic_type))
 
 
 @app.route("/ros/topic/publish", methods=["POST"])
 def publish_topic_once():
-    topic_name = request.json.get("topic_name")
-    topic_type = request.json.get("topic_type")
-    data = request.json.get("message")
+    topic_name = request.json.get("topic_name") if request and request.json else None
+    topic_type = request.json.get("topic_type") if request and request.json else None
+    data = request.json.get("message") if request and request.json else None
     controller.manual_topic_emit(topic_name, topic_type, data)
     return Response(status=200)
 
 
 @app.route("/ros/topic", methods=["POST"])
 def post_topic_subscribe():
-    topic_name = request.json.get("topic_name")
-    topic_type = request.json.get("topic_type")
+    topic_name = request.json.get("topic_name") if request and request.json else None
+    topic_type = request.json.get("topic_type") if request and request.json else None
 
     res = controller.manualTopicManager.register_topic(topic_name, topic_type)
     if res == True:
@@ -108,13 +108,13 @@ def post_topic_subscribe():
 
 @app.route("/ros/topic/logs", methods=["POST"])
 def post_topic_get_logs():
-    topic_name = request.json.get("topic_name")
+    topic_name = request.json.get("topic_name") if request and request.json else None
     return jsonify(controller.get_topic_logs(topic_name))
 
 
 @app.route("/ros/topic/nodes", methods=["POST"])
 def post_topic_nodes_get():
-    topic_name = request.json.get("topic_name")
+    topic_name = request.json.get("topic_name") if request and request.json else None
     return jsonify(controller.rospy.get_topic_nodes_list(topic_name))
 
 
@@ -128,7 +128,7 @@ def ros_preview_feed(frame_id):
 
 @app.route("/ros/topic/delete", methods=["POST"])
 def delete_topic_unsubscribe():
-    topic_name = request.json.get("topic_name")
+    topic_name = request.json.get("topic_name") if request and request.json else None
 
     ret = controller.manualTopicManager.delete_topic(topic_name)
     if ret == 200:
@@ -188,9 +188,15 @@ def get_ros_service_list():
 
 @app.route("/ros/service/call", methods=["POST"])
 def get_ros_service_call():
-    service_name = request.json.get("service_name")
-    service_type = request.json.get("service_type")
-    request_data = request.json.get("request_data")
+    service_name = (
+        request.json.get("service_name") if request and request.json else None
+    )
+    service_type = (
+        request.json.get("service_type") if request and request.json else None
+    )
+    request_data = (
+        request.json.get("request_data") if request and request.json else None
+    )
 
     result = controller.manual_service_call(service_name, service_type, request_data)
     return jsonify(result)
