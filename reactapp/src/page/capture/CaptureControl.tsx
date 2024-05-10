@@ -9,6 +9,8 @@ import {
   PopoverContent,
   PopoverHeader,
   PopoverTrigger,
+  Progress,
+  ProgressLabel,
   Switch,
   VStack,
   useDisclosure,
@@ -172,14 +174,31 @@ export const CaptureControl = observer(() => {
 
       {captureStore.is_capture_running && (
         <>
-          {" "}
-          <HStack>
-            <Btn onClick={() => captureStore.fetchPostCaptureSingle()}>
-              Single
-            </Btn>
-            <Btn>Queue</Btn>{" "}
-          </HStack>
-          <CaptureSourceSwitch />
+          {captureStore.progress && (
+            <>
+              <Progress
+                value={captureStore.progress.progress}
+                style={{
+                  width: "20rem",
+                  height: "5rem",
+                }}
+              >
+                <ProgressLabel>{captureStore.progress.progress}%</ProgressLabel>
+              </Progress>
+              <Body3>{captureStore.progress.message}</Body3>
+            </>
+          )}
+          {!captureStore.progress && (
+            <>
+              <HStack>
+                <Btn onClick={() => captureStore.fetchPostCaptureSingle()}>
+                  Single
+                </Btn>
+                <Btn>Queue</Btn>{" "}
+              </HStack>
+              <CaptureSourceSwitch />
+            </>
+          )}
         </>
       )}
     </Flex>

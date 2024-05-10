@@ -13,8 +13,9 @@ import {
 } from "@chakra-ui/react";
 import { Body3 } from "../../design/text/textsystem";
 import { CaptureSpace, captureStore } from "../../stores/CaptureStore";
+import { CaptureAppSpace } from "../../public/proto/capture";
 
-const SpaceItem = (props: StackProps & { space: CaptureSpace }) => {
+const SpaceItem = (props: StackProps & { space: CaptureAppSpace }) => {
   const { space } = props;
   return (
     <HStack
@@ -32,7 +33,7 @@ const SpaceItem = (props: StackProps & { space: CaptureSpace }) => {
       }}
     >
       <img
-        src={`/slam/${space.map_name}/image`}
+        src={`/slam/${space.mapName}/image`}
         alt="Map undefiend"
         style={{
           width: "6rem",
@@ -43,7 +44,7 @@ const SpaceItem = (props: StackProps & { space: CaptureSpace }) => {
       />
 
       <VStack alignItems="flex-start" width="8rem">
-        <Body3>ID : {space.space_id}</Body3>
+        <Body3>ID : {space.spaceId}</Body3>
         <Body3>Captures : {space.captures.length}</Body3>
       </VStack>
     </HStack>
