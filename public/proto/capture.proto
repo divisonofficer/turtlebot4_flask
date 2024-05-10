@@ -39,4 +39,5 @@ message CaptureTaskProgress{
     int32 scene_id = 3;
     int32 progress  = 4;
     repeated string images = 5;
+    string message = 6;
 }
