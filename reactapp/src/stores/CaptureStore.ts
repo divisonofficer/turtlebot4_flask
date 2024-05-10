@@ -3,6 +3,12 @@ import { RobotPose, SlamRobotPose } from "../page/slam/SlamType";
 import { httpGet, httpPost } from "../connect/http/request";
 import { alertStore } from "./AlertStore";
 import { captureSocket } from "../connect/socket/subscribe";
+import {
+  CaptureAppCapture,
+  CaptureAppScene,
+  CaptureAppSpace,
+  CaptureTaskProgress,
+} from "../public/proto/capture";
 
 export const CAPTURE_TOPICS = {
   OAKD_MONO: {
@@ -31,19 +37,22 @@ class CaptureStore {
   constructor() {
     makeAutoObservable(this);
 
-    captureSocket.subscribe("/recent_scene", (data: CaptureScene) => {
+    captureSocket.subscribe("/recent_scene", (data: CaptureAppScene) => {
       this.extendSceneId(data);
     });
+    captureSocket.subscribe("/progress", (data: CaptureTaskProgress) =>
+      this.processCaptureProgress(data)
+    );
   }
   /////////////////////////////////////////////
   // For All Backend Stored data
   /////////////////////////////////////////////
-  captureSpaceList: CaptureSpace[] = [];
+  captureSpaceList: CaptureAppSpace[] = [];
   /////////////////////////////////////////////
   // For Single Space data for viewing
   /////////////////////////////////////////////
-  captureScenes: CaptureScene[] = [];
-  captures: CaptureSingle[] = [];
+  captureScenes: CaptureAppScene[] = [];
+  captures: CaptureAppCapture[] = [];
   capture_pendings_id: number[] = [];
 
   map_name?: string = undefined;
@@ -54,6 +63,7 @@ class CaptureStore {
   map_focused_scene_id: number = -1;
 
   is_capture_running: boolean = false;
+  progress?: CaptureTaskProgress = undefined;
   /////////////////////////////////////////////
   // For Capture Control
   /////////////////////////////////////////////
@@ -65,9 +75,9 @@ class CaptureStore {
   // Capture Control Action
   /////////////////////////////////////////////
   @action
-  extendSceneId(scene_meta: CaptureScene) {
+  extendSceneId(scene_meta: CaptureAppScene) {
     httpGet(
-      `/capture/result/${this.space_id}/${scene_meta.capture_id}/${scene_meta.scene_id}/images`
+      `/capture/result/${this.space_id}/${scene_meta.captureId}/${scene_meta.sceneId}/images`
     )
       .onSuccess((images: string[]) => {
         scene_meta.images = images;
@@ -77,36 +87,43 @@ class CaptureStore {
   }
 
   @action
-  extendScene(scene: CaptureScene) {
+  processCaptureProgress(progress: CaptureTaskProgress) {
+    this.progress = progress;
+    if (progress.progress >= 100) {
+      this.progress = undefined;
+    }
+  }
+
+  @action
+  extendScene(scene: CaptureAppScene) {
     this.captureScenes = [scene, ...this.captureScenes];
 
     // find capture and put scene
-    const capture = this.captures.find(
-      (c) => c.capture_id === scene.capture_id
-    );
+    const capture = this.captures.find((c) => c.captureId === scene.captureId);
     if (!capture) {
       return;
     }
     capture.scenes = [scene, ...capture.scenes];
     this.captures = [
       capture,
-      ...this.captures.filter((c) => c.capture_id !== scene.capture_id),
+      ...this.captures.filter((c) => c.captureId !== scene.captureId),
     ];
     this.capture_pendings_id = this.capture_pendings_id.filter(
-      (id) => id !== scene.capture_id
+      (id) => id !== scene.captureId
     );
   }
 
   @action
   addPendingCapture(capture_id: number) {
     this.capture_pendings_id.push(capture_id);
-    if (this.captures.find((c) => c.capture_id === capture_id)) {
+    if (this.captures.find((c) => c.captureId === capture_id)) {
       return;
     }
     this.captures = [
       {
-        capture_id: capture_id,
+        captureId: capture_id,
         scenes: [],
+        spaceId: this.space_id ?? -1,
       },
       ...this.captures,
     ];
@@ -154,11 +171,11 @@ class CaptureStore {
     );
   }
 
-  loadSpace(space: CaptureSpace) {
-    this.fetchCaptureSpace(space.space_id);
-    this.fetchCaptureSpaceAllScene(space.space_id);
-    this.space_id = space.space_id;
-    this.map_name = space.map_name;
+  loadSpace(space: CaptureAppSpace) {
+    this.fetchCaptureSpace(space.spaceId);
+    this.fetchCaptureSpaceAllScene(space.spaceId);
+    this.space_id = space.spaceId;
+    this.map_name = space.mapName;
     runInAction(() => {
       this.is_capture_running = false;
     });

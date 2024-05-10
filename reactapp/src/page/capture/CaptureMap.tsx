@@ -97,19 +97,19 @@ export const CaptureMap = observer(() => {
           {captureScenes.map((scene, index) => (
             <SlamMapMarker
               key={index}
-              x={scene.robot_pose.position.x}
-              y={scene.robot_pose.position.y}
+              x={scene.robotPose?.position?.x}
+              y={scene.robotPose?.position?.y}
               style={{
                 transform: `rotate(${
-                  (-(scene.robot_pose.orientation.yaw || 0) * 180) / Math.PI +
+                  (-(scene.robotPose?.orientation?.yaw || 0) * 180) / Math.PI +
                   180
                 }deg)`,
               }}
             >
               <CameraAngleIcon
                 color={
-                  scene.capture_id === captureStore.map_focused_capture_id &&
-                  scene.scene_id === captureStore.map_focused_scene_id
+                  scene.captureId === captureStore.map_focused_capture_id &&
+                  scene.sceneId === captureStore.map_focused_scene_id
                     ? Color.Red
                     : Color.Cyan
                 }

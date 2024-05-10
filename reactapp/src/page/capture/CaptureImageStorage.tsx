@@ -10,6 +10,7 @@ import { CaptureSingle, captureStore } from "../../stores/CaptureStore";
 import { Body2, Body3 } from "../../design/text/textsystem";
 
 import { CaptureScene } from "../../stores/CaptureStore";
+import { CaptureAppCapture, CaptureAppScene } from "../../public/proto/capture";
 
 export const CaptureImageStorage = observer(() => {
   return (
@@ -27,7 +28,7 @@ export const CaptureImageStorage = observer(() => {
   );
 });
 
-export const CaptureItem = ({ capture }: { capture: CaptureSingle }) => {
+export const CaptureItem = ({ capture }: { capture: CaptureAppCapture }) => {
   return (
     <VStack
       style={{
@@ -38,12 +39,12 @@ export const CaptureItem = ({ capture }: { capture: CaptureSingle }) => {
         alignItems: "flex-start",
       }}
     >
-      <Body2>{capture.capture_id}</Body2>
+      <Body2>{capture.captureId}</Body2>
       <HStack>
         {capture.scenes.map((scene, index) => (
           <CaptureImageItem scene={scene} key={index} />
         ))}
-        {captureStore.capture_pendings_id.includes(capture.capture_id) && (
+        {captureStore.capture_pendings_id.includes(capture.captureId) && (
           <Flex
             style={{
               width: "12rem",
@@ -66,7 +67,7 @@ export const CaptureItem = ({ capture }: { capture: CaptureSingle }) => {
   );
 };
 
-export const CaptureImageItem = ({ scene }: { scene: CaptureScene }) => {
+export const CaptureImageItem = ({ scene }: { scene: CaptureAppScene }) => {
   return (
     <VStack
       style={{
@@ -76,8 +77,8 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureScene }) => {
         padding: "0.5rem",
       }}
       onClick={() => {
-        captureStore.map_focused_capture_id = scene.capture_id;
-        captureStore.map_focused_scene_id = scene.scene_id;
+        captureStore.map_focused_capture_id = scene.captureId;
+        captureStore.map_focused_scene_id = scene.sceneId;
       }}
     >
       <VStack
@@ -89,7 +90,7 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureScene }) => {
         <Body3>{new Date(scene.timestamp * 1000).toLocaleString()}</Body3>
       </VStack>
 
-      <HStack>
+      <Flex wrap="wrap">
         {scene.images.map((url, index) => {
           return (
             <VStack
@@ -105,7 +106,7 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureScene }) => {
                 src={
                   url.startsWith("/capture")
                     ? url
-                    : `/capture/result/${scene.space_id}/${scene.capture_id}/${scene.scene_id}/${url}/thumb`
+                    : `/capture/result/${scene.spaceId}/${scene.captureId}/${scene.sceneId}/${url}/thumb`
                 }
                 alt=""
                 style={{
@@ -117,7 +118,7 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureScene }) => {
             </VStack>
           );
         })}
-      </HStack>
+      </Flex>
     </VStack>
   );
 };
