@@ -40,7 +40,9 @@ class VideoStream:
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
 
             if self.timestampWatermark:
-                time_text = time.strftime("%H:%M:%S", time.localtime(time.time()))
+                time_text = time.strftime(
+                    "%H:%M:%S", time.localtime(msg.header.stamp.sec)
+                )
                 cv2.putText(
                     cv_image,
                     time_text,
