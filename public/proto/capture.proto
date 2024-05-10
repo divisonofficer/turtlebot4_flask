@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+import public "slam.proto";
+
+
+message CaptureAppCapture{
+    int32 space_id = 1;
+    int32 capture_id = 2;
+    repeated CaptureAppScene scenes = 3;
+
+}
+
+message CaptureAppScene{
+    int32 space_id = 1;
+    int32 capture_id = 2;
+    int32 scene_id = 3;
+    int32 timestamp = 4;
+  
+
+    RobotPose robot_pose = 5;
+    repeated string images = 6;
+    LidarPosition lidar_position = 7;
+}
+
+
+message CaptureAppSpace{
+    int32 space_id = 1;
+    repeated CaptureAppCapture captures = 2;
+    string map_name = 3;
+    string space_name = 4;
+    double create_time = 5;
+    double update_time = 6;
+    
+}
+
+message CaptureTaskProgress{
+    int32 space_id = 1;
+    int32 capture_id = 2;
+    int32 scene_id = 3;
+    int32 progress  = 4;
+    repeated string images = 5;
+}
