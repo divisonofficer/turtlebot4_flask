@@ -1,6 +1,6 @@
 import { action, makeAutoObservable } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
-import { DeviceInfo } from "../../../public/proto/ts/jai";
+import { DeviceInfo } from "../public/proto/jai";
 
 export interface JAIParamValue {
   type: string;

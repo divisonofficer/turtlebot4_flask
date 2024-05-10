@@ -9,11 +9,12 @@ import {
 } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 import { jaiStore } from "../../stores/JaiStore";
-import { DeviceInfo } from "../../../../public/proto/ts/jai";
+import { DeviceInfo } from "../../public/proto/jai";
 import { Body3, H4 } from "../../design/text/textsystem";
 import { VideoStream } from "../../design/other/video";
 import { observer } from "mobx-react";
 import { ArrowArcRight } from "@phosphor-icons/react";
+import { PolarizerControl } from "./PolarizerControl";
 
 export const SourceDeviceParamSlide = observer(
   (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
@@ -141,6 +142,7 @@ export const JAiBridgeControl = observer(() => {
 export const JaiBridgePage = () => {
   return (
     <PageRoot title="Jai Bridge">
+      <PolarizerControl />
       <JAiBridgeControl />
     </PageRoot>
   );
