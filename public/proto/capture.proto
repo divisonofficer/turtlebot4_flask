@@ -15,8 +15,6 @@ message CaptureAppScene{
     int32 capture_id = 2;
     int32 scene_id = 3;
     int32 timestamp = 4;
-  
-
     RobotPose robot_pose = 5;
     repeated string images = 6;
     LidarPosition lidar_position = 7;
