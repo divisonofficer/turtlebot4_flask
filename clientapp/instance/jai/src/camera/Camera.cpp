@@ -19,15 +19,6 @@ void MultiSpectralCamera::addStreamCallback(
 }
 
 void MultiSpectralCamera::openStream() {
-  // if (sourcePixelFormat.size() < 2) sourcePixelFormat.resize(2);
-  // for (int i = 0; i < 2; i++) {
-  //   dualDevice->getDevice(0)->GetParameters()->SetEnumValue("SourceSelector",
-  //                                                           i);
-  //   int64_t enumValue;
-  //   dualDevice->getDevice(0)->GetParameters()->GetEnumValue("PixelFormat",
-  //                                                           enumValue);
-  // }
-
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
 

@@ -12,14 +12,12 @@ PvStream* StreamManager::OpenStream(const PvString& aConnectionID) {
   PvResult lResult;
 
   // Open stream to the GigE Vision or USB3 Vision device
-  Debug << "Opening stream from device."
-        << "\n";
+  Debug << "Opening stream from device." << "\n";
   lStream = PvStream::CreateAndOpen(aConnectionID, &lResult);
   if (lStream == NULL) {
     Debug << "Unable to stream from device. "
           << lResult.GetCodeString().GetAscii() << " ("
-          << lResult.GetDescription().GetAscii() << ")"
-          << "\n";
+          << lResult.GetDescription().GetAscii() << ")" << "\n";
   }
 
   return lStream;
@@ -36,8 +34,7 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
   PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*>(aStream);
   lDeviceGEV->NegotiatePacketSize(channel);
 
-  Debug << "Setting Device Stream Destination"
-        << "\n"
+  Debug << "Setting Device Stream Destination" << "\n"
         << "IP: " << lStreamGEV->GetLocalIPAddress().GetAscii() << "\n"
         << "Port: " << lStreamGEV->GetLocalPort() << "\n"
         << "Channel: " << channel << "\n";
@@ -57,7 +54,7 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
   }
 
   ParamManager::setParam(lDeviceGEV->GetParameters(), "AcquisitionFrameRate",
-                         3.0f);
+                         2.0f);
 
   ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "SourceSelector",
                              channel);

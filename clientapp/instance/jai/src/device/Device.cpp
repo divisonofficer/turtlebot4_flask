@@ -91,6 +91,7 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
       ErrorLog << "Unable to force new IP address.";
       return false;
     }
+    return findDeviceConnectionID(aConnectionID, displayName);
   }
   return true;
 }
