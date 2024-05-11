@@ -1,10 +1,10 @@
 import math
-from slam_types import EulierAngle, QuaternionAngle
+from slam_types import EulerAngle, QuaternionAngle
 from geometry_msgs.msg import Quaternion
 from typing import Union
 
 
-def quaternion_to_euler(q: Union[QuaternionAngle, Quaternion]) -> EulierAngle:
+def quaternion_to_euler(q: Union[QuaternionAngle, Quaternion]) -> EulerAngle:
     """
     Convert a quaternion into euler angles (roll, pitch, yaw)
     roll is rotation around x in radians (counterclockwise)
@@ -29,4 +29,4 @@ def quaternion_to_euler(q: Union[QuaternionAngle, Quaternion]) -> EulierAngle:
     t4 = +1.0 - 2.0 * (y * y + z * z)
     yaw_z = math.atan2(t3, t4)
 
-    return EulierAngle(roll_x, pitch_y, yaw_z)
+    return EulerAngle(roll_x, pitch_y, yaw_z)

@@ -22,25 +22,9 @@ JAINode::JAINode() : Node("jai_node") {
 
 JAINode::~JAINode() { closeStream(); }
 
-void JAINode::join_thread() {
-  subscription_thread.join();
-
-  subscription_thread.detach();
-}
-
 void JAINode::createPublishers() {
   enlistJAIDevice(0, "jai_1600", 2);
-
-  Info << "JAI camera node is created"
-       << "\n"
-       << "Prepare Callbacks and Streams"
-       << "\n";
-
   initMultispectralCamera(0);
-  Info << "Callback and Stream Done."
-       << "\n"
-       << "Begin Listenning"
-       << "\n";
   openStream(0);
   subscription_thread =
       std::thread([this]() { this->cameras.back()->runUntilInterrupted(); });
@@ -48,18 +32,31 @@ void JAINode::createPublishers() {
 
 void JAINode::enlistJAIDevice(int device_num, std::string device_name,
                               int channel_count) {
+  // Adjust size of Device Vectors
   if (imagePublishers.size() <= device_num) {
     imagePublishers.resize(device_num + 1);
     cameraDeviceParamPublishers.resize(device_num + 1);
     cameraDeviceParamSubscribers.resize(device_num + 1);
+    cameraStreamTriggerSubscribers.resize(device_num + 1);
   }
-
+  // Adjust size of Stream Channel Vectors
   if (imagePublishers[device_num].size() < channel_count) {
     imagePublishers[device_num].resize(channel_count);
     cameraDeviceParamPublishers[device_num].resize(channel_count);
     cameraDeviceParamSubscribers[device_num].resize(channel_count);
   }
-
+  // Camera Stream On/Off Trigger Subscription
+  cameraStreamTriggerSubscribers[device_num] =
+      this->create_subscription<std_msgs::msg::Bool>(
+          device_name + "/stream_trigger", 10,
+          [this, device_num](std_msgs::msg::Bool trigger) {
+            if (trigger.data) {
+              this->cameras[device_num]->openStream();
+            } else {
+              this->cameras[device_num]->closeStream();
+            }
+          });
+  // Per Stream Publishers
   for (int i = 0; i < channel_count; i++) {
     imagePublishers[device_num][i] =
         this->create_publisher<sensor_msgs::msg::Image>(
@@ -89,13 +86,8 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   imageRosMsg.encoding =
       source_num == 1 ? "mono8"
                       : "bayer_rggb8";  // todo : buffer pixel type 을 변환
-  if (source_num == 0) {
-    imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
-                       buffer->GetImage()->GetWidth();
-  } else if (source_num == 1) {
-    imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
-                       buffer->GetImage()->GetWidth();
-  }
+  imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
+                     buffer->GetImage()->GetWidth();
   imageRosMsg.data =
       std::vector<uint8_t>(buffer->GetDataPointer(),
                            buffer->GetDataPointer() + buffer->GetPayloadSize());
@@ -173,4 +165,10 @@ void JAINode::emitRosDeviceParamMsg(int device_num, int source_num) {
           cameras[device_num]->getGain(source_num));
   msg.data = buffer;
   cameraDeviceParamPublishers[device_num][source_num]->publish(msg);
+}
+
+void JAINode::join_thread() {
+  subscription_thread.join();
+
+  subscription_thread.detach();
 }
