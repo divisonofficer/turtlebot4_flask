@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <vector>
 
@@ -42,6 +43,9 @@ class JAINode : public rclcpp::Node {
   std::vector<
       std::vector<rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> >
       cameraDeviceParamSubscribers;
+
+  std::vector<rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr>
+      cameraStreamTriggerSubscribers;
 
   std::function<void(PvBuffer*)> getEbusRosCallback(const int device_num,
                                                     const int source_num);

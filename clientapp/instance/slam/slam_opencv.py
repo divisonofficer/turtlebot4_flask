@@ -5,7 +5,7 @@ import cv2
 
 from videostream import VideoStream
 
-from slam_types import MapMarker, QuaternionAngle, Point3D, EulierAngle, Pose3D
+from slam_pb2 import Pose3D, MapMarker
 
 stream = VideoStream()
 
@@ -55,8 +55,8 @@ def slam_map_opencv(
 
     for marker in markers or []:
         pos = marker.position
-        marker_x = int(map.info.width - (pos["x"] - origin.x) / map.info.resolution)
-        marker_y = int((pos["y"] - origin.y) / map.info.resolution)
+        marker_x = int(map.info.width - (pos.x - origin.x) / map.info.resolution)
+        marker_y = int((pos.y - origin.y) / map.info.resolution)
 
         cv2.circle(image, (marker_x, marker_y), 2, (0, 128, 0), -1)
 

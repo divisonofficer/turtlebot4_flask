@@ -1,7 +1,10 @@
 from flask import Flask, Response, request, send_file
 from flask_socketio import SocketIO
 
+import sys
 
+sys.path.append("../../../public/proto/python")
+sys.path.append("../public/proto/python")
 import os
 import subprocess
 import threading
@@ -177,8 +180,8 @@ def get_map_data():
 
 @app.route("/map/save", methods=["POST"])
 def save_map():
-    file = request.json.get("filename", "map")
-    overlap_possible = request.json.get("overwrite", False)
+    file = request.json.get("filename", "map") if request.json else None
+    overlap_possible = request.json.get("overwrite", False) if request.json else None
 
     filename = repo.save_map_available(str(file))
 
@@ -206,7 +209,7 @@ def save_map():
 
 @app.route("/map/load", methods=["POST"])
 def load_serialized_map():
-    file = request.json.get("filename", "map")
+    file = request.json.get("filename", "map") if request.json else None
     filename = repo.load_map_available(str(file))
     if not filename:
         return {

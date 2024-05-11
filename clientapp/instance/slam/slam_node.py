@@ -1,22 +1,16 @@
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose2D
 from slam_opencv import slam_map_opencv
 
 from sensor_msgs.msg import LaserScan
 from slam_toolbox.srv import SaveMap, DeserializePoseGraph, SerializePoseGraph
 
-from slam_types import (
-    QuaternionAngle,
-    MapMarker,
-    EulierAngle,
-    Point3D,
-    MapInfo,
-    Pose3D,
-    dictValueConversion,
-)
+from slam_types import RosProtoConverter
+
+from slam_pb2 import *
 
 import math
 
@@ -25,6 +19,65 @@ from typing import Union, List, Optional, Tuple
 
 from spinner import Spinner
 from std_msgs.msg import String
+
+
+from google.protobuf import json_format
+
+
+class SlamNodeMeta:
+
+    map_origin: Optional[Point3D] = None
+    markers: list[MapMarker] = []
+    position: Optional[Pose3D] = None
+
+    map_msg: Optional[OccupancyGrid] = None
+    map_size: Optional[MapInfo] = None
+    lidar_position: Optional[list[tuple[float, float]]] = None
+    slam_metadata = {
+        "pose": {
+            "interval": 9999,
+            "timestamp": time.time(),
+            "app_time": time.time(),
+        },
+        "map": {
+            "interval": 9999,
+            "timestamp": time.time(),
+            "app_time": time.time(),
+        },
+        "lidar": {
+            "interval": 9999,
+            "timestamp": time.time(),
+            "app_time": time.time(),
+        },
+    }
+
+    def __init__(self):
+        pass
+
+    def updateTimestamp(self, topic: str, timestamp: float):
+        self.slam_metadata[topic]["interval"] = (
+            timestamp - self.slam_metadata[topic]["timestamp"]
+        )
+        self.slam_metadata[topic]["timestamp"] = timestamp
+        self.slam_metadata[topic]["appTime"] = time.time()
+
+    def toProto(self):
+        meta = SlamMetaData()
+        json_format.ParseDict(self.slam_metadata, meta)
+        return SlamState(
+            robot_pose=(
+                RobotPose(
+                    position=self.position.position,
+                    orientation=self.position.orientation_euler,
+                )
+                if self.position
+                else None
+            ),
+            map_origin=self.map_origin,
+            map_size=self.map_size,
+            markers=self.markers,
+            slam_metadata=meta,
+        )
 
 
 class SlamApp(Node):
@@ -46,13 +99,8 @@ class SlamApp(Node):
         topic_timestamps: The timestamps of the topics.
     """
 
-    __map_origin: Optional[Point3D]
-    __euler_orientation: Optional[EulierAngle]
-    __markers: List[MapMarker]
-    __map_msg: Optional[OccupancyGrid]
-    __map_size: Optional[MapInfo]
-    __lidar_position: List[Tuple[float, float]]
-    __slam_metadata: dict
+    state = SlamNodeMeta()
+    rosProto = RosProtoConverter()
 
     def __init__(self, sockets, launch, spinner: Spinner):
         """
@@ -78,25 +126,6 @@ class SlamApp(Node):
         self.lidar_subscription = self.create_subscription(
             LaserScan, "/scan", self.lidar_callback, 10
         )
-        self.init_members()
-
-    def init_members(self):
-        self.__map_origin = None
-        self.__euler_orientation = None
-        self.__markers = []
-
-        self.__map_msg = None
-        self.__map_size = None
-        self.__position = None
-        self.__slam_metadata = {
-            "pos_interval": 9999,
-            "pos_timestamp": time.time(),
-            "map_interval": 9999,
-            "map_timestamp": time.time(),
-            "lidar_interval": 9999,
-            "lidar_timestamp": time.time(),
-        }
-        self.topic_timestamps = {}
 
     ############################################################################################################
     # Topic Callbacks
@@ -109,16 +138,14 @@ class SlamApp(Node):
         Args:
             msg: The map message.
         """
-        self.__slam_metadata["map_interval"] = (
-            time.time() - self.__slam_metadata["map_timestamp"]
+        self.state.map_size = MapInfo(
+            width=msg.info.width, height=msg.info.height, resolution=msg.info.resolution
         )
-        self.__slam_metadata["map_timestamp"] = time.time()
+        slam_map_opencv(
+            msg, self.state.map_msg, self.state.markers, self.state.lidar_position
+        )
 
-        slam_map_opencv(msg, self.__position, self.__markers, self.__lidar_position)
-        self.__map_origin = Point3D.from_msg(msg.info.origin.position)
-        self.__map_size = MapInfo(msg.info.width, msg.info.height, msg.info.resolution)
-        self.__map_msg = msg
-        self.topic_timestamps["map"] = msg.header.stamp
+        self.state.updateTimestamp("map", msg.header.stamp.nanosec / 1000000)
 
     def position_callback(self, msg: PoseWithCovarianceStamped):
         """
@@ -127,28 +154,22 @@ class SlamApp(Node):
         Args:
             msg: The position message.
         """
-        self.__slam_metadata["pos_interval"] = (
-            time.time() - self.__slam_metadata["pos_timestamp"]
-        )
-        self.__slam_metadata["pos_timestamp"] = time.time()
+        self.state.updateTimestamp("pose", msg.header.stamp.nanosec / 1000000)
 
-        self.__position = Pose3D.from_msg(msg.pose.pose)
-        self.__euler_orientation = self.__position.orientation
-        self.sockets.emit(
-            "robot_pose",
-            self.__position.to_dict_point(),
-            namespace="/slam",
-        )
-        self.topic_timestamps["pose"] = msg.header.stamp
+        self.state.position = self.rosProto.rosPoseToProtoPose3D(msg.pose.pose)
+        if self.state.position:
+            self.sockets.emit(
+                "robot_pose",
+                json_format.MessageToDict(self.state.position),
+                namespace="/slam",
+            )
+
         self.emit_slam_status()
 
     def lidar_callback(self, msg: LaserScan):
-        self.__slam_metadata["lidar_interval"] = (
-            time.time() - self.__slam_metadata["lidar_timestamp"]
-        )
-        self.__slam_metadata["lidar_timestamp"] = time.time()
+        self.state.updateTimestamp("lidar", msg.header.stamp.nanosec / 1000000)
 
-        self.__lidar_position = self.laser_to_position_array(msg)
+        self.state.lidar_position = self.laser_to_position_array(msg)
 
     ############################################################################################################
     # Service Call
@@ -184,14 +205,19 @@ class SlamApp(Node):
         )
 
     def service_call_load_map(self, filename: str):
+        if not self.state.position:
+            return "Error"
         request = DeserializePoseGraph.Request()
 
         request.filename = filename
         request.match_type = DeserializePoseGraph.Request.START_AT_GIVEN_POSE
         request.initial_pose = Pose2D()
-        request.initial_pose.x = self.__position.position.x
-        request.initial_pose.y = self.__position.position.y
-        request.initial_pose.theta = self.__euler_orientation.yaw
+        request.initial_pose.x, request.initial_pose.y = (
+            self.state.position.position.x,
+            self.state.position.position.y,
+        )
+
+        request.initial_pose.theta = self.state.position.orientation_euler.yaw
         return self.service_call(
             DeserializePoseGraph, "/slam_toolbox/deserialize_map", request
         )
@@ -207,17 +233,24 @@ class SlamApp(Node):
         Args:
             msg: The marker message.
         """
-        self.__markers.append({"id": time.time().real, "pose": self.pose_to_dict(msg)})
+        pose = self.rosProto.rosPoseToProtoPose3D(msg.pose)
+        self.state.markers.append(
+            MapMarker(
+                id=int(time.time().real),
+                position=pose.position,
+                orientation=pose.orientation_euler,
+            )
+        )
 
     def request_add_marker(self):
         """
         Requests to add a marker.
         """
         self.get_logger().info("Request to add marker")
-        self.add_marker(self.__position)
+        self.add_marker(self.state.position)
         self.sockets.emit(
             "markers",
-            dictValueConversion(self.__markers),
+            [json_format.MessageToDict(x) for x in self.state.markers],
             namespace="/slam",
         )
 
@@ -230,16 +263,20 @@ class SlamApp(Node):
             y: The y-coordinate of the marker.
         """
 
-        self.__markers.append(
+        self.state.markers.append(
             MapMarker(
-                id=time.time().real,
-                position=Point3D(x, y, 0),
-                orientation=QuaternionAngle(0, 0, 0, 1),
+                id=int(time.time().real),
+                position=Point3D(x=x, y=y, z=0),
+                orientation=RobotEuilerOrientation(
+                    roll=0,
+                    pitch=0,
+                    yaw=0,
+                ),
             )
         )
         self.sockets.emit(
             "markers",
-            dictValueConversion(self.__markers),
+            [json_format.MessageToDict(x) for x in self.state.markers],
             namespace="/slam",
         )
 
@@ -250,10 +287,12 @@ class SlamApp(Node):
         Args:
             id: The id of the marker.
         """
-        self.__markers = [marker for marker in self.__markers if marker.id != id]
+        self.state.markers = [
+            marker for marker in self.state.markers if marker.id != id
+        ]
         self.sockets.emit(
             "markers",
-            dictValueConversion(self.__markers),
+            [json_format.MessageToDict(x) for x in self.state.markers],
             namespace="/slam",
         )
 
@@ -262,10 +301,12 @@ class SlamApp(Node):
     ############################################################################################################
 
     def laser_to_position_array(self, msg: LaserScan) -> List[Tuple[float, float]]:
-        if self.__euler_orientation is None:
+        if self.state.position is None:
             return []
 
-        angleStart = msg.angle_min + self.__euler_orientation.yaw + math.pi / 2
+        angleStart = (
+            msg.angle_min + self.state.position.orientation_euler.yaw + math.pi / 2
+        )
         angleIncrement = msg.angle_increment
         ranges = msg.ranges
         positionArray: List[Tuple[float, float]] = []
@@ -300,58 +341,47 @@ class SlamApp(Node):
         """
         Emits the slam status.
         """
+        message = self.get_slam_status()
         if self.launch.process:
-            if self.__position:
-                # self.get_logger().info(f"Robot Pose: {self.__position}")
+            if self.state.position:
+                # self.get_logger().info(f"Robot Pose: {self.state.position}")
                 pass
-            if self.__map_origin:
-                # self.get_logger().info(f"Map Origin: {self.__map_origin}")
+            if self.state.map_origin:
+                # self.get_logger().info(f"Map Origin: {self.state.map_origin}")
                 pass
-            self.sockets.emit(
-                "slam_status",
-                dictValueConversion(self.get_slam_status()),
-                namespace="/slam",
-            )
+            message.status = SlamState.SUCCESS
+            message.message = "Slam is Running"
         else:
-            self.sockets.emit(
-                "slam_status",
-                {"status": "error", "message": "Slam not running"},
-                namespace="/slam",
-            )
+            message.status = SlamState.OFFLINE
+            message.message = "Slam app is not running"
+        self.sockets.emit(
+            "slam_status",
+            json_format.MessageToDict(message),
+            namespace="/slam",
+        )
 
     def get_slam_status(self):
 
         if (
-            time.time() - self.__slam_metadata["pos_timestamp"]
-            > self.__slam_metadata["pos_interval"] * 2
+            time.time() - self.state.slam_metadata["pose"]["timestamp"]
+            > self.state.slam_metadata["pose"]["interval"] * 2
         ):
-            self.__slam_metadata["pos_interval"] = (
-                time.time() - self.__slam_metadata["pos_timestamp"]
+            self.state.slam_metadata["pose"]["interval"] = (
+                time.time() - self.state.slam_metadata["pose"]["timestamp"]
             )
-
-        return {
-            "status": "success",
-            "message": "Slam running",
-            "robot_pose": (
-                self.__position.to_dict_point() if self.__position else None
-            ),
-            "map_origin": self.__map_origin,
-            "map_size": self.__map_size,
-            "markers": [marker for marker in self.__markers],
-            "slam_metadata": self.__slam_metadata,
-        }
+        return self.state.toProto()
 
     def get_map_json(self):
-        if self.__map_msg is None:
+        if self.state.map_msg is None:
             return {
                 "status": "error",
                 "message": "Map not available",
             }
-        data = list(self.__map_msg.data)
+        data = list(self.state.map_msg.data)
         return {
-            "map_origin": self.point_to_dict(self.__map_origin),
-            "map_size": self.__map_size,
-            "markers": self.__markers,
+            "map_origin": self.point_to_dict(self.state.map_origin),
+            "map_size": self.state.map_size,
+            "markers": self.state.markers,
             "map_metadata": [
                 {
                     "resolution": x.resolution,
@@ -359,7 +389,7 @@ class SlamApp(Node):
                     "height": x.height,
                     "origin": self.point_to_dict(x.origin.position),
                 }
-                for x in [self.__map_msg.info]
+                for x in [self.state.map_msg.info]
             ][0],
             "map_data": data,
         }
