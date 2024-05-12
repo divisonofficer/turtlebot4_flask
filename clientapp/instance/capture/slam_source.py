@@ -45,4 +45,4 @@ class SlamSource:
         )
         if response.status_code == 200:
             return None
-        return response.message
+        return response.content

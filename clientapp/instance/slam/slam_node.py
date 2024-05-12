@@ -65,14 +65,7 @@ class SlamNodeMeta:
         meta = SlamMetaData()
         json_format.ParseDict(self.slam_metadata, meta)
         return SlamState(
-            robot_pose=(
-                RobotPose(
-                    position=self.position.position,
-                    orientation=self.position.orientation_euler,
-                )
-                if self.position
-                else None
-            ),
+            robot_pose=self.position,
             map_origin=self.map_origin,
             map_size=self.map_size,
             markers=self.markers,

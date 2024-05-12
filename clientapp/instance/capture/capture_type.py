@@ -3,8 +3,9 @@ import cv2
 from sensor_msgs.msg import Image, LaserScan
 from dataclasses import dataclass
 
-from slam_types import Pose3D
+from slam_pb2 import Pose3D
 from typing import List
+from capture_pb2 import *
 import numpy as np
 
 
@@ -12,7 +13,7 @@ class ImageBytes:
     width: int
     height: int
     data: List[int]
-    image: np.ndarray
+    image: cv2.typing.MatLike
     topic: str
 
     def __init__(self, image: Image, topic: str = "/oakd/rgb/preview/image_raw"):
@@ -21,11 +22,11 @@ class ImageBytes:
         self.data = image.data.tolist()
         self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
         self.topic = topic
-        if topic == "/stereo/depth":
-            self.image = cv2.normalize(
-                self.image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1
-            )
-            self.image = cv2.convertScaleAbs(self.image)
+        # if topic == "/stereo/depth":
+        #     self.image = cv2.normalize(
+        #         self.image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1
+        #     )
+        #     self.image = cv2.convertScaleAbs(self.image)
 
     def to_dict(self):
         return {
@@ -66,12 +67,12 @@ class CaptureSingleScene:
 
     def __init__(
         self,
-        capture_id,
-        scene_id,
-        timestamp,
-        robot_pose,
-        lidar_position,
-        picture_list,
+        capture_id: int,
+        scene_id: int,
+        timestamp: int,
+        robot_pose: Pose3D,
+        lidar_position: CaptureLiDAR,
+        picture_list: List[ImageBytes],
     ):
         self.capture_id = capture_id
         self.scene_id = scene_id
@@ -93,14 +94,10 @@ class CaptureSingleScene:
             for x in self.picture_list
             if type(x) == ImageBytes
         ]
-        return {
-            "captureId": self.capture_id,
-            "sceneId": self.scene_id,
-            "timestamp": self.timestamp,
-            "robotPose": (
-                self.robot_pose.to_dict()
-                if type(self.robot_pose) == Pose3D
-                else self.robot_pose
-            ),
-            "images": images,
-        }
+        return CaptureAppScene(
+            capture_id=self.capture_id,
+            scene_id=self.scene_id,
+            timestamp=self.timestamp,
+            robot_pose=self.robot_pose,
+            images=images,
+        )
