@@ -15,7 +15,7 @@ message CaptureAppScene{
     int32 capture_id = 2;
     int32 scene_id = 3;
     int32 timestamp = 4;
-    RobotPose robot_pose = 5;
+    Pose3D robot_pose = 5;
     repeated string images = 6;
     LidarPosition lidar_position = 7;
 }
@@ -32,10 +32,20 @@ message CaptureAppSpace{
 }
 
 message CaptureTaskProgress{
+    enum Action{
+        INIT = 0;
+        ACTIVE = 1;
+        DONE = 2;
+        DEBUG = 3;
+        ERROR = 4;
+    }
+    
     int32 space_id = 1;
     int32 capture_id = 2;
     int32 scene_id = 3;
     int32 progress  = 4;
     repeated string images = 5;
     string message = 6;
+    string uid = 7;
+    Action action = 8;
 }
