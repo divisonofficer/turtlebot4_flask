@@ -3,15 +3,15 @@ from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Image, LaserScan, Joy
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from typing import List, Optional, Any, Dict
-import os
 import threading
 import rclpy
 from capture_type import ImageBytes, CaptureLiDAR, CaptureSingleScene
 from capture_pb2 import CaptureTaskProgress
-from slam_types import Pose3D
+from slam_types import RosProtoConverter
 from capture_storage import CaptureStorage, CAPTURE_TEMP
 from flask_socketio import SocketIO
 from google.protobuf import json_format
+
 import requests
 
 
@@ -66,8 +66,8 @@ class CaptureMessage:
         if self.pose_msg is None:
             raise NoPoseSignal("No pose signal received")
 
-        pose = Pose3D.from_msg(self.pose_msg.pose.pose)
-
+        pose = self.pose_msg.pose.pose
+        pose = RosProtoConverter().rosPoseToProtoPose3D(pose)
         # get lidar information
 
         if self.lidar_msg is None:
@@ -343,11 +343,29 @@ class CaptureNode(Node):
         self.flag_abort = False
         self.capture_id = int(time())
 
+        self.socket_progress(
+            0,
+            uuid=f"{self.capture_id}/root",
+            action=CaptureTaskProgress.INIT,
+            msg="Begin Rotating Capture",
+        )
         scenes = []
         for scene_id in range(20):
             if self.flag_abort:
                 self.get_logger().info("Capture aborted")
+                self.socket_progress(
+                    100,
+                    uuid=f"{self.capture_id}/root",
+                    action=CaptureTaskProgress.ERROR,
+                    msg="Capture Aborted",
+                )
                 break
+            self.socket_progress(
+                scene_id * 5,
+                uuid=f"{self.capture_id}/root",
+                action=CaptureTaskProgress.DONE,
+                msg=f"{scene_id}th take",
+            )
 
             scene = self.run_single_capture(scene_id=scene_id)
             if not scene:
@@ -356,7 +374,19 @@ class CaptureNode(Node):
                 self.space_id, self.capture_id, scene_id, scene
             )
             scenes.append(scene)
+            self.socket_progress(
+                scene_id * 5 + 3,
+                uuid=f"{self.capture_id}/root",
+                action=CaptureTaskProgress.DONE,
+                msg=f"{scene_id}th take done. Turn right",
+            )
             self.turn_right()
+        self.socket_progress(
+            100,
+            uuid=f"{self.capture_id}/root",
+            action=CaptureTaskProgress.DONE,
+            msg="Rotating Capture Done",
+        )
         self.set_capture_flag(False)
 
     def capture_single_job(self):
@@ -380,7 +410,11 @@ class CaptureNode(Node):
         self.ell.polarizer_turn(home=True)
         for deg in [0, 45, 90, 135]:
             self.socket_progress(
-                deg * 15 // 45 + 30, None, None, f"Capturing {deg} degrees"
+                deg * 15 // 45 + 30,
+                None,
+                None,
+                f"Capturing {deg} degrees",
+                action=CaptureTaskProgress.ACTIVE,
             )
             self.get_logger().info(f"Capturing {deg} degrees")
             if self.capture_msg:
@@ -417,7 +451,13 @@ class CaptureNode(Node):
         emit the scene to the socket
         """
         try:
-            self.socket_progress(0, scene_id, None, f"Scene {scene_id} Capture started")
+            self.socket_progress(
+                0,
+                scene_id,
+                None,
+                f"Scene {scene_id} Capture started",
+                action=CaptureTaskProgress.INIT,
+            )
             # get map pose information
             self.capture_msg = CaptureMessage(self.image_topics)
             # 필요한 모든 메시지가 도착할 때까지 기다림
@@ -431,7 +471,11 @@ class CaptureNode(Node):
                 sleep(1)
             pose, lidar, image_list = self.capture_msg.get_msg_received()
             self.socket_progress(
-                30, scene_id, None, f"Scene {scene_id} Basic Capture completed"
+                30,
+                scene_id,
+                None,
+                f"Scene {scene_id} Basic Capture completed",
+                action=CaptureTaskProgress.ACTIVE,
             )
             # Capture polarized images
             if self.image_topics_polarized[0] in self.capture_msg.image_topics:
@@ -446,39 +490,80 @@ class CaptureNode(Node):
                 picture_list=image_list,
             )
             self.socket_progress(
-                100, scene_id, None, f"Scene {scene_id}  Capture completed"
+                100,
+                scene_id,
+                None,
+                f"Scene {scene_id}  Capture completed",
+                action=CaptureTaskProgress.Action.DONE,
             )
             if self.socketIO:
                 serialized_scene = scene.to_dict_light()
                 serialized_scene["space_id"] = self.space_id
                 self.socketIO.emit(
-                    "/recent_scene", serialized_scene, namespace="/socket"
+                    "/recent_scene",
+                    json_format.MessageToDict(serialized_scene),
+                    namespace="/socket",
                 )
 
             return scene
         except NoImageSignal:
             self.get_logger().info("No image signal received")
-            self.socket_progress(100, scene_id, None, "No image signal received")
+            self.socket_progress(
+                100,
+                scene_id,
+                None,
+                "No image signal received",
+                action=CaptureTaskProgress.Action.ERROR,
+            )
         except NoPoseSignal:
             self.get_logger().info("No pose signal received")
-            self.socket_progress(100, scene_id, None, "No pose signal received")
+            self.socket_progress(
+                100,
+                scene_id,
+                None,
+                "No pose signal received",
+                action=CaptureTaskProgress.Action.ERROR,
+            )
 
         except NoLidarSignal:
             self.get_logger().info("No lidar signal received")
-            self.socket_progress(100, scene_id, None, "No lidar signal received")
+            self.socket_progress(
+                100,
+                scene_id,
+                None,
+                "No lidar signal received",
+                action=CaptureTaskProgress.Action.ERROR,
+            )
         except PolarizerError:
             self.get_logger().info("Polarizer Error")
-            self.socket_progress(100, scene_id, None, "Polarizer Error")
+            self.socket_progress(
+                100,
+                scene_id,
+                None,
+                "Polarizer Error",
+                action=CaptureTaskProgress.Action.ERROR,
+            )
             self.ell.polarizer_turn(home=True)
         return None
 
     def socket_progress(
         self,
         progress: int,
-        scene_id: Optional[int],
-        images: Optional[List[ImageBytes]],
-        msg: Optional[str],
+        scene_id: Optional[int] = None,
+        images: Optional[List[ImageBytes]] = None,
+        msg: Optional[str] = None,
+        action: Optional[CaptureTaskProgress.Action.ValueType] = None,
+        uuid: Optional[str] = None,
     ):
+        if not action:
+            action = (
+                CaptureTaskProgress.Action.ACTIVE
+                if uuid
+                else CaptureTaskProgress.Action.DEBUG
+            )
+
+        if not uuid:
+            uuid = f"{self.capture_id}/{scene_id}"
         if self.socketIO:
             self.socketIO.emit(
                 "/progress",
@@ -490,6 +575,7 @@ class CaptureNode(Node):
                         scene_id=scene_id if scene_id else 0,
                         message=msg if msg else "",
                         images=images,
+                        action=action,
                     )
                 ),
                 namespace="/socket",
@@ -502,7 +588,7 @@ class CaptureNode(Node):
         while rclpy.ok():
 
             # Turn right the robot
-            # self.publisher_cmd_vel.publish(twist)
+            self.publisher_cmd_vel.publish(twist)
             sleep(0.5)
             if time() - time_begin > 5:
                 break

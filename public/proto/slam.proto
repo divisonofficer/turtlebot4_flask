@@ -14,10 +14,6 @@ message RobotQuaternionOrientation{
     double w = 4;
 }
 
-message RobotPose{
-    Point3D position = 1;
-    RobotEuilerOrientation orientation = 2;
-}
 
 message LidarPosition{
     double angle_min = 1;
@@ -36,7 +32,7 @@ message SlamState{
     }
     Status status = 1;
     string message = 2;
-    RobotPose robot_pose = 3;
+    Pose3D robot_pose = 3;
     Point3D map_origin = 4;
     MapInfo map_size = 5;
     repeated MapMarker markers = 6;
