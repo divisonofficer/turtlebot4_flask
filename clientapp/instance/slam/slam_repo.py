@@ -2,6 +2,8 @@ import os
 import time
 from PIL import Image
 import yaml
+from slam_pb2 import *
+from google.protobuf import json_format
 
 
 class SlamRepo:
@@ -21,15 +23,16 @@ class SlamRepo:
                 file_create_time_str = time.strftime(
                     "%Y-%m-%d %H:%M:%S", time.localtime(file_create_time)
                 )
+                name = f.replace(".yaml", "")
                 map_values.append(
-                    {
-                        "id": i,
-                        "name": f.replace(".yaml", ""),
-                        "content": file.read(),
-                        "create_time": file_create_time,
-                        "create_time_str": file_create_time_str,
-                        "preview": "/slam/map/" + f.replace(".yaml", "") + "/image",
-                    }
+                    SavedMapInfo(
+                        id=i,
+                        name=name,
+                        content=self.get_map_metadata(name),
+                        create_time=file_create_time,
+                        create_time_str=file_create_time_str,
+                        preview="/slam/map/" + name + "/image",
+                    )
                 )
 
         return map_values
@@ -60,9 +63,13 @@ class SlamRepo:
             metadata["map_origin"] = {
                 "x": metadata["origin"][0],
                 "y": metadata["origin"][1],
+                "z": metadata["origin"][2],
             }
+            del metadata["origin"]
+            metaProto = SavedMapMeta()
+            json_format.ParseDict(metadata, metaProto)
 
-            return metadata
+            return metaProto
 
     def load_map_available(self, map_name):
         """

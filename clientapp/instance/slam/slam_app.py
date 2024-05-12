@@ -14,6 +14,7 @@ from spinner import Spinner
 from slam_node import SlamApp
 from slam_repo import SlamRepo
 from typing import Optional
+from google.protobuf import json_format
 
 
 class SlamLaunch:
@@ -229,14 +230,14 @@ def load_serialized_map():
 
 @app.route("/map/list", methods=["GET"])
 def get_saved_map_list():
-    return repo.get_map_list()
+    return [json_format.MessageToDict(x) for x in repo.get_map_list()]
 
 
 @app.route("/map/<map_name>", methods=["GET"])
 def get_map_metadata(map_name):
     metadata = repo.get_map_metadata(map_name)
     if metadata:
-        return metadata
+        return json_format.MessageToDict(metadata)
     return Response(
         status=404,
         response="Map not found",

@@ -67,6 +67,15 @@ message MapInfo{
     double resolution = 3;
 }
 
+message SavedMapInfo{
+    int32 id = 1;
+    string name = 2;
+    SavedMapMeta content = 3;
+    float create_time = 4;
+    string create_time_str = 5;
+    string preview = 6;
+}
+
 message TimeStampInterval{
     double interval = 1;
     double timestamp = 2;
@@ -77,4 +86,15 @@ message SlamMetaData{
     TimeStampInterval pose = 1;
     TimeStampInterval map = 2;
     TimeStampInterval lidar = 3;
+}
+
+message SavedMapMeta{
+    double free_thresh = 1;
+    string image  = 2;
+    Point3D map_origin = 3;
+    MapInfo map_size = 4;
+    string mode = 5;
+    double resolution = 6;
+    int32 negate = 7;
+    double occupied_thresh = 8;
 }
