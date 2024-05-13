@@ -8,6 +8,14 @@ import { diagnoticsStore } from "../../../stores/DiagnoticsStore";
 import { observer } from "mobx-react";
 import { Body3, H2 } from "../../../design/text/textsystem";
 
+import iconRosNetwork from "../../../resource/icon_ros_network.png";
+import iconRobot from "../../../resource/icon_robot.png";
+import iconJoystick from "../../../resource/icon_joystick.png";
+import iconWheel from "../../../resource/icon_wheel.png";
+import iconLidar from "../../../resource/icon_lidar.png";
+import iconCamera from "../../../resource/icon_camera.png";
+import iconTurtle from "../../../resource/icon_turtle.png";
+
 export const RobotMonitor = observer(() => {
   const [robotMonitorData, setRobotMonitorData] = useState<RobotMonitorData>({
     topic_time: 0,
@@ -45,36 +53,36 @@ export const RobotMonitor = observer(() => {
 
       <MonitorIcon
         name="ROS Network"
-        icon={require("../../../resource/icon_ros_network.png")}
+        icon={iconRosNetwork}
         active={robotMonitorData.robot_network_status}
       />
       <MonitorIcon
         name="Robot"
-        icon={require("../../../resource/icon_robot.png")}
+        icon={iconRobot}
         active={robotMonitorData.robot_ros_status}
       />
       <TurtlebotNodeMonitorIcon />
       <MonitorIcon
         name="Create3"
-        icon={require("../../../resource/icon_wheel.png")}
+        icon={iconWheel}
         active={robotMonitorData.create3_status}
         altColor={Color.Mint}
       />
       <MonitorIcon
         name="Lidar"
-        icon={require("../../../resource/icon_lidar.png")}
+        icon={iconLidar}
         active={robotMonitorData.robot_lidar_status}
         altColor={Color.Mint}
       />
       <MonitorIcon
         name="Camera"
-        icon={require("../../../resource/icon_camera.png")}
+        icon={iconCamera}
         active={robotMonitorData.robot_oakd_status}
         altColor={Color.Cyan}
       />
       <MonitorIcon
         name="Joystick"
-        icon={require("../../../resource/icon_joystick.png")}
+        icon={iconJoystick}
         active={robotMonitorData.robot_joy_status}
       />
     </HStack>
@@ -109,7 +117,7 @@ export const TurtlebotNodeMonitorIcon = observer(() => {
                 width: "3rem",
                 height: "3rem",
               }}
-              src={require("../../../resource/icon_turtle.png")}
+              src={iconTurtle}
               alt="TurtleBot"
             />
           </Flex>
@@ -132,7 +140,7 @@ export const TurtlebotNodeMonitorIcon = observer(() => {
       }
     >
       <img
-        src={require("../../../resource/icon_turtle.png")}
+        src={iconTurtle}
         alt="TurtleBot"
         style={{
           ...(!diagnoticsStore.message_session_active && {

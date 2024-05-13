@@ -1,12 +1,17 @@
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 
 class SocketWrapper {
-  socket: any;
+  socket: Socket;
   subscriptions: { [key: string]: (data: any) => void } = {};
-  constructor(_namespace: string, path: string = "/socket.io") {
+  constructor(
+    _namespace: string,
+    path: string = "/socket.io",
+    transports: string[] = ["polling"]
+  ) {
     this.socket = io(_namespace, {
       path: path,
-    });
+      transports: transports, // Add this line
+    }).connect();
     this.socket.on("connect", () => {
       console.log("Connected to ", _namespace);
     });
@@ -17,6 +22,20 @@ class SocketWrapper {
       this.socket.off(event, this.subscriptions[event]);
     }
     this.socket.on(event, callback);
+  }
+
+  subscribeBuffer(
+    event: string,
+    protoBufDefinition: { decode: any },
+    callback: (data: any) => void
+  ) {
+    if (this.subscriptions[event]) {
+      this.socket.off(event, this.subscriptions[event]);
+    }
+    this.socket.on(event, (data: ArrayBuffer) => {
+      const decoded = protoBufDefinition.decode(new Uint8Array(data));
+      callback(decoded);
+    });
   }
 
   subscribeDebug(event: string) {

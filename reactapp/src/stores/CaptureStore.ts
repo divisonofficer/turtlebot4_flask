@@ -1,5 +1,4 @@
 import { action, makeAutoObservable, runInAction } from "mobx";
-import { RobotPose, SlamRobotPose } from "../page/slam/SlamType";
 import { httpGet, httpPost } from "../connect/http/request";
 import { alertStore } from "./AlertStore";
 import { captureSocket } from "../connect/socket/subscribe";
@@ -7,7 +6,9 @@ import {
   CaptureAppCapture,
   CaptureAppScene,
   CaptureAppSpace,
+  CaptureMessageDefGroup,
   CaptureTaskProgress,
+  CaptureTaskProgress_Action,
 } from "../public/proto/capture";
 
 export const CAPTURE_TOPICS = {
@@ -37,11 +38,17 @@ class CaptureStore {
   constructor() {
     makeAutoObservable(this);
 
-    captureSocket.subscribe("/recent_scene", (data: CaptureAppScene) => {
-      this.extendSceneId(data);
-    });
-    captureSocket.subscribe("/progress", (data: CaptureTaskProgress) =>
-      this.processCaptureProgress(data)
+    captureSocket.subscribeBuffer(
+      "/recent_scene",
+      CaptureAppScene,
+      (data: CaptureAppScene) => {
+        this.extendSceneId(data);
+      }
+    );
+    captureSocket.subscribeBuffer(
+      "/progress",
+      CaptureTaskProgress,
+      (data: CaptureTaskProgress) => this.processCaptureProgress(data)
     );
   }
   /////////////////////////////////////////////
@@ -58,40 +65,67 @@ class CaptureStore {
   map_name?: string = undefined;
 
   space_id?: number = undefined;
+  space_name?: string = undefined;
 
   map_focused_capture_id: number = -1;
   map_focused_scene_id: number = -1;
 
+  use_slam: boolean = false;
+
   is_capture_running: boolean = false;
-  progress?: CaptureTaskProgress = undefined;
+  progress: CaptureTaskProgress[] = [];
   /////////////////////////////////////////////
   // For Capture Control
   /////////////////////////////////////////////
-  image_topic_switches = Object.values(CAPTURE_TOPICS).map((topic) => ({
-    ...topic,
-    checked: topic.default_checked,
-  }));
+  def_switchs: { [key: string]: CaptureMessageDefGroup } = {};
   /////////////////////////////////////////////
   // Capture Control Action
   /////////////////////////////////////////////
   @action
   extendSceneId(scene_meta: CaptureAppScene) {
-    httpGet(
-      `/capture/result/${this.space_id}/${scene_meta.captureId}/${scene_meta.sceneId}/images`
-    )
-      .onSuccess((images: string[]) => {
-        scene_meta.images = images;
-        this.extendScene(scene_meta);
-      })
-      .fetch();
+    setTimeout(
+      () =>
+        httpGet(
+          `/capture/result/${scene_meta.spaceId}/${scene_meta.captureId}/${scene_meta.sceneId}/images`
+        )
+          .onSuccess((images: string[]) => {
+            scene_meta.images = images;
+            this.extendScene(scene_meta);
+          })
+          .fetch(),
+      1000
+    );
   }
 
   @action
   processCaptureProgress(progress: CaptureTaskProgress) {
-    this.progress = progress;
-    if (progress.progress >= 100) {
-      this.progress = undefined;
+    console.log(this.progress, progress);
+    if (this.progress.find((p) => p.uid === progress.uid)) {
+      if (progress.action === CaptureTaskProgress_Action.DONE) {
+        this.progress = this.progress.filter((p) => p.uid !== progress.uid);
+        return;
+      }
+      if (progress.action === CaptureTaskProgress_Action.ERROR) {
+        this.progress = this.progress.filter((p) => p.uid !== progress.uid);
+        alertStore.addAlert(
+          "error",
+          `Capture Task Error : ${progress.message}`,
+          "CaptureStore.processCaptureProgress"
+        );
+        this.capture_pendings_id = this.capture_pendings_id.filter(
+          (id) => id !== progress.captureId
+        );
+        return;
+      }
+      this.progress = this.progress.map((p) => {
+        if (p.uid === progress.uid) {
+          return progress;
+        }
+        return p;
+      });
+      return;
     }
+    this.progress = [progress, ...this.progress];
   }
 
   @action
@@ -133,14 +167,26 @@ class CaptureStore {
   loadStatus() {
     this.is_capture_running = false;
     httpGet("/capture/")
-      .onSuccess((data: { space_id?: number; map_name?: string }) => {
-        if (data.space_id && data.space_id > 0) {
-          this.space_id = data.space_id;
-          this.map_name = data.map_name;
-          this.is_capture_running = true;
-          this.fetchCaptureSpace(data.space_id);
+      .onSuccess(
+        (data: {
+          space_id?: number;
+          map_name?: string;
+          message_def: { [key: string]: CaptureMessageDefGroup };
+          use_slam: boolean;
+          space_name?: string;
+        }) => {
+          if (data.space_id && data.space_id > 0) {
+            this.space_id = data.space_id;
+            this.map_name = data.map_name;
+            this.is_capture_running = true;
+            this.use_slam = data.use_slam;
+            this.def_switchs = data.message_def;
+            this.space_name = data.space_name;
+
+            this.fetchCaptureSpace(data.space_id);
+          }
         }
-      })
+      )
       .onError((c, m, e) => {
         alertStore.addAlert(
           "error",
@@ -150,25 +196,37 @@ class CaptureStore {
       })
       .fetch();
   }
-
+  @action
   topicSwitchOn(topic: string) {
-    runInAction(() =>
-      this.image_topic_switches.forEach((t) => {
-        if (t.topic === topic) {
-          t.checked = true;
+    httpPost(`/capture/message_group/${topic}/enable`)
+      .onSuccess(
+        (data: {
+          space_id?: number;
+          map_name?: string;
+          message_def: { [key: string]: CaptureMessageDefGroup };
+          use_slam: boolean;
+          space_name?: string;
+        }) => {
+          this.def_switchs = data.message_def;
         }
-      })
-    );
+      )
+      .fetch();
   }
-
+  @action
   topicSwitchOff(topic: string) {
-    runInAction(() =>
-      this.image_topic_switches.forEach((t) => {
-        if (t.topic === topic) {
-          t.checked = false;
+    httpPost(`/capture/message_group/${topic}/disable`)
+      .onSuccess(
+        (data: {
+          space_id?: number;
+          map_name?: string;
+          message_def: { [key: string]: CaptureMessageDefGroup };
+          use_slam: boolean;
+          space_name?: string;
+        }) => {
+          this.def_switchs = data.message_def;
         }
-      })
-    );
+      )
+      .fetch();
   }
 
   loadSpace(space: CaptureAppSpace) {
@@ -176,6 +234,7 @@ class CaptureStore {
     this.fetchCaptureSpaceAllScene(space.spaceId);
     this.space_id = space.spaceId;
     this.map_name = space.mapName;
+    this.space_name = space.spaceName;
     runInAction(() => {
       this.is_capture_running = false;
     });
@@ -184,10 +243,13 @@ class CaptureStore {
   initSpace() {
     httpPost("/capture/init", {
       space_id: null,
+      space_name: this.space_name,
+      use_slam: this.use_slam,
     })
       .onSuccess((d) => {
         this.is_capture_running = true;
         this.space_id = d.space_id;
+        this.loadStatus();
       })
       .onError((c, m, e) => {
         this.is_capture_running = false;
@@ -234,26 +296,39 @@ class CaptureStore {
   /////////////////////////////////////////////
   @action
   fetchPostCaptureQueue = () => {
-    httpPost("/capture/capture", {
-      topics: this.image_topic_switches
-        .filter((topic) => topic.checked)
-        .map((topic) => topic.topic),
-    })
+    httpPost("/capture/capture")
       .onSuccess((data: { space_id: number; capture_id: number }) => {
         this.addPendingCapture(data.capture_id);
+      })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          "Failed to Capture Single : " + m,
+          "CaptureStore.fetchPostCaptureSingle"
+        );
       })
       .fetch();
   };
   @action
   fetchPostCaptureSingle = () => {
-    httpPost("/capture/capture/single", {
-      topics: this.image_topic_switches
-        .filter((topic) => topic.checked)
-        .map((topic) => topic.topic),
-    })
+    httpPost("/capture/capture/single")
       .onSuccess((data: { space_id: number; capture_id: number }) => {
         this.addPendingCapture(data.capture_id);
       })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          "Failed to Capture Single : " + m,
+          "CaptureStore.fetchPostCaptureSingle"
+        );
+      })
+      .fetch();
+  };
+
+  @action
+  fetchAbortCapture = () => {
+    httpPost("/capture/capture/abort")
+      .onSuccess(() => {})
       .fetch();
   };
 
@@ -291,26 +366,6 @@ class CaptureStore {
       })
       .fetch();
   }
-}
-
-export interface CaptureSingle {
-  capture_id: number;
-  scenes: CaptureScene[];
-}
-
-export interface CaptureScene {
-  capture_id: number;
-  scene_id: number;
-  space_id: number;
-  images: string[];
-  robot_pose: RobotPose;
-  timestamp: number;
-}
-
-export interface CaptureSpace {
-  space_id: number;
-  captures: number[];
-  map_name?: string;
 }
 
 export const captureStore = new CaptureStore();

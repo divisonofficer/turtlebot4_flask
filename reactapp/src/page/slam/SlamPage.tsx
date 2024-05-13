@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PageRoot } from "../../design/other/flexs";
 import { VideoStream } from "../../design/other/video";
-import { slamSocket } from "../../connect/socket/subscribe";
 import {
   Flex,
   HStack,
@@ -18,10 +17,9 @@ import {
 import { Btn } from "../../design/button/button";
 import { Color } from "../../design/color";
 import { httpGet, httpPost } from "../../connect/http/request";
-import { Body3 } from "../../design/text/textsystem";
+import { Body3, H4 } from "../../design/text/textsystem";
 import { InfoCard } from "../../design/other/infocard";
 import { ArrowArcLeft, ArrowRight } from "@phosphor-icons/react";
-import { MapSize, SlamRobotPose, SlamStatus } from "./SlamType";
 import {
   SlamMapMarker,
   SlamMapMarkerProps,
@@ -31,93 +29,67 @@ import { MapData, MapListModalBtn } from "./MapList";
 import { MapSaveBtn } from "./MapSaveBtn";
 import { slamStore } from "../../stores/SlamStore";
 import { observer } from "mobx-react";
+import { Pose3D, SlamState, SlamState_Status } from "../../public/proto/slam";
 
 const SlamPostionInfo = ({
   slamStatus,
   robotPose,
 }: {
-  slamStatus?: SlamStatus;
-  robotPose?: SlamRobotPose;
+  slamStatus?: SlamState;
+  robotPose?: Pose3D;
 }) => {
-  const robot_pose = {
-    x: robotPose?.x.toFixed(2),
-    y: robotPose?.y.toFixed(2),
-  };
-
-  const robotOrientation = {
-    roll: robotPose?.orientation?.roll.toFixed(2),
-    pitch: robotPose?.orientation?.pitch.toFixed(2),
-    yaw: robotPose?.orientation?.yaw.toFixed(2),
-  };
-
-  const robotOrientationQuat = {
-    x: robotPose?.orientation_quaternion?.x.toFixed(2),
-    y: robotPose?.orientation_quaternion?.y.toFixed(2),
-    z: robotPose?.orientation_quaternion?.z.toFixed(2),
-    w: robotPose?.orientation_quaternion?.w.toFixed(2),
-  };
-  const map_origin = {
-    x: slamStatus?.map_origin?.x.toFixed(2),
-    y: slamStatus?.map_origin?.y.toFixed(2),
-  };
-
-  const map_size = {
-    width: slamStatus?.map_size?.width.toFixed(2),
-    height: slamStatus?.map_size?.height.toFixed(2),
-  };
-
   return (
     <Flex wrap="wrap" gap={2}>
       <InfoCard
         title="Robot Pose"
-        value={`${robot_pose.x}, ${robot_pose.y}`}
+        value={`${robotPose?.position?.x.toFixed(
+          3
+        )}, ${robotPose?.position?.y.toFixed(3)}`}
         color={Color.Yellow}
       />
 
       <InfoCard
         title="Map Origin"
-        value={`${map_origin.x}, ${map_origin.y}`}
+        value={`${slamStatus?.mapOrigin?.x.toFixed(
+          2
+        )}, ${slamStatus?.mapOrigin?.y.toFixed(2)}`}
         color={Color.Indigo}
       />
       <InfoCard
         title="Map Size"
-        value={`${map_size.width}, ${map_size.height}`}
+        value={`${slamStatus?.mapSize?.width}, ${slamStatus?.mapSize?.height}`}
         color={Color.Orange}
       />
       <InfoCard
         title="Map Resolution"
-        value={`${slamStatus?.map_size?.resolution.toFixed(4)}`}
+        value={`${slamStatus?.mapSize?.resolution.toFixed(4)}`}
         color={Color.Purple}
       />
 
       <InfoCard
         title="Orientation"
-        value={`${robotOrientation.roll}, ${robotOrientation.pitch}, ${robotOrientation.yaw}`}
+        value={`${Object.entries(slamStatus?.robotPose?.orientationEuler ?? {})
+          .map(([k, v]) => `${k}=${v.toFixed(2)}`)
+          .join(", ")}`}
         color={Color.Blue}
       />
 
       <InfoCard
         title="Orientation Quaternion"
-        value={`${robotOrientationQuat.x}, ${robotOrientationQuat.y}, ${robotOrientationQuat.z}, ${robotOrientationQuat.w}`}
+        value={`${Object.entries(slamStatus?.robotPose?.orientation ?? {})
+          .map(([k, v]) => `${k}=${v.toFixed(2)}`)
+          .join(", ")}`}
         color={Color.Green}
       />
-      {slamStatus?.slam_metadata && (
+      {slamStatus?.slamMetadata && (
         <>
-          <InfoCard
-            title="Position Interval"
-            value={`${slamStatus.slam_metadata.pos_interval.toFixed(4)}`}
-            color={Color.Cyan}
-          />
-          <InfoCard
-            title="Map Interval"
-            value={`${slamStatus.slam_metadata.map_interval.toFixed(4)}`}
-            color={Color.Cyan}
-          />
-          <InfoCard
-            title="Lidar Interval"
-            value={`${slamStatus.slam_metadata.lidar_interval.toFixed(4)}`}
-            color={Color.Cyan}
-          />
+          {Object.entries(slamStatus?.slamMetadata).map(([k, v]) => (
+            <InfoCard
+              title={`${k} Interval`}
+              value={`${v.interval.toFixed(4)}`}
+              color={Color.Cyan}
+            />
+          ))}
         </>
       )}
     </Flex>
@@ -213,8 +185,13 @@ export const SlamMap = observer(
     children?: React.ReactNode;
     savedMapName?: string;
   }) => {
-    const { map_origin, map_size } =
-      (savedMapName ? slamStore.mapMetadataView : slamStore.slamStatus) || {};
+    const { mapOrigin, mapSize } =
+      (savedMapName
+        ? {
+            mapOrigin: slamStore.mapMetadataView?.map_origin,
+            mapSize: slamStore.mapMetadataView?.map_size,
+          }
+        : slamStore.slamStatus) || {};
 
     const [videoSize, setVideoSize] = useState<{
       width: number;
@@ -233,7 +210,7 @@ export const SlamMap = observer(
           height:
             height > 0
               ? height
-              : (width * (map_size?.height || 1)) / (map_size?.width || 1),
+              : (width * (mapSize?.height || 1)) / (mapSize?.width || 1),
         });
       }
     };
@@ -290,7 +267,7 @@ export const SlamMap = observer(
         >{`Map Layout Size: ${videoSize.width.toFixed(
           2
         )} x ${videoSize.height.toFixed(2)}`}</Body3>
-        {map_origin && map_size && (
+        {mapOrigin && mapSize && (
           <>
             {React.Children.map(children, (child, index) => {
               return (
@@ -299,14 +276,14 @@ export const SlamMap = observer(
                   child as React.ReactElement<SlamMapMarkerProps>,
                   {
                     x:
-                      ((map_size.width -
-                        (child.props.x - map_origin!.x) / map_size.resolution) *
+                      ((mapSize.width -
+                        (child.props.x - mapOrigin!.x) / mapSize.resolution) *
                         videoSize.width) /
-                      map_size.width,
+                      mapSize.width,
                     y:
-                      (((child.props.y - map_origin!.y) / map_size.resolution) *
+                      (((child.props.y - mapOrigin!.y) / mapSize.resolution) *
                         videoSize.width) /
-                      map_size.width,
+                      mapSize.width,
                   }
                 )
               );
@@ -324,7 +301,7 @@ export const SlamView = observer(() => {
   const markers = slamStore.markers;
 
   const fetchLoadMap = (map: MapData) => {
-    if (slamStatus?.status !== "success") {
+    if (slamStatus?.status !== SlamState_Status.SUCCESS) {
       return false;
     }
     httpPost("/slam/map/load", {
@@ -347,9 +324,11 @@ export const SlamView = observer(() => {
 
   return (
     <VStack width="100%">
-      <SlamPostionInfo slamStatus={slamStatus} robotPose={slamRobotPose} />
       <HStack>
-        {slamStatus?.status === "success" ? (
+        {slamStatus?.status === SlamState_Status.SUCCESS && <H4>Online</H4>}
+        {slamStatus?.status === SlamState_Status.ERROR && <H4>Msg Error</H4>}
+        {slamStatus?.status === SlamState_Status.OFFLINE && <H4>Offline</H4>}
+        {slamStatus?.status !== SlamState_Status.OFFLINE ? (
           <Btn onClick={fetchSlamStop} color={Color.Red}>
             Stop
           </Btn>
@@ -369,12 +348,13 @@ export const SlamView = observer(() => {
         />
         <MapSaveBtn />
       </HStack>
+      <SlamPostionInfo slamStatus={slamStatus} robotPose={slamRobotPose} />
 
       <SlamMap>
-        {slamStatus?.robot_pose && (
+        {slamStatus?.robotPose && (
           <SlamMapMarker
-            x={slamRobotPose?.x || 0}
-            y={slamRobotPose?.y || 0}
+            x={slamRobotPose?.position?.x || 0}
+            y={slamRobotPose?.position?.y || 0}
             style={{
               position: "absolute",
             }}
@@ -385,7 +365,8 @@ export const SlamView = observer(() => {
                 height: "2rem",
                 color: Color.Red,
                 rotate: `${
-                  180 - ((slamRobotPose?.orientation.yaw || 0) * 180) / Math.PI
+                  180 -
+                  ((slamRobotPose?.orientationEuler?.yaw || 0) * 180) / Math.PI
                 }deg`,
               }}
             />
@@ -394,9 +375,12 @@ export const SlamView = observer(() => {
         {markers.map((marker, index) => (
           <SlamMarkerHover
             key={index}
-            pose={marker.pose}
-            x={marker.pose.x}
-            y={marker.pose.y}
+            pose={{
+              position: marker.position,
+              orientationEuler: marker.orientation,
+            }}
+            x={marker.position?.x}
+            y={marker.position?.y}
             _id={marker.id}
           />
         ))}

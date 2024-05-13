@@ -1,11 +1,8 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import {
-  SlamMapMetaData,
-  SlamRobotPose,
-  SlamStatus,
-} from "../page/slam/SlamType";
+import { SlamMapMetaData } from "../page/slam/SlamType";
 import { slamSocket } from "../connect/socket/subscribe";
 import { httpGet } from "../connect/http/request";
+import { MapMarker, Pose3D, SlamState } from "../public/proto/slam";
 
 class SlamStore {
   constructor() {
@@ -13,42 +10,39 @@ class SlamStore {
     this.subscribeToSlam();
   }
 
-  slamStatus?: SlamStatus = undefined;
+  slamStatus?: SlamState = undefined;
 
   mapMetadataView?: SlamMapMetaData = undefined;
 
-  slamRobotPose?: SlamRobotPose = undefined;
-  markers: { id: number; pose: SlamRobotPose }[] = [];
+  slamRobotPose?: Pose3D = undefined;
+  markers: MapMarker[] = [];
 
   subscribeToSlam() {
-    slamSocket.subscribe("slam_status", (data: SlamStatus) => {
-      this.setSlamStatus(data);
-      if (data.markers) {
-        this.setMarkers(data.markers);
+    slamSocket.subscribeBuffer("slam_status", SlamState, (state: SlamState) => {
+      this.setSlamStatus(state);
+      if (state.markers) {
+        this.setMarkers(state.markers);
       }
     });
 
-    slamSocket.subscribe("robot_pose", (data: SlamRobotPose) => {
+    slamSocket.subscribeBuffer("robot_pose", Pose3D, (data: Pose3D) => {
       this.setSlamRobotPose(data);
     });
 
-    slamSocket.subscribe(
-      "markers",
-      (data: { id: number; pose: SlamRobotPose }[]) => {
-        this.setMarkers(data);
-      }
-    );
+    // slamSocket.subscribe("markers", (data: MapMarker[]) => {
+    //   this.setMarkers(data);
+    // });
   }
 
-  setSlamStatus(status: SlamStatus) {
+  setSlamStatus(status: SlamState) {
     this.slamStatus = status;
   }
 
-  setSlamRobotPose(pose: SlamRobotPose) {
+  setSlamRobotPose(pose: Pose3D) {
     this.slamRobotPose = pose;
   }
 
-  setMarkers(markers: { id: number; pose: SlamRobotPose }[]) {
+  setMarkers(markers: MapMarker[]) {
     this.markers = markers;
   }
 
