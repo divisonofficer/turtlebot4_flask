@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from builtin_interfaces.msg import Time
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose2D
 from slam_opencv import slam_map_opencv
@@ -22,11 +23,10 @@ from std_msgs.msg import String
 
 
 from google.protobuf import json_format
+from flask_socketio import SocketIO
 
 
 class SlamNodeMeta:
-
-    map_origin: Optional[Point3D] = None
     markers: list[MapMarker] = []
     position: Optional[Pose3D] = None
 
@@ -54,19 +54,27 @@ class SlamNodeMeta:
     def __init__(self):
         pass
 
-    def updateTimestamp(self, topic: str, timestamp: float):
+    def updateTimestamp(self, topic: str, timestamp: Time):
+        timeSec = timestamp.sec + timestamp.nanosec / 1000000000
         self.slam_metadata[topic]["interval"] = (
-            timestamp - self.slam_metadata[topic]["timestamp"]
+            timeSec - self.slam_metadata[topic]["timestamp"]
         )
-        self.slam_metadata[topic]["timestamp"] = timestamp
+        self.slam_metadata[topic]["timestamp"] = timeSec
         self.slam_metadata[topic]["appTime"] = time.time()
 
     def toProto(self):
         meta = SlamMetaData()
         json_format.ParseDict(self.slam_metadata, meta)
+
         return SlamState(
             robot_pose=self.position,
-            map_origin=self.map_origin,
+            map_origin=(
+                RosProtoConverter().rosPointToProtoPoint3D(
+                    self.map_msg.info.origin.position
+                )
+                if self.map_msg
+                else None
+            ),
             map_size=self.map_size,
             markers=self.markers,
             slam_metadata=meta,
@@ -95,7 +103,7 @@ class SlamApp(Node):
     state = SlamNodeMeta()
     rosProto = RosProtoConverter()
 
-    def __init__(self, sockets, launch, spinner: Spinner):
+    def __init__(self, sockets: SocketIO, launch, spinner: Spinner):
         """
         Initializes the SlamApp node.
 
@@ -109,7 +117,7 @@ class SlamApp(Node):
 
         self.sockets = sockets
         self.launch = launch
-        self.timer_ = self.create_timer(30, self.timer_callback)
+        self.timer_ = self.create_timer(10, self.timer_callback)
         self.map_subscription = self.create_subscription(
             OccupancyGrid, "/map", self.map_callback, 10
         )
@@ -131,14 +139,15 @@ class SlamApp(Node):
         Args:
             msg: The map message.
         """
+        self.state.map_msg = msg
         self.state.map_size = MapInfo(
             width=msg.info.width, height=msg.info.height, resolution=msg.info.resolution
         )
         slam_map_opencv(
-            msg, self.state.map_msg, self.state.markers, self.state.lidar_position
+            msg, self.state.position, self.state.markers, self.state.lidar_position
         )
 
-        self.state.updateTimestamp("map", msg.header.stamp.nanosec / 1000000)
+        self.state.updateTimestamp("map", msg.header.stamp)
 
     def position_callback(self, msg: PoseWithCovarianceStamped):
         """
@@ -147,20 +156,12 @@ class SlamApp(Node):
         Args:
             msg: The position message.
         """
-        self.state.updateTimestamp("pose", msg.header.stamp.nanosec / 1000000)
+        self.state.updateTimestamp("pose", msg.header.stamp)
 
         self.state.position = self.rosProto.rosPoseToProtoPose3D(msg.pose.pose)
-        if self.state.position:
-            self.sockets.emit(
-                "robot_pose",
-                json_format.MessageToDict(self.state.position),
-                namespace="/slam",
-            )
-
-        self.emit_slam_status()
 
     def lidar_callback(self, msg: LaserScan):
-        self.state.updateTimestamp("lidar", msg.header.stamp.nanosec / 1000000)
+        self.state.updateTimestamp("lidar", msg.header.stamp)
 
         self.state.lidar_position = self.laser_to_position_array(msg)
 
@@ -241,6 +242,9 @@ class SlamApp(Node):
         """
         self.get_logger().info("Request to add marker")
         self.add_marker(self.state.position)
+        # self.emit_markers()
+
+    def emit_markers(self):
         self.sockets.emit(
             "markers",
             [json_format.MessageToDict(x) for x in self.state.markers],
@@ -267,11 +271,7 @@ class SlamApp(Node):
                 ),
             )
         )
-        self.sockets.emit(
-            "markers",
-            [json_format.MessageToDict(x) for x in self.state.markers],
-            namespace="/slam",
-        )
+        # self.emit_markers()
 
     def delete_marker(self, id):
         """
@@ -283,11 +283,7 @@ class SlamApp(Node):
         self.state.markers = [
             marker for marker in self.state.markers if marker.id != id
         ]
-        self.sockets.emit(
-            "markers",
-            [json_format.MessageToDict(x) for x in self.state.markers],
-            namespace="/slam",
-        )
+        # self.emit_markers()
 
     ############################################################################################################
     # Position Functions
@@ -339,19 +335,25 @@ class SlamApp(Node):
             if self.state.position:
                 # self.get_logger().info(f"Robot Pose: {self.state.position}")
                 pass
-            if self.state.map_origin:
-                # self.get_logger().info(f"Map Origin: {self.state.map_origin}")
-                pass
-            message.status = SlamState.SUCCESS
+            if self.state.slam_metadata["pose"]["interval"] > 10:
+                message.status = SlamState.ERROR
+            else:
+                message.status = SlamState.SUCCESS
             message.message = "Slam is Running"
         else:
             message.status = SlamState.OFFLINE
             message.message = "Slam app is not running"
         self.sockets.emit(
             "slam_status",
-            json_format.MessageToDict(message),
+            message.SerializeToString(),
             namespace="/slam",
         )
+        if self.state.position:
+            self.sockets.emit(
+                "robot_pose",
+                self.state.position.SerializeToString(),
+                namespace="/slam",
+            )
 
     def get_slam_status(self):
 
@@ -372,7 +374,7 @@ class SlamApp(Node):
             }
         data = list(self.state.map_msg.data)
         return {
-            "map_origin": self.point_to_dict(self.state.map_origin),
+            "map_origin": self.point_to_dict(self.state.map_msg.info.origin),
             "map_size": self.state.map_size,
             "markers": self.state.markers,
             "map_metadata": [
