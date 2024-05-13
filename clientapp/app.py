@@ -7,7 +7,11 @@ import requests
 from socketio_client import socketIoClientManager, gen_frames
 
 from public.publicresolver import getNetInfo
+import logging
 
+logging.basicConfig(
+    format="ClientApp %(message)s",
+)
 
 ROS_SERVER = "http://" + getNetInfo()["ROBOT_FLASK_SERVER"]
 
