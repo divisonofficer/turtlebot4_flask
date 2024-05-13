@@ -76,48 +76,58 @@ export const CaptureMap = observer(() => {
         width: "100%",
       }}
     >
-      <SlamZoomFlex>
-        <SlamMap
-          savedMapName={
-            captureStore.is_capture_running ? undefined : captureStore.map_name
-          }
-        >
-          {robotPose && (
-            <SlamMapMarker x={robotPose.x} y={robotPose.y}>
-              <CameraAngleIcon
+      {captureStore.use_slam && (
+        <SlamZoomFlex>
+          <SlamMap
+            savedMapName={
+              captureStore.is_capture_running
+                ? undefined
+                : captureStore.map_name
+            }
+          >
+            {robotPose && (
+              <SlamMapMarker
+                x={robotPose.position?.x}
+                y={robotPose.position?.y}
+              >
+                <CameraAngleIcon
+                  style={{
+                    transform: `rotate(${
+                      (-(robotPose?.orientationEuler?.yaw || 0) * 180) /
+                        Math.PI +
+                      180
+                    }deg)`,
+                  }}
+                />
+              </SlamMapMarker>
+            )}
+
+            {captureScenes.map((scene, index) => (
+              <SlamMapMarker
+                key={index}
+                x={scene.robotPose?.position?.x}
+                y={scene.robotPose?.position?.y}
                 style={{
                   transform: `rotate(${
-                    (-(robotPose?.orientation.yaw || 0) * 180) / Math.PI + 180
+                    (-(scene.robotPose?.orientationEuler?.yaw || 0) * 180) /
+                      Math.PI +
+                    180
                   }deg)`,
                 }}
-              />
-            </SlamMapMarker>
-          )}
-
-          {captureScenes.map((scene, index) => (
-            <SlamMapMarker
-              key={index}
-              x={scene.robotPose?.position?.x}
-              y={scene.robotPose?.position?.y}
-              style={{
-                transform: `rotate(${
-                  (-(scene.robotPose?.orientation?.yaw || 0) * 180) / Math.PI +
-                  180
-                }deg)`,
-              }}
-            >
-              <CameraAngleIcon
-                color={
-                  scene.captureId === captureStore.map_focused_capture_id &&
-                  scene.sceneId === captureStore.map_focused_scene_id
-                    ? Color.Red
-                    : Color.Cyan
-                }
-              />
-            </SlamMapMarker>
-          ))}
-        </SlamMap>
-      </SlamZoomFlex>
+              >
+                <CameraAngleIcon
+                  color={
+                    scene.captureId === captureStore.map_focused_capture_id &&
+                    scene.sceneId === captureStore.map_focused_scene_id
+                      ? Color.Red
+                      : Color.Cyan
+                  }
+                />
+              </SlamMapMarker>
+            ))}
+          </SlamMap>
+        </SlamZoomFlex>
+      )}
     </VStack>
   );
 });

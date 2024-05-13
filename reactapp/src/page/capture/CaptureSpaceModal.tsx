@@ -1,7 +1,11 @@
 import {
+  Checkbox,
+  CheckboxGroup,
   Flex,
-  FlexProps,
   HStack,
+  Input,
+  InputGroup,
+  InputLeftAddon,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -12,8 +16,10 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Body3 } from "../../design/text/textsystem";
-import { CaptureSpace, captureStore } from "../../stores/CaptureStore";
+import { captureStore } from "../../stores/CaptureStore";
 import { CaptureAppSpace } from "../../public/proto/capture";
+import { observer } from "mobx-react-lite";
+import { Btn } from "../../design/button/button";
 
 const SpaceItem = (props: StackProps & { space: CaptureAppSpace }) => {
   const { space } = props;
@@ -50,6 +56,58 @@ const SpaceItem = (props: StackProps & { space: CaptureAppSpace }) => {
     </HStack>
   );
 };
+
+export const CaptureSpaceInitModal = observer(
+  (props: { isOpen: boolean; onClose: () => void }) => {
+    return (
+      <Modal isOpen={props.isOpen} onClose={props.onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            Create a new space
+            <ModalCloseButton />
+          </ModalHeader>
+          <ModalBody>
+            <VStack
+              style={{
+                alignItems: "flex-start",
+              }}
+            >
+              <InputGroup>
+                <InputLeftAddon>Name</InputLeftAddon>
+                <Input
+                  type="text"
+                  placeholder="space name"
+                  defaultValue={captureStore.space_name}
+                  onChange={(e) => {
+                    captureStore.space_name = e.target.value;
+                  }}
+                />
+              </InputGroup>
+
+              <Checkbox
+                defaultChecked={captureStore.use_slam}
+                onChange={(e) => {
+                  captureStore.use_slam = e.target.checked;
+                }}
+              >
+                Use Slam
+              </Checkbox>
+            </VStack>
+            <Btn
+              onClick={() => {
+                captureStore.initSpace();
+                props.onClose();
+              }}
+            >
+              Submit
+            </Btn>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+);
 
 export const CaptureSpaceModal = (props: {
   isOpen: boolean;

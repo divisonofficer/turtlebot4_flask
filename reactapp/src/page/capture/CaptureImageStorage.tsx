@@ -1,15 +1,8 @@
-import {
-  CircularProgress,
-  Flex,
-  HStack,
-  Progress,
-  VStack,
-} from "@chakra-ui/react";
+import { CircularProgress, Flex, HStack, VStack } from "@chakra-ui/react";
 import { observer } from "mobx-react";
-import { CaptureSingle, captureStore } from "../../stores/CaptureStore";
+import { captureStore } from "../../stores/CaptureStore";
 import { Body2, Body3 } from "../../design/text/textsystem";
 
-import { CaptureScene } from "../../stores/CaptureStore";
 import { CaptureAppCapture, CaptureAppScene } from "../../public/proto/capture";
 
 export const CaptureImageStorage = observer(() => {

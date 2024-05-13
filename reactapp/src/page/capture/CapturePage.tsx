@@ -14,8 +14,9 @@ export const CapturePage = () => {
         captureStore.loadStatus();
       }}
     >
-      <CaptureMap />
       <CaptureControl />
+
+      <CaptureMap />
       <CaptureImageStorage />
     </PageRoot>
   );

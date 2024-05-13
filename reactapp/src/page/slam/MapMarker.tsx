@@ -4,6 +4,7 @@ import { ArrowCircleRight, ArrowRight } from "@phosphor-icons/react";
 import { Color } from "../../design/color";
 import { Flex, VStack } from "@chakra-ui/react";
 import { Body3 } from "../../design/text/textsystem";
+import { Point3D, Pose3D } from "../../public/proto/slam";
 
 export interface SlamMapMarkerProps extends HTMLProps<HTMLDivElement> {
   x?: number;
@@ -48,7 +49,10 @@ export const SlamMapMarker = (props: SlamMapMarkerProps) => {
 
 export const SlamMarkerHover = (
   props: SlamMapMarkerProps & {
-    pose: SlamRobotPose;
+    pose: {
+      position?: Point3D;
+      orientationEuler?: { roll: number; pitch: number; yaw: number };
+    };
     _id: number;
   }
 ) => {
@@ -69,7 +73,7 @@ export const SlamMarkerHover = (
             height: "2rem",
             color: Color.Green,
             rotate: `${
-              180 - ((props.pose.orientation.roll || 0) * 180) / Math.PI
+              180 - ((props.pose.orientationEuler?.roll || 0) * 180) / Math.PI
             }deg`,
           }}
           onMouseEnter={() => setHover(true)}
@@ -91,7 +95,7 @@ export const SlamMarkerHover = (
           >
             <Body3 textColor={"white"}>ID {props._id}</Body3>
             <Body3>
-              X {pose.x.toFixed(4)} Y {pose.y.toFixed(4)}
+              X {pose.position!.x.toFixed(4)} Y {pose.position!.y.toFixed(4)}
             </Body3>
           </VStack>
         )}
