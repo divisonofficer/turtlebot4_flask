@@ -100,6 +100,34 @@ class CaptureStorage:
                         )
                         for x in scene_dict["lidar_position"]["ranges"]
                     ]
+                    if "robotPose" in scene_dict:
+                        scene_dict["robot_pose"] = scene_dict["robotPose"]
+                        del scene_dict["robotPose"]
+                    eulerAngle: dict = scene_dict["robot_pose"]["orientation"]
+                    if "roll" in eulerAngle:
+                        yaw, pitch, roll = (
+                            eulerAngle["yaw"],
+                            eulerAngle["pitch"],
+                            eulerAngle["roll"],
+                        )
+                        cy = np.cos(yaw * 0.5)
+                        sy = np.sin(yaw * 0.5)
+                        cp = np.cos(pitch * 0.5)
+                        sp = np.sin(pitch * 0.5)
+                        cr = np.cos(roll * 0.5)
+                        sr = np.sin(roll * 0.5)
+
+                        qw = cr * cp * cy + sr * sp * sy
+                        qx = sr * cp * cy - cr * sp * sy
+                        qy = cr * sp * cy + sr * cp * sy
+                        qz = cr * cp * sy - sr * sp * cy
+                        scene_dict["robot_pose"]["orientation"] = {
+                            "x": qx,
+                            "y": qy,
+                            "z": qz,
+                            "w": qw,
+                        }
+
                     for key, value in scene_dict.items():
                         if hasattr(scene, key):
                             if isinstance(value, dict):
@@ -114,6 +142,10 @@ class CaptureStorage:
 
                 return scene
         except FileNotFoundError:
+            return None
+        except json.JSONDecodeError:
+            with open(os.path.join(scene_dir, "meta.json"), "r") as f:
+                print(f"JSON Decoder Error {f.read()}")
             return None
 
     def get_capture_metadata(self, space_id: int, capture_id: int):
@@ -194,7 +226,7 @@ class CaptureStorage:
             with open(filename.replace(".png", ".json"), "w") as f:
                 json.dump(image.data, f)
         with open(f"{scene_dir}/meta.json", "w") as f:
-            json.dump(scene.to_dict(), f)
+            f.write(json_format.MessageToJson(scene.to_dict_light()))
 
     def gen_strokes_image(self, scene: CaptureSingleScene):
         images_nd: list[np.ndarray] = []
