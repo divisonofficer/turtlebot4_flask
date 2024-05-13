@@ -58,7 +58,10 @@ class CaptureMessage:
                 for msg in [self.lidar_msg, self.pose_msg] + list(
                     self.image_msg_dict.values()
                 ):
-                    if msg.header.stamp.sec < self.timestamp:
+                    if (
+                        msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000
+                        < self.timestamp
+                    ):
                         self.messages_received = False
                         break
 
@@ -82,7 +85,8 @@ class CaptureMessage:
                 f"{len(self.image_msg_dict.values())} images received out of {len(self.image_topics)}"
             )
         image_list = [
-            ImageBytes(msg, topic) for topic, msg in self.image_msg_dict.items()
+            ImageBytes(msg, topic, bayerInterpolation="channel_0" in topic)
+            for topic, msg in self.image_msg_dict.items()
         ]
         return pose, lidar, image_list
 
@@ -211,12 +215,10 @@ class CaptureNode(Node):
         Robot begins to rotate and capture images, asynchrnously
         This function will trigger sub thread that runs capture queue for 20 times
         """
-        with self.check_capture_call_available() as error:
-            if error:
-                return error
+        error = self.check_capture_call_available()
+        if error:
+            return error
         self.init_subscriptions()
-
-        self._logger.info(f"Capture started on topic {self.image_topic}")
 
         thread = threading.Thread(target=self.run_capture_queue)
         thread.start()
@@ -435,6 +437,7 @@ class CaptureNode(Node):
                         ImageBytes(
                             capture_msg.image_msg_dict[topic],
                             topic + "/" + str(deg),
+                            bayerInterpolation="channel_0" in topic,
                         )
                     )
 
@@ -498,10 +501,12 @@ class CaptureNode(Node):
             )
             if self.socketIO:
                 serialized_scene = scene.to_dict_light()
-                serialized_scene["space_id"] = self.space_id
+                serialized_scene.space_id = self.space_id
+                serialized_scene.scene_id = scene_id
+                serialized_scene.capture_id = self.capture_id
                 self.socketIO.emit(
                     "/recent_scene",
-                    json_format.MessageToDict(serialized_scene),
+                    serialized_scene.SerializeToString(),
                     namespace="/socket",
                 )
 
@@ -567,28 +572,27 @@ class CaptureNode(Node):
         if self.socketIO:
             self.socketIO.emit(
                 "/progress",
-                json_format.MessageToDict(
-                    CaptureTaskProgress(
-                        space_id=self.space_id if self.space_id else 0,
-                        capture_id=self.capture_id,
-                        progress=progress,
-                        scene_id=scene_id if scene_id else 0,
-                        message=msg if msg else "",
-                        images=images,
-                        action=action,
-                    )
-                ),
+                CaptureTaskProgress(
+                    space_id=self.space_id if self.space_id else 0,
+                    capture_id=self.capture_id,
+                    progress=progress,
+                    scene_id=scene_id if scene_id else 0,
+                    message=msg if msg else "",
+                    images=images,
+                    action=action,
+                    uid=uuid,
+                ).SerializeToString(),
                 namespace="/socket",
             )
 
     def turn_right(self):
         twist = Twist()
-        twist.angular.z = 0.5
+        twist.angular.z = 0.2
         time_begin = time()
         while rclpy.ok():
 
             # Turn right the robot
             self.publisher_cmd_vel.publish(twist)
-            sleep(0.5)
-            if time() - time_begin > 5:
+            sleep(0.2)
+            if time() - time_begin > 0.5:
                 break

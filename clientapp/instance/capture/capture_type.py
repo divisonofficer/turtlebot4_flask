@@ -7,6 +7,7 @@ from slam_pb2 import Pose3D
 from typing import List
 from capture_pb2 import *
 import numpy as np
+from google.protobuf import json_format
 
 
 class ImageBytes:
@@ -16,11 +17,19 @@ class ImageBytes:
     image: cv2.typing.MatLike
     topic: str
 
-    def __init__(self, image: Image, topic: str = "/oakd/rgb/preview/image_raw"):
+    def __init__(
+        self,
+        image: Image,
+        topic: str = "/oakd/rgb/preview/image_raw",
+        bayerInterpolation: bool = False,
+    ):
         self.width = image.width
         self.height = image.height
         self.data = image.data.tolist()
         self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
+        if bayerInterpolation:
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_BAYER_RG2RGB)
+
         self.topic = topic
         # if topic == "/stereo/depth":
         #     self.image = cv2.normalize(
@@ -41,12 +50,15 @@ class CaptureLiDAR:
     angle_max: float
     angle_increment: float
     ranges: list[float]
+    range_max: float
 
     def __init__(self, lidar_msg: LaserScan):
         self.angle_min = lidar_msg.angle_min
         self.angle_max = lidar_msg.angle_max
         self.angle_increment = lidar_msg.angle_increment
         self.ranges = lidar_msg.ranges.tolist()
+        self.range_max = max([x for x in self.ranges if x != float("inf")])
+        self.ranges = [self.range_max if x == float("inf") else x for x in self.ranges]
 
     def to_dict(self):
         return {
@@ -54,7 +66,14 @@ class CaptureLiDAR:
             "angle_max": self.angle_max,
             "angle_increment": self.angle_increment,
             "ranges": self.ranges,
+            "range_max": self.range_max,
         }
+
+    def toProto(self):
+        dict = self.to_dict()
+        proto = LidarPosition()
+        json_format.ParseDict(dict, proto)
+        return proto
 
 
 class CaptureSingleScene:
@@ -81,13 +100,6 @@ class CaptureSingleScene:
         self.lidar_position = lidar_position
         self.picture_list = picture_list
 
-    def to_dict(self):
-        light_dict = self.to_dict_light()
-        light_dict["lidar_position"] = (
-            self.lidar_position.to_dict() if self.lidar_position else None
-        )
-        return light_dict
-
     def to_dict_light(self):
         images = [
             x.topic.replace("/", "_")
@@ -100,4 +112,5 @@ class CaptureSingleScene:
             timestamp=self.timestamp,
             robot_pose=self.robot_pose,
             images=images,
+            lidar_position=self.lidar_position.toProto(),
         )
