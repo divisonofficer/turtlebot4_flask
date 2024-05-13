@@ -10,6 +10,7 @@ process_map = {
     "slam": "instance/slam/slam_app.py",
     "capture": "instance/capture/capture_app.py",
     "jai_bridge": "instance/jai_bridge/jai_bridge_app.py",
+    "ell14": "instance/ell14/ell14_app.py",
 }
 
 import subprocess
