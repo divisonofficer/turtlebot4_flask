@@ -15,6 +15,11 @@ from slam_node import SlamApp
 from slam_repo import SlamRepo
 from typing import Optional
 from google.protobuf import json_format
+import logging
+
+logging.basicConfig(
+    format="SlamApp %(message)s",
+)
 
 
 class SlamLaunch:
@@ -72,9 +77,14 @@ class SlamLaunch:
 
 
 app = Flask(__name__)
-sockets = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-
+sockets = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode="threading",
+    # logger=True,
+    # engineio_logger=True,
+)
 spinner = Spinner()
 launch = SlamLaunch(sockets)
 node = SlamApp(sockets, launch, spinner)

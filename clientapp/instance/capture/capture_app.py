@@ -4,6 +4,12 @@ sys.path.append("../..")
 sys.path.append("../../../public/proto/python")
 sys.path.append("../public/proto/python")
 
+import logging
+
+logging.basicConfig(
+    format="CaptureApp %(message)s",
+)
+
 from flask import Flask, request, send_file, Response
 import rclpy
 from capture_diagnostic import CaptureDiagnostic
@@ -94,7 +100,7 @@ def capture_at():
     if not result:
         return Response(status=500)
     if result["status"] == "error":
-        return Response(status=400, response=result)
+        return Response(status=400, response=f"{result}")
     return result
 
 
@@ -112,7 +118,7 @@ def capture_single():
     if not result:
         return Response(status=500)
     if result["status"] == "error":
-        return Response(status=400, response=result)
+        return Response(status=400, response=f"{result}")
     return result
 
 
