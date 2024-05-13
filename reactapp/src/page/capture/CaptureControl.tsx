@@ -20,13 +20,14 @@ import { Body3, H4 } from "../../design/text/textsystem";
 import { captureStore } from "../../stores/CaptureStore";
 import { observer } from "mobx-react";
 import { slamStore } from "../../stores/SlamStore";
-import { CaptureSpaceModal } from "./CaptureSpaceModal";
+import { CaptureSpaceInitModal, CaptureSpaceModal } from "./CaptureSpaceModal";
 import { Color } from "../../design/color";
+import { SlamState_Status } from "../../public/proto/slam";
 
 const CaptureSourceSwitch = observer(() => {
   return (
     <VStack alignItems="flex-start">
-      {captureStore.image_topic_switches.map((switchItem, index) => {
+      {Object.values(captureStore.def_switchs).map((switchItem, index) => {
         return (
           <Flex
             key={index}
@@ -37,12 +38,12 @@ const CaptureSourceSwitch = observer(() => {
             gap="2"
           >
             <Switch
-              isChecked={switchItem.checked}
+              isChecked={switchItem.enabled}
               onChange={(e) => {
                 if (e.target.checked) {
-                  captureStore.topicSwitchOn(switchItem.topic);
+                  captureStore.topicSwitchOn(switchItem.name);
                 } else {
-                  captureStore.topicSwitchOff(switchItem.topic);
+                  captureStore.topicSwitchOff(switchItem.name);
                 }
               }}
             />
@@ -61,6 +62,11 @@ export const CaptureSpaceControl = observer(() => {
     onClose: onSpaceModalClose,
   } = useDisclosure();
   const {
+    isOpen: isSpaceCreateModalOpen,
+    onOpen: onSpaceCreateModalOpen,
+    onClose: onSpaceCreateModalClose,
+  } = useDisclosure();
+  const {
     isOpen: isInitPopoverOpen,
     onOpen: onInitPopoverOpen,
     onClose: onInitPopoverClose,
@@ -68,7 +74,10 @@ export const CaptureSpaceControl = observer(() => {
 
   return (
     <VStack>
-      <H4>Slam is {slamStore.slamStatus?.status}</H4>
+      <H4>
+        Slam is
+        {[" Success", " Error", " Offline"][slamStore.slamStatus?.status || 0]}
+      </H4>
       <VStack alignItems="flex-start">
         <HStack>
           <Popover
@@ -79,7 +88,9 @@ export const CaptureSpaceControl = observer(() => {
             <PopoverTrigger>
               <Button size="sm" variant={"outline"}>
                 {captureStore.space_id && captureStore.space_id !== null
-                  ? "Space ID : " + captureStore.space_id
+                  ? captureStore.space_name
+                    ? captureStore.space_name
+                    : "Space ID : " + captureStore.space_id
                   : "Initiate Space"}
               </Button>
             </PopoverTrigger>
@@ -107,10 +118,7 @@ export const CaptureSpaceControl = observer(() => {
                       <Btn
                         size="sm"
                         varient="outline"
-                        onClick={() => {
-                          captureStore.initSpace();
-                          onInitPopoverClose();
-                        }}
+                        onClick={onSpaceCreateModalOpen}
                       >
                         Create new Space
                       </Btn>
@@ -131,6 +139,12 @@ export const CaptureSpaceControl = observer(() => {
             <CaptureSpaceModal
               onClose={onSpaceModalClose}
               isOpen={isSpaceModalOpen}
+            />
+          )}
+          {isSpaceCreateModalOpen && (
+            <CaptureSpaceInitModal
+              onClose={onSpaceCreateModalClose}
+              isOpen={isSpaceCreateModalOpen}
             />
           )}
         </HStack>
@@ -174,27 +188,34 @@ export const CaptureControl = observer(() => {
 
       {captureStore.is_capture_running && (
         <>
-          {captureStore.progress && (
+          {captureStore.progress.length > 0 && (
             <>
-              <Progress
-                value={captureStore.progress.progress}
-                style={{
-                  width: "20rem",
-                  height: "5rem",
-                }}
-              >
-                <ProgressLabel>{captureStore.progress.progress}%</ProgressLabel>
-              </Progress>
-              <Body3>{captureStore.progress.message}</Body3>
+              <Btn onClick={() => captureStore.fetchAbortCapture()}>Abort</Btn>
+              {captureStore.progress.map((progress, index) => (
+                <VStack>
+                  <Progress
+                    value={progress.progress}
+                    style={{
+                      width: "20rem",
+                      height: "5rem",
+                    }}
+                  >
+                    <ProgressLabel>{progress.progress}%</ProgressLabel>
+                  </Progress>
+                  <Body3>{progress.message}</Body3>
+                </VStack>
+              ))}
             </>
           )}
-          {!captureStore.progress && (
+          {captureStore.progress.length < 1 && (
             <>
               <HStack>
                 <Btn onClick={() => captureStore.fetchPostCaptureSingle()}>
                   Single
                 </Btn>
-                <Btn>Queue</Btn>{" "}
+                <Btn onClick={() => captureStore.fetchPostCaptureQueue()}>
+                  Queue
+                </Btn>{" "}
               </HStack>
               <CaptureSourceSwitch />
             </>
