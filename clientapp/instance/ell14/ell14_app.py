@@ -5,11 +5,17 @@ from elliptecRotationStage import elliptecMount
 app = Flask(__name__)
 CORS(app)
 
+import logging
+
+logging.basicConfig(
+    format="Ell14App %(message)s",
+)
+
 
 @app.route("/angle", methods=["POST"])
 def set_device_angle():
-    angle = int(request.json["angle"])
-    angle = angle % 360
+    angle = int(request.json["angle"]) % 360 if request.json else None
+
     elliptecMount.move_by(angle)
     return Response(status=200)
 

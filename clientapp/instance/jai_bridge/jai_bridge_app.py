@@ -10,6 +10,12 @@ import sys
 sys.path.append("../..")
 sys.path.append("../../../public/proto/python")
 sys.path.append("../public/proto/python")
+
+import logging
+
+logging.basicConfig(
+    format="JaiBridgeApp %(message)s",
+)
 from videostream import VideoStream
 import rclpy
 from rclpy.node import Node
