@@ -49,3 +49,21 @@ message CaptureTaskProgress{
     string uid = 7;
     Action action = 8;
 }
+
+message CaptureMessageDef{
+    enum RosMsgType{
+        Image = 0;
+        LaserScan =1;
+        PoseWithCovarianceStamped = 2;
+    }
+
+    string topic = 1;
+    string format = 2;
+    RosMsgType ros_msg_type = 3;
+}
+
+message CaptureMessageDefGroup{
+    string name = 1;
+    bool enabled = 2;
+    repeated CaptureMessageDef messages = 3;
+}
