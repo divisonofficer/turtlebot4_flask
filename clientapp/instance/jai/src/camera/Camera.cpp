@@ -11,6 +11,13 @@ MultiSpectralCamera::MultiSpectralCamera() {
   flagInterrupted = false;
 }
 
+void MultiSpectralCamera::initCameraTimestamp() {
+  dualDevice->getDevice(0)
+      ->GetParameters()
+      ->GetInteger("Timestamp")
+      ->GetValue(timestamp_begin);
+}
+
 void MultiSpectralCamera::addStreamCallback(
     int source, std::function<void(PvBuffer*)> callback) {
   Info << "Registering Callback from " << source;

@@ -1,5 +1,6 @@
 #include <Device.h>
 #include <DualDevice.h>
+#include <ParamManager.h>
 #include <Stream.h>
 
 DualDevice::DualDevice(PvString &connection_ID) {
@@ -14,6 +15,36 @@ DualDevice::DualDevice(PvString &connection_ID) {
       static_cast<PvStreamGEV *>(streamManager->OpenStream(connection_ID));
   StreamManager::getInstance()->ConfigureStream(rgb_device, rgb_stream, 0);
   StreamManager::getInstance()->ConfigureStream(rgb_device, nir_stream, 1);
+
+  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
+                         2.0f);
+
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 6000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 6.0f);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
+                             2);
+
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 1);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 50000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 7.0f);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
+                             2);
+
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionSyncMode",
+                             1);
+
+  /**
+   *
+   * Packet Dealy in Microseconds (not miliseconds!)
+   */
+
+  ParamManager::setParam(rgb_device->GetParameters(),
+                         "GevStreamChannelSelector", 1);
+
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 20000);
 
   streamManager->CreateStreamBuffers(rgb_device, rgb_stream, &rgb_buffer_list);
   streamManager->CreateStreamBuffers(rgb_device, nir_stream, &nir_buffer_list);

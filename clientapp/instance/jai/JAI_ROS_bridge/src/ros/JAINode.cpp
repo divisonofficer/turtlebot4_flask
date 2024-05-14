@@ -2,6 +2,8 @@
 #include <Logger.h>
 #include <jai.pb.h>
 
+#include <chrono>
+
 std::vector<std::string> splitString(std::string str, std::string delimiter) {
   std::vector<std::string> parts;
   size_t pos = 0;
@@ -25,7 +27,16 @@ JAINode::~JAINode() { closeStream(); }
 void JAINode::createPublishers() {
   enlistJAIDevice(0, "jai_1600", 2);
   initMultispectralCamera(0);
+
   openStream(0);
+  this->cameras[0]->initCameraTimestamp();
+  this->timestamp_begin_ros =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::time_point_cast<std::chrono::nanoseconds>(
+              std::chrono::high_resolution_clock::now())
+              .time_since_epoch())
+          .count();
+
   subscription_thread =
       std::thread([this]() { this->cameras.back()->runUntilInterrupted(); });
 }
@@ -79,7 +90,21 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
   auto imageRosMsg = sensor_msgs::msg::Image();
-  imageRosMsg.header.stamp = rclcpp::Time(buffer->GetTimestamp());
+
+  Info << (buffer->GetTimestamp() - this->cameras[device_num]->timestamp_begin +
+           this->timestamp_begin_ros) /
+              1000
+       << " <> "
+       << std::chrono::duration_cast<std::chrono::nanoseconds>(
+              std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                  std::chrono::high_resolution_clock::now())
+                  .time_since_epoch())
+                  .count() /
+              1000;
+
+  imageRosMsg.header.stamp = rclcpp::Time(
+      buffer->GetTimestamp() - this->cameras[device_num]->timestamp_begin +
+      this->timestamp_begin_ros);
   imageRosMsg.header.frame_id = "jai_camera";
   imageRosMsg.height = buffer->GetImage()->GetHeight();
   imageRosMsg.width = buffer->GetImage()->GetWidth();
