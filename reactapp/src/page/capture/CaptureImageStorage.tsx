@@ -1,8 +1,8 @@
-import { CircularProgress, Flex, HStack, VStack } from "@chakra-ui/react";
+import { CircularProgress, Flex, VStack } from "@chakra-ui/react";
 import { observer } from "mobx-react";
 import { captureStore } from "../../stores/CaptureStore";
 import { Body2, Body3 } from "../../design/text/textsystem";
-
+import { LazyLoadImage } from "react-lazy-load-image-component";
 import { CaptureAppCapture, CaptureAppScene } from "../../public/proto/capture";
 
 export const CaptureImageStorage = observer(() => {
@@ -33,7 +33,11 @@ export const CaptureItem = ({ capture }: { capture: CaptureAppCapture }) => {
       }}
     >
       <Body2>{capture.captureId}</Body2>
-      <HStack>
+      <VStack
+        style={{
+          overflowX: "auto",
+        }}
+      >
         {capture.scenes.map((scene, index) => (
           <CaptureImageItem scene={scene} key={index} />
         ))}
@@ -55,7 +59,7 @@ export const CaptureItem = ({ capture }: { capture: CaptureAppCapture }) => {
             />
           </Flex>
         )}
-      </HStack>
+      </VStack>
     </VStack>
   );
 };
@@ -94,7 +98,7 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureAppScene }) => {
               <Body3>
                 {url.split("/").pop()?.split(".jpg")[0].split(".png")[0]}
               </Body3>
-              <img
+              <LazyLoadImage
                 key={index}
                 src={
                   url.startsWith("/capture")
@@ -106,6 +110,7 @@ export const CaptureImageItem = ({ scene }: { scene: CaptureAppScene }) => {
                   width: "12rem",
                   height: "12rem",
                   borderRadius: "0.5rem",
+                  margin: "0.5rem",
                 }}
               />
             </VStack>
