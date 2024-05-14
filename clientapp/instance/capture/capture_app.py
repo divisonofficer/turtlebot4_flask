@@ -183,14 +183,12 @@ def capture_result_image(space_id, capture_id, scene_id, filename):
 def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
     if not space_id or not capture_id or not scene_id:
         return Response(status=404)
-    img = cv2.imread(
-        capture_storage.get_capture_scene_filepath(
+
+    return send_file(
+        capture_storage.get_capture_scene_image_thumb(
             int(space_id), int(capture_id), int(scene_id), filename
         )
     )
-    img = cv2.resize(img, (128, 128))
-    _, img_encoded = cv2.imencode(".png", img)
-    return Response(img_encoded.tobytes(), mimetype="image/jpeg")
 
 
 if __name__ == "__main__":

@@ -174,6 +174,42 @@ class CaptureStorage:
             CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), filename
         )
 
+    def get_capture_scene_image_thumb(
+        self, space_id: int, capture_id: int, scene_id: int, filename: str
+    ):
+        if not "." in filename:
+            filename += ".png"
+
+        if not os.path.exists(
+            os.path.join(
+                CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), "thumb"
+            )
+        ):
+            os.mkdir(
+                os.path.join(
+                    CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), "thumb"
+                )
+            )
+
+        thumb = os.path.join(
+            CAPTURE_TEMP,
+            str(space_id),
+            str(capture_id),
+            str(scene_id),
+            "thumb",
+            filename,
+        )
+        if os.path.exists(thumb):
+            return thumb
+
+        img = cv2.imread(
+            self.get_capture_scene_filepath(space_id, capture_id, scene_id, filename)
+        )
+        img = cv2.resize(img, (128, 128))
+        _, img_encoded = cv2.imencode(".png", img)
+        img_encoded.tofile(thumb)
+        return thumb
+
     def get_capture_scene_images_paths(
         self, space_id: int, capture_id: int, scene_id: int
     ):
