@@ -4,7 +4,7 @@ from sensor_msgs.msg import Image, LaserScan
 from dataclasses import dataclass
 
 from slam_pb2 import Pose3D
-from typing import List
+from typing import List, Optional
 from capture_pb2 import *
 import numpy as np
 from google.protobuf import json_format
@@ -80,8 +80,8 @@ class CaptureSingleScene:
     capture_id: int
     scene_id: int
     timestamp: int
-    robot_pose: Pose3D
-    lidar_position: CaptureLiDAR
+    robot_pose: Optional[Pose3D]
+    lidar_position: Optional[CaptureLiDAR]
     picture_list: List[ImageBytes]
 
     def __init__(
@@ -89,9 +89,9 @@ class CaptureSingleScene:
         capture_id: int,
         scene_id: int,
         timestamp: int,
-        robot_pose: Pose3D,
-        lidar_position: CaptureLiDAR,
-        picture_list: List[ImageBytes],
+        robot_pose: Optional[Pose3D] = None,
+        lidar_position: Optional[CaptureLiDAR] = None,
+        picture_list: List[ImageBytes] = [],
     ):
         self.capture_id = capture_id
         self.scene_id = scene_id
@@ -112,5 +112,7 @@ class CaptureSingleScene:
             timestamp=self.timestamp,
             robot_pose=self.robot_pose,
             images=images,
-            lidar_position=self.lidar_position.toProto(),
+            lidar_position=(
+                self.lidar_position.toProto() if self.lidar_position else None
+            ),
         )

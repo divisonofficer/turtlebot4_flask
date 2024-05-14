@@ -26,9 +26,9 @@ class SlamSource:
         return response
 
     def request_map_save_and_clean(self, map_name: str):
-        with self.request_map_save(map_name) as response:
-            if response:
-                return response
+        response = self.request_map_save(map_name)
+        if response:
+            return response
 
         response = requests.get(f"{self.SLAM_URL}cancel")
         if response.status_code == 200:

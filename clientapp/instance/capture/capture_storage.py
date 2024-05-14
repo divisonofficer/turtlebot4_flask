@@ -185,6 +185,8 @@ class CaptureStorage:
 
     def get_space_all_captures(self, space_id: int):
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
+        if not os.path.exists(capture_dir):
+            return []
         captures = os.listdir(capture_dir)
         capture_list = [
             x
@@ -201,13 +203,13 @@ class CaptureStorage:
     def get_space_all_scenes(self, space_id: int):
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
         captures = os.listdir(capture_dir)
-        scenes: list[CaptureAppCapture] = []
+        scenes: list[CaptureAppScene] = []
         for capture_id in captures:
             if not capture_id.isdigit():
                 continue
             capture = self.get_capture_metadata(space_id, int(capture_id))
             if capture:
-                scenes.extend(capture.scenes)
+                scenes += capture.scenes[:]
         return scenes
 
     def store_captured_scene(
