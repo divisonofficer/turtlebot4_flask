@@ -1,4 +1,6 @@
 from typing import List, Optional
+
+from sympy import capture
 from capture_pb2 import CaptureTaskProgress
 from sensor_msgs.msg import Image
 from flask_socketio import SocketIO
@@ -31,7 +33,7 @@ class SocketProgress:
             )
 
         if not uuid:
-            uuid = f"{capture_id}/{scene_id if scene_id else 'root'}"
+            uuid = f"{capture_id}/{scene_id if scene_id is not None else 'root'}"
         if self.socketIO:
             self.socketIO.emit(
                 "/progress",

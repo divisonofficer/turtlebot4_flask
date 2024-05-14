@@ -247,7 +247,7 @@ class CaptureNode(Node):
             return
         if msg.buttons[3] == 1:  # X button
             if msg.buttons[4] == 1:  # L1 Button
-                self.run_capture_queue()
+                self.run_capture_queue_thread()
             else:
                 self.run_capture_queue_single()
 
@@ -276,7 +276,7 @@ class CaptureNode(Node):
         self.socket_progress(
             0,
             uuid=f"{self.capture_id}/root",
-            action=CaptureTaskProgress.INIT,
+            action=CaptureTaskProgress.Action.INIT,
             msg="Begin Rotating Capture",
             capture_id=self.capture_id,
         )
@@ -287,7 +287,7 @@ class CaptureNode(Node):
                 self.socket_progress(
                     100,
                     uuid=f"{self.capture_id}/root",
-                    action=CaptureTaskProgress.ERROR,
+                    action=CaptureTaskProgress.Action.ERROR,
                     msg="Capture Aborted",
                     capture_id=self.capture_id,
                 )
@@ -295,7 +295,7 @@ class CaptureNode(Node):
             self.socket_progress(
                 scene_id * 5,
                 uuid=f"{self.capture_id}/root",
-                action=CaptureTaskProgress.DONE,
+                action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take",
                 capture_id=self.capture_id,
             )
@@ -318,7 +318,7 @@ class CaptureNode(Node):
             self.socket_progress(
                 scene_id * 5 + 3,
                 uuid=f"{self.capture_id}/root",
-                action=CaptureTaskProgress.DONE,
+                action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take done. Turn right",
                 capture_id=self.capture_id,
             )
@@ -326,7 +326,7 @@ class CaptureNode(Node):
         self.socket_progress(
             100,
             uuid=f"{self.capture_id}/root",
-            action=CaptureTaskProgress.DONE,
+            action=CaptureTaskProgress.Action.DONE,
             msg="Rotating Capture Done",
             capture_id=self.capture_id,
         )
@@ -359,12 +359,12 @@ class CaptureNode(Node):
 
     def turn_right(self):
         twist = Twist()
-        twist.angular.z = 0.25
+        twist.angular.z = 0.4
         time_begin = time()
         while rclpy.ok():
 
             # Turn right the robot
             self.publisher_cmd_vel.publish(twist)
-            sleep(0.2)
-            if time() - time_begin > 0.5:
+            sleep(0.15)
+            if time() - time_begin > 0.75:
                 break

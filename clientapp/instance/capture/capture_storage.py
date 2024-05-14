@@ -13,6 +13,10 @@ CAPTURE_TEMP = "/tmp/oakd_capture"
 if not os.path.exists(CAPTURE_TEMP):
     os.mkdir(CAPTURE_TEMP)
 
+DEVICE_DICT = {
+    "_jai_1600": 2,
+}
+
 
 class CaptureStorage:
 
@@ -217,7 +221,27 @@ class CaptureStorage:
             CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id)
         )
         files = os.listdir(scene_dir)
-        return [f for f in files if f.endswith(".png") or f.endswith(".jpg")]
+        image_files = [f for f in files if f.endswith(".png") or f.endswith(".jpg")]
+
+        image_files_with_path = [
+            f for f in image_files if any(k in f for k in DEVICE_DICT.keys())
+        ]
+        image_files_other = [f for f in image_files if f not in image_files_with_path]
+        image_files_dict: dict[str, list[str]] = {}
+        for k, v in DEVICE_DICT.items():
+            image_files_dict[k] = []
+            for channel in range(v):
+                imList = [
+                    f
+                    for f in image_files_with_path
+                    if f.startswith(f"{k}_channel_{channel}")
+                ]
+                imList.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
+                image_files_dict[k].extend(imList)
+
+        return [
+            files for device in image_files_dict.values() for files in device
+        ] + image_files_other
 
     def get_space_all_captures(self, space_id: int):
         capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
