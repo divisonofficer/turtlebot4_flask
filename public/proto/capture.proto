@@ -28,6 +28,7 @@ message CaptureAppSpace{
     string space_name = 4;
     double create_time = 5;
     double update_time = 6;
+    bool use_slam = 7;
     
 }
 

@@ -55,17 +55,20 @@ def connectSocket():
 
 @app.route("/init", methods=["POST"])
 def init_space():
-    space_id = request.json.get("space_id") if request and request.json else None
-    space_name = request.json.get("space_name") if request and request.json else None
+    space_id = request.json.get("space_id") if request.json else None
+    space_name = request.json.get("space_name") if request.json else None
+    use_slam = request.json.get("use_slam") if request.json else None
     result = capture_node.init_space(
-        int(space_id) if space_id else None, space_name if not space_id else None
+        int(space_id) if space_id else None,
+        space_name if not space_id else None,
+        use_slam=use_slam,
     )
 
     if not result:
         return Response(status=500)
 
     if result["status"] == "error":
-        return Response(status=400, response=result)
+        return Response(status=400, response=f"{result}")
 
     return result
 
@@ -75,27 +78,25 @@ def close_space():
     result = capture_node.empty_space()
     if not result:
         return Response(status=500)
-    return result
+    return Response(status=200, response=f"{result}")
 
 
 @app.route("/")
 def get_capture_status():
-    return {
-        "space_ready": capture_node.space_id is not None,
-        "space_id": capture_node.space_id,
-    }
+    return capture_node.get_status()
+
+
+@app.route("/message_group/<group>/<cmd>", methods=["POST"])
+def message_group_cmd(group, cmd):
+    if cmd == "enable":
+        capture_node.update_capture_topic(group, True)
+    if cmd == "disable":
+        capture_node.update_capture_topic(group, False)
+    return capture_node.get_status()
 
 
 @app.route("/capture", methods=["POST"])
 def capture_at():
-    capture_topic = None
-    if request.json is not None:
-        capture_topic = request.json.get("capture_topic")
-    if capture_topic:
-        capture_node.image_topics = capture_topic
-    else:
-        capture_node.image_topics = ["/oakd/rgb/preview/image_raw"]
-
     result = capture_node.run_capture_queue_thread()
     if not result:
         return Response(status=500)
@@ -106,14 +107,6 @@ def capture_at():
 
 @app.route("/capture/single", methods=["POST"])
 def capture_single():
-    capture_topic = None
-    if request.json is not None:
-        capture_topic = request.json.get("topics")
-    if capture_topic:
-        capture_node.image_topics = capture_topic
-    else:
-        capture_node.image_topics = ["/oakd/rgb/preview/image_raw"]
-    print(capture_node.image_topics)
     result = capture_node.run_capture_queue_single()
     if not result:
         return Response(status=500)
@@ -188,6 +181,8 @@ def capture_result_image(space_id, capture_id, scene_id, filename):
     "/result/<space_id>/<capture_id>/<scene_id>/<filename>/thumb", methods=["GET"]
 )
 def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
+    if not space_id or not capture_id or not scene_id:
+        return Response(status=404)
     img = cv2.imread(
         capture_storage.get_capture_scene_filepath(
             int(space_id), int(capture_id), int(scene_id), filename
@@ -199,4 +194,11 @@ def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
 
 
 if __name__ == "__main__":
-    socketIO.run(app, port=5012, allow_unsafe_werkzeug=True, host="0.0.0.0")
+    socketIO.run(
+        app,
+        port=5012,
+        allow_unsafe_werkzeug=True,
+        host="0.0.0.0",
+        use_reloader=False,
+        log_output=True,
+    )
