@@ -23,7 +23,13 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from typing import List, Dict, Any, Optional
 
-from jai_pb2 import DeviceInfo, ParameterInfo, ParameterValue, ParameterUpdate
+from jai_pb2 import (
+    DeviceInfo,
+    ParameterInfo,
+    ParameterValue,
+    ParameterUpdate,
+    SourceInfo,
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +38,51 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 from google.protobuf.json_format import MessageToJson
 
-DEVICE_INFO: List[DeviceInfo] = []
+DEVICE_INFO: List[DeviceInfo] = [
+    DeviceInfo(
+        name="jai_1600",
+        source_count=2,
+        source_types=[
+            SourceInfo(
+                name="rgb",
+                type="bayer_rg8",
+                parameters=ParameterUpdate(
+                    parameters=[
+                        ParameterValue(name="ExposureTime", value="6000", type="float"),
+                        ParameterValue(name="Gain", value="7.0", type="float"),
+                    ]
+                ),
+            ),
+            SourceInfo(
+                name="rgb",
+                type="bayer_rg8",
+                parameters=ParameterUpdate(
+                    parameters=[
+                        ParameterValue(
+                            name="ExposureTime", value="50000", type="float"
+                        ),
+                        ParameterValue(name="Gain", value="7.0", type="float"),
+                    ]
+                ),
+            ),
+        ],
+        fps=2,
+        configurable=[
+            ParameterInfo(
+                name="ExposureTime",
+                type="float",
+                min=100,
+                max=50000,
+            ),
+            ParameterInfo(
+                name="Gain",
+                type="float",
+                min=1,
+                max=16,
+            ),
+        ],
+    )
+]
 
 
 class JaiBridgeNode(Node):
@@ -45,7 +95,7 @@ class JaiBridgeNode(Node):
     configure_dict: Dict[str, List[Dict[str, Any]]] = {}
 
     def __init__(self):
-        super().__init__("jai_bridge_node")
+        super().__init__("jai_bridge_node")  # type: ignore
         self.register_clients()
         self.create_timer(30, self.get_camera_params)
 
@@ -65,6 +115,13 @@ class JaiBridgeNode(Node):
                 }
 
         return configure_callback
+
+    def initialize_camera_config(self):
+        for device in DEVICE_INFO:
+            for channel_id, source in enumerate(device.source_types):
+                msg = String()
+                msg.data = source.parameters.SerializePartialToString().decode("utf-8")
+                self.service_clients[device.name][channel_id].publish(msg)
 
     def register_clients(self):
         for device in DEVICE_INFO:
@@ -179,34 +236,18 @@ def get_camera_params():
     return node.get_camera_params()
 
 
+@app.route("/device/init/all")
+def initialize_camera_config():
+    node.initialize_camera_config()
+    return {"status": "success"}
+
+
 with app.app_context():
-    device = DeviceInfo()
-    device.name = "jai_1600"
-    device.source_count = 2
-    device.source_types.extend(["bayer_rg8", "mono8"])
-    device.fps = 4
-    device.configurable.extend(
-        [
-            ParameterInfo(
-                name="ExposureTime",
-                type="float",
-                min=100,
-                max=50000,
-            ),
-            ParameterInfo(
-                name="Gain",
-                type="float",
-                min=1,
-                max=16,
-            ),
-        ]
-    )
-
-    DEVICE_INFO.append(device)
-
     rclpy.init()
     node = JaiBridgeNode()
     spin_node()
 
+    node.initialize_camera_config()
+
 if __name__ == "__main__":
-    socketio.run(app, port="5015")
+    socketio.run(app, port="5015")  # type: ignore

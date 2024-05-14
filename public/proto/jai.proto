@@ -8,6 +8,7 @@ message ParameterInfo{
     float max = 4;
 }
 
+
 message ParameterValue{
     string name = 1;
     string type = 2;
@@ -18,11 +19,17 @@ message ParameterUpdate{
 }
 
 
+message SourceInfo{
+    string name = 1;
+    string type = 2;
+    ParameterUpdate parameters = 3;
+}
+
 
 message DeviceInfo{
     string name = 1;
     int32 source_count = 2;
-    repeated string source_types = 3;
+    repeated SourceInfo source_types = 3;
     int32 fps = 4;
     repeated ParameterInfo configurable = 5;
 }
