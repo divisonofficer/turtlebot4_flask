@@ -77,6 +77,8 @@ class CaptureMessage:
 
         # if "channel_" in topic:
         #     print(topic, msg.header.stamp, self.timestamp_second, time())
+        if topic in self.msg_dict:
+            return
 
         if msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000 >= (
             self.timestamp_second
