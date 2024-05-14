@@ -10,6 +10,8 @@ class MultiSpectralCamera {
   void openStream();
   void closeStream();
 
+  void initCameraTimestamp();
+
   void addStreamCallback(int source, std::function<void(PvBuffer*)> callback);
 
   void configureDevice(int source, std::string command, std::string type,
@@ -30,6 +32,8 @@ class MultiSpectralCamera {
 
   void configureSourceRuntime(
       int source, std::function<void(PvGenParameterArray*)> runBlock);
+
+  int64_t timestamp_begin;
 
  private:
   std::function<void(PvBuffer*)> streamCallback[2];

@@ -59,4 +59,6 @@ class JAINode : public rclcpp::Node {
   void emitRosDeviceParamMsg(int device_num, int source_num);
 
   std::thread subscription_thread;
+
+  int64_t timestamp_begin_ros;
 };
