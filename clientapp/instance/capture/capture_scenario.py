@@ -85,10 +85,10 @@ class CaptureSingleScenario:
         try:
             self.socket_progress(
                 0,
-                self.scene_id,
-                None,
-                f"Scene {self.scene_id} Capture started",
-                action=CaptureTaskProgress.INIT,
+                scene_id=self.scene_id,
+                space_id=None,
+                msg=f"Scene {self.scene_id} Capture started",
+                action=CaptureTaskProgress.Action.INIT,
                 capture_id=self.capture_id,
             )
             scene = CaptureSingleScene(
@@ -105,9 +105,9 @@ class CaptureSingleScenario:
             self.get_basic_msgs(scene)
             self.socket_progress(
                 100,
-                self.scene_id,
-                None,
-                f"Scene {self.scene_id}  Capture completed",
+                scene_id=self.scene_id,
+                space_id=None,
+                msg=f"Scene {self.scene_id}  Capture completed",
                 action=CaptureTaskProgress.Action.DONE,
                 capture_id=self.capture_id,
             )
@@ -124,27 +124,27 @@ class CaptureSingleScenario:
         except NoImageSignal:
             self.socket_progress(
                 100,
-                self.scene_id,
-                None,
-                "No image signal received",
+                scene_id=self.scene_id,
+                space_id=None,
+                msg="No image signal received",
                 action=CaptureTaskProgress.Action.ERROR,
                 capture_id=self.capture_id,
             )
         except NoPoseSignal:
             self.socket_progress(
                 100,
-                self.scene_id,
-                None,
-                "No pose signal received",
+                scene_id=self.scene_id,
+                space_id=None,
+                msg="No pose signal received",
                 action=CaptureTaskProgress.Action.ERROR,
                 capture_id=self.capture_id,
             )
         except PolarizerError:
             self.socket_progress(
                 100,
-                self.scene_id,
-                None,
-                "Polarizer Error",
+                scene_id=self.scene_id,
+                space_id=None,
+                msg="Polarizer Error",
                 capture_id=self.capture_id,
                 action=CaptureTaskProgress.Action.ERROR,
             )
@@ -164,10 +164,10 @@ class CaptureSingleScenario:
         for deg in [0, 45, 90, 135]:
             self.socket_progress(
                 deg * 15 // 45 + 30,
-                None,
-                None,
-                f"Capturing {deg} degrees",
-                action=CaptureTaskProgress.ACTIVE,
+                scene_id=self.scene_id,
+                space_id=self.space_id,
+                msg=f"Capturing {deg} degrees",
+                action=CaptureTaskProgress.Action.ACTIVE,
                 capture_id=self.capture_id,
             )
             if not self.capture_msg:
