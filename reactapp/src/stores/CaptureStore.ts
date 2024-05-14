@@ -93,7 +93,7 @@ class CaptureStore {
             this.extendScene(scene_meta);
           })
           .fetch(),
-      1000
+      3000
     );
   }
 
@@ -272,6 +272,7 @@ class CaptureStore {
     })
       .onSuccess(() => {
         this.is_capture_running = true;
+        this.loadStatus();
       })
       .onError((c, m, e) => {
         alertStore.addAlert(
