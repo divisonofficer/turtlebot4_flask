@@ -13,6 +13,7 @@ process_map = {
     "ell14": "instance/ell14/ell14_app.py",
 }
 
+
 import subprocess
 import signal
 
@@ -30,7 +31,10 @@ class ProcessManager:
                 "status": "error",
                 "message": f"{process_key} already running",
             }
-        process = subprocess.Popen(["python3", process_map[process_key]])
+        if ".py" in process_map[process_key]:
+            process = subprocess.Popen(["python3", process_map[process_key]])
+        else:
+            process = subprocess.Popen([process_map[process_key]])
         self.processes[process_key] = process
         return {
             "status": "success",
@@ -58,7 +62,7 @@ class ProcessManager:
         return process_status
 
 
-process_manager = ProcessManager()
+process_manager: ProcessManager
 
 
 @app.route("/launch/<process_key>", methods=["GET"])
@@ -76,7 +80,12 @@ def process_status():
     return process_manager.process_running_status()
 
 
+import sys
+
 if __name__ == "__main__":
+    if "jai" in sys.argv:
+        process_map["jai"] = "instance/jai/JAI_ROS_bridge/jai_node"
+    process_manager = ProcessManager()
 
     def signal_handler(sig, frame):
         for process_key in [key for key in process_manager.processes.keys()]:
