@@ -1,36 +1,40 @@
 from cv_bridge import CvBridge
 import cv2
-from sensor_msgs.msg import Image, LaserScan
-from dataclasses import dataclass
-
+from sensor_msgs.msg import Image, LaserScan, CompressedImage
 from slam_pb2 import Pose3D
-from typing import List, Optional
+from typing import List, Optional, Union
 from capture_pb2 import *
-import numpy as np
 from google.protobuf import json_format
 
 
 class ImageBytes:
     width: int
     height: int
-    data: List[int]
+    # data: List[int]
     image: cv2.typing.MatLike
     topic: str
 
     def __init__(
         self,
-        image: Image,
+        image: Union[Image, CompressedImage],
         topic: str = "/oakd/rgb/preview/image_raw",
         bayerInterpolation: bool = False,
     ):
-        self.width = image.width
-        self.height = image.height
-        self.data = image.data.tolist()
-        self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
+        self.topic = topic
+        if type(image) == CompressedImage:
+            print(f"converting {topic} to cv2")
+            self.image = CvBridge().compressed_imgmsg_to_cv2(
+                image, desired_encoding="passthrough"
+            )
+            self.height, self.width = self.image.shape[:2]
+        elif type(image) == Image:
+            self.width = image.width
+            self.height = image.height
+            # self.data = image.data.tolist()
+            self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
         if bayerInterpolation:
             self.image = cv2.cvtColor(self.image, cv2.COLOR_BAYER_RG2RGB)
 
-        self.topic = topic
         # if topic == "/stereo/depth":
         #     self.image = cv2.normalize(
         #         self.image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1

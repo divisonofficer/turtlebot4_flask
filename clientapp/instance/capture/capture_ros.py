@@ -2,11 +2,12 @@ from time import time, sleep
 from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
+from std_srvs.srv import Trigger
 from geometry_msgs.msg import Twist
-from typing import List, Optional, Dict, TypeVar
+from typing import Optional, Dict
 import threading
 import rclpy
-from capture_type import ImageBytes, CaptureSingleScene
+from capture_type import CaptureSingleScene
 from capture_pb2 import CaptureTaskProgress, CaptureMessageDef
 from capture_storage import CaptureStorage
 from flask_socketio import SocketIO
@@ -19,9 +20,6 @@ import requests
 from slam_source import SlamSource
 from capture_scenario import PolarizerError, CaptureSingleScenario
 from socket_progress import SocketProgress
-
-
-MsgType = TypeVar("MsgType")
 
 
 class Ell14:
@@ -95,6 +93,8 @@ class CaptureNode(Node):
     def set_capture_flag(self, flag: bool):
         with self.lock:
             self.flag_capture_running = flag
+            # if self.messageDef.oakd.enabled:
+            #     self.oakd_camera_command(start=flag)
 
     def init_space(
         self,
@@ -131,6 +131,7 @@ class CaptureNode(Node):
         self.space_id = space_id
         self.space_name = space_name
         self.messageDef.slam.enabled = self.use_slam
+        self.oakd_camera_command(start=True)
         return {
             "status": "success",
             "space_id": self.space_id,
@@ -176,7 +177,7 @@ class CaptureNode(Node):
             return error
 
         threading.Thread(target=self.capture_single_job).start()
-
+        sleep(1)
         return {
             "status": "success",
             "space_id": self.space_id,
@@ -234,6 +235,8 @@ class CaptureNode(Node):
         self.publisher_jai_trigger = self.create_publisher(
             Bool, "/jai_1600/stream_trigger", 1
         )
+        self.client_oakd_start = self.create_client(Trigger, "/oakd/start_camera")
+        self.client_oakd_stop = self.create_client(Trigger, "/oakd/stop_camera")
 
     ########################################################
     ### Topic Callbacks
@@ -368,3 +371,9 @@ class CaptureNode(Node):
             sleep(0.15)
             if time() - time_begin > 0.75:
                 break
+
+    def oakd_camera_command(self, start: Optional[bool] = None):
+        if start == True:
+            self.client_oakd_start.call(Trigger.Request())
+        if start == False:
+            self.client_oakd_stop.call(Trigger.Request())

@@ -1,9 +1,14 @@
 from sqlite3 import Timestamp
 from typing import Callable
-from sensor_msgs.msg import Image
 from capture_pb2 import *
 from capture_state import CaptureMessage
-from capture_type import CaptureLiDAR, ImageBytes, CaptureSingleScene
+from capture_type import (
+    CaptureLiDAR,
+    ImageBytes,
+    CaptureSingleScene,
+    Image,
+    CompressedImage,
+)
 import threading
 from slam_types import RosProtoConverter
 from time import time, sleep
@@ -49,7 +54,6 @@ class CaptureSingleScenario:
         self.ell = ell
 
     def get_basic_msgs(self, scene: CaptureSingleScene):
-        time_begin = time()
         while True:
             with self.lock:
                 if self.capture_msg.messages_received:
@@ -69,9 +73,11 @@ class CaptureSingleScenario:
 
             if self.messageDef.oakd.enabled:
                 scene.picture_list += [
-                    ImageBytes(x)
-                    for x in self.capture_msg.get_message(self.messageDef.oakd)
-                    if type(x) == Image
+                    ImageBytes(image=x, topic=self.messageDef.oakd.messages[idx].topic)
+                    for idx, x in enumerate(
+                        self.capture_msg.get_message(self.messageDef.oakd)
+                    )
+                    if isinstance(x, Image) or isinstance(x, CompressedImage)
                 ]
 
     def run_single_capture(self):
