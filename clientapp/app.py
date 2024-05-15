@@ -45,6 +45,11 @@ def get_template_static_cs(filename):
     return send_from_directory("build/static/js", filename)
 
 
+@app.route("/static/media/<path:filename>", methods=["GET"])
+def get_template_static_media(filename):
+    return send_from_directory("build/static/media", filename)
+
+
 @app.route("/ros/stop_motor", methods=["POST"])
 def post_stop_motor():
     """
