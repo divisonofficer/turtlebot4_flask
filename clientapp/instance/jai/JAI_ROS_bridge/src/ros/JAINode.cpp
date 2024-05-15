@@ -90,17 +90,17 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
   auto imageRosMsg = sensor_msgs::msg::Image();
-
-  Info << (buffer->GetTimestamp() - this->cameras[device_num]->timestamp_begin +
-           this->timestamp_begin_ros) /
-              1000
-       << " <> "
-       << std::chrono::duration_cast<std::chrono::nanoseconds>(
-              std::chrono::time_point_cast<std::chrono::nanoseconds>(
-                  std::chrono::high_resolution_clock::now())
-                  .time_since_epoch())
-                  .count() /
-              1000;
+  // Info << (buffer->GetTimestamp() -
+  // this->cameras[device_num]->timestamp_begin +
+  //          this->timestamp_begin_ros) /
+  //             1000
+  //      << " <> "
+  //      << std::chrono::duration_cast<std::chrono::nanoseconds>(
+  //             std::chrono::time_point_cast<std::chrono::nanoseconds>(
+  //                 std::chrono::high_resolution_clock::now())
+  //                 .time_since_epoch())
+  //                 .count() /
+  //             1000;
 
   imageRosMsg.header.stamp = rclcpp::Time(
       buffer->GetTimestamp() - this->cameras[device_num]->timestamp_begin +
