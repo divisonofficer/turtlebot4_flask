@@ -20,7 +20,7 @@ from videostream import VideoStream
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from typing import List, Dict, Any, Optional
 
 from jai_pb2 import (
@@ -88,6 +88,7 @@ DEVICE_INFO: List[DeviceInfo] = [
 class JaiBridgeNode(Node):
 
     service_clients: Dict[str, List[Publisher]] = {}
+    device_service_clients: Dict[str, Dict[str, Publisher]] = {}
     videoStreams: Dict[str, List[VideoStream]] = {}
     videoStreamSubscriptions: Dict[str, List[Subscription]] = {}
     configureSubscriptions: Dict[str, List[Subscription]] = {}
@@ -138,6 +139,13 @@ class JaiBridgeNode(Node):
                         10,
                     )
                 )
+
+                self.device_service_clients[device_name] = {
+                    "open_stream": self.create_publisher(
+                        Bool, f"/{device_name}/stream_trigger", 10
+                    )
+                }
+
                 self.videoStreams[device_name].append(
                     VideoStream(preview_compress=True, timestampWatermark=True)
                 )
@@ -184,6 +192,14 @@ class JaiBridgeNode(Node):
                 msg = String()
                 self.service_clients[device_name][channel_id].publish(msg)
         return self.configure_dict
+
+    def call_service(
+        self, device_name: str, service_name: str, request: Optional[Any] = None
+    ):
+        if service_name == "open_stream":
+            ros_request = Bool()
+            ros_request.data = request
+            self.device_service_clients[device_name][service_name].publish(ros_request)
 
 
 node: JaiBridgeNode
@@ -236,9 +252,21 @@ def get_camera_params():
     return node.get_camera_params()
 
 
-@app.route("/device/init/all")
+@app.route("/device/init/all", methods=["POST"])
 def initialize_camera_config():
     node.initialize_camera_config()
+    return {"status": "success"}
+
+
+@app.route("/device/<device_name>/open_stream", methods=["POST"])
+def open_camera_stream(device_name):
+    node.call_service(device_name, "open_stream", True)
+    return {"status": "success"}
+
+
+@app.route("/device/<device_name>/close_stream", methods=["POST"])
+def close_camera_stream(device_name):
+    node.call_service(device_name, "open_stream", False)
     return {"status": "success"}
 
 
