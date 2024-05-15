@@ -75,8 +75,17 @@ class CaptureMessage:
 
     def update_msg(self, topic: str, msg):
 
-        # if "channel_" in topic:
-        #     print(topic, msg.header.stamp, self.timestamp_second, time())
+        # if "oakd" in topic and time():
+        #     print(topic, " behind :", time() - msg.header.stamp.sec)
+        #     # ,
+        #     #     msg.header.stamp,
+        #     #     "entire_begin:",
+        #     #     self.timestamp,
+        #     #     "sub_begin: ",
+        #     #     self.timestamp_second,
+        #     #     "now: ",
+        #     #     time(),
+        #     # )
         if topic in self.msg_dict:
             return
 

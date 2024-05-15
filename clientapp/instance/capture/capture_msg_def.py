@@ -1,4 +1,4 @@
-from sensor_msgs.msg import Image, LaserScan
+from sensor_msgs.msg import Image, LaserScan, CompressedImage
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from typing import Any, TypeVar
 from capture_pb2 import CaptureMessageDef, CaptureMessageDefGroup
@@ -28,11 +28,36 @@ class CaptureMessageDefinition:
     oakd = CaptureMessageDefGroup(
         name="oakd",
         messages=[
+            # CaptureMessageDef(
+            #     topic="/oakd/rgb/image_raw",
+            #     format="rgb",
+            #     ros_msg_type=CaptureMessageDef.RosMsgType.Image,
+            # ),
             CaptureMessageDef(
-                topic="/oakd/rgb/preview/image_raw",
+                topic="/oakd/rgb/image_raw/compressed",
                 format="rgb",
-                ros_msg_type=CaptureMessageDef.RosMsgType.Image,
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
             ),
+            # CaptureMessageDef(
+            #     topic="/oakd/stereo/image_raw/compressedDepth",
+            #     format="depth",
+            #     ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            # ),
+            CaptureMessageDef(
+                topic="/oakd/left/image_raw/compressed",
+                format="rgb",
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            ),
+            CaptureMessageDef(
+                topic="/oakd/right/image_raw/compressed",
+                format="rgb",
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            ),
+            # CaptureMessageDef(
+            #     topic="/oakd/rgb/image_raw/compressedDepth",
+            #     format="depth",
+            #     ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            # ),
         ],
         enabled=False,
     )
@@ -73,6 +98,8 @@ class CaptureMessageDefinition:
             return LaserScan
         if type == CaptureMessageDef.RosMsgType.PoseWithCovarianceStamped:
             return PoseWithCovarianceStamped
+        if type == CaptureMessageDef.RosMsgType.CompressedImage:
+            return CompressedImage
 
     def update_enable(self, group, status):
         self.__getattribute__(group).enabled = status
