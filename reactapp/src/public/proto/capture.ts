@@ -33,6 +33,7 @@ export interface CaptureAppSpace {
   spaceName: string;
   createTime: number;
   updateTime: number;
+  useSlam: boolean;
 }
 
 export interface CaptureTaskProgress {
@@ -107,6 +108,7 @@ export enum CaptureMessageDef_RosMsgType {
   Image = 0,
   LaserScan = 1,
   PoseWithCovarianceStamped = 2,
+  CompressedImage = 3,
   UNRECOGNIZED = -1,
 }
 
@@ -121,6 +123,9 @@ export function captureMessageDef_RosMsgTypeFromJSON(object: any): CaptureMessag
     case 2:
     case "PoseWithCovarianceStamped":
       return CaptureMessageDef_RosMsgType.PoseWithCovarianceStamped;
+    case 3:
+    case "CompressedImage":
+      return CaptureMessageDef_RosMsgType.CompressedImage;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -136,6 +141,8 @@ export function captureMessageDef_RosMsgTypeToJSON(object: CaptureMessageDef_Ros
       return "LaserScan";
     case CaptureMessageDef_RosMsgType.PoseWithCovarianceStamped:
       return "PoseWithCovarianceStamped";
+    case CaptureMessageDef_RosMsgType.CompressedImage:
+      return "CompressedImage";
     case CaptureMessageDef_RosMsgType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -401,7 +408,7 @@ export const CaptureAppScene = {
 };
 
 function createBaseCaptureAppSpace(): CaptureAppSpace {
-  return { spaceId: 0, captures: [], mapName: "", spaceName: "", createTime: 0, updateTime: 0 };
+  return { spaceId: 0, captures: [], mapName: "", spaceName: "", createTime: 0, updateTime: 0, useSlam: false };
 }
 
 export const CaptureAppSpace = {
@@ -423,6 +430,9 @@ export const CaptureAppSpace = {
     }
     if (message.updateTime !== 0) {
       writer.uint32(49).double(message.updateTime);
+    }
+    if (message.useSlam !== false) {
+      writer.uint32(56).bool(message.useSlam);
     }
     return writer;
   },
@@ -476,6 +486,13 @@ export const CaptureAppSpace = {
 
           message.updateTime = reader.double();
           continue;
+        case 7:
+          if (tag !== 56) {
+            break;
+          }
+
+          message.useSlam = reader.bool();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -495,6 +512,7 @@ export const CaptureAppSpace = {
       spaceName: isSet(object.spaceName) ? globalThis.String(object.spaceName) : "",
       createTime: isSet(object.createTime) ? globalThis.Number(object.createTime) : 0,
       updateTime: isSet(object.updateTime) ? globalThis.Number(object.updateTime) : 0,
+      useSlam: isSet(object.useSlam) ? globalThis.Boolean(object.useSlam) : false,
     };
   },
 
@@ -518,6 +536,9 @@ export const CaptureAppSpace = {
     if (message.updateTime !== 0) {
       obj.updateTime = message.updateTime;
     }
+    if (message.useSlam !== false) {
+      obj.useSlam = message.useSlam;
+    }
     return obj;
   },
 
@@ -532,6 +553,7 @@ export const CaptureAppSpace = {
     message.spaceName = object.spaceName ?? "";
     message.createTime = object.createTime ?? 0;
     message.updateTime = object.updateTime ?? 0;
+    message.useSlam = object.useSlam ?? false;
     return message;
   },
 };

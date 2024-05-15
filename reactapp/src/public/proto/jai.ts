@@ -26,10 +26,16 @@ export interface ParameterUpdate {
   parameters: ParameterValue[];
 }
 
+export interface SourceInfo {
+  name: string;
+  type: string;
+  parameters: ParameterUpdate | undefined;
+}
+
 export interface DeviceInfo {
   name: string;
   sourceCount: number;
-  sourceTypes: string[];
+  sourceTypes: SourceInfo[];
   fps: number;
   configurable: ParameterInfo[];
 }
@@ -288,6 +294,97 @@ export const ParameterUpdate = {
   },
 };
 
+function createBaseSourceInfo(): SourceInfo {
+  return { name: "", type: "", parameters: undefined };
+}
+
+export const SourceInfo = {
+  encode(message: SourceInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.type !== "") {
+      writer.uint32(18).string(message.type);
+    }
+    if (message.parameters !== undefined) {
+      ParameterUpdate.encode(message.parameters, writer.uint32(26).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SourceInfo {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSourceInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.parameters = ParameterUpdate.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SourceInfo {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      type: isSet(object.type) ? globalThis.String(object.type) : "",
+      parameters: isSet(object.parameters) ? ParameterUpdate.fromJSON(object.parameters) : undefined,
+    };
+  },
+
+  toJSON(message: SourceInfo): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.type !== "") {
+      obj.type = message.type;
+    }
+    if (message.parameters !== undefined) {
+      obj.parameters = ParameterUpdate.toJSON(message.parameters);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SourceInfo>, I>>(base?: I): SourceInfo {
+    return SourceInfo.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SourceInfo>, I>>(object: I): SourceInfo {
+    const message = createBaseSourceInfo();
+    message.name = object.name ?? "";
+    message.type = object.type ?? "";
+    message.parameters = (object.parameters !== undefined && object.parameters !== null)
+      ? ParameterUpdate.fromPartial(object.parameters)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseDeviceInfo(): DeviceInfo {
   return { name: "", sourceCount: 0, sourceTypes: [], fps: 0, configurable: [] };
 }
@@ -301,7 +398,7 @@ export const DeviceInfo = {
       writer.uint32(16).int32(message.sourceCount);
     }
     for (const v of message.sourceTypes) {
-      writer.uint32(26).string(v!);
+      SourceInfo.encode(v!, writer.uint32(26).fork()).ldelim();
     }
     if (message.fps !== 0) {
       writer.uint32(32).int32(message.fps);
@@ -338,7 +435,7 @@ export const DeviceInfo = {
             break;
           }
 
-          message.sourceTypes.push(reader.string());
+          message.sourceTypes.push(SourceInfo.decode(reader, reader.uint32()));
           continue;
         case 4:
           if (tag !== 32) {
@@ -368,7 +465,7 @@ export const DeviceInfo = {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       sourceCount: isSet(object.sourceCount) ? globalThis.Number(object.sourceCount) : 0,
       sourceTypes: globalThis.Array.isArray(object?.sourceTypes)
-        ? object.sourceTypes.map((e: any) => globalThis.String(e))
+        ? object.sourceTypes.map((e: any) => SourceInfo.fromJSON(e))
         : [],
       fps: isSet(object.fps) ? globalThis.Number(object.fps) : 0,
       configurable: globalThis.Array.isArray(object?.configurable)
@@ -386,7 +483,7 @@ export const DeviceInfo = {
       obj.sourceCount = Math.round(message.sourceCount);
     }
     if (message.sourceTypes?.length) {
-      obj.sourceTypes = message.sourceTypes;
+      obj.sourceTypes = message.sourceTypes.map((e) => SourceInfo.toJSON(e));
     }
     if (message.fps !== 0) {
       obj.fps = Math.round(message.fps);
@@ -404,7 +501,7 @@ export const DeviceInfo = {
     const message = createBaseDeviceInfo();
     message.name = object.name ?? "";
     message.sourceCount = object.sourceCount ?? 0;
-    message.sourceTypes = object.sourceTypes?.map((e) => e) || [];
+    message.sourceTypes = object.sourceTypes?.map((e) => SourceInfo.fromPartial(e)) || [];
     message.fps = object.fps ?? 0;
     message.configurable = object.configurable?.map((e) => ParameterInfo.fromPartial(e)) || [];
     return message;
