@@ -189,12 +189,18 @@ class CaptureStorage:
                 CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), "thumb"
             )
         ):
-            os.mkdir(
-                os.path.join(
-                    CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), "thumb"
+            try:
+                os.mkdir(
+                    os.path.join(
+                        CAPTURE_TEMP,
+                        str(space_id),
+                        str(capture_id),
+                        str(scene_id),
+                        "thumb",
+                    )
                 )
-            )
-
+            except FileExistsError:
+                pass
         thumb = os.path.join(
             CAPTURE_TEMP,
             str(space_id),
@@ -285,8 +291,7 @@ class CaptureStorage:
         for i, image in enumerate(scene.picture_list):
             filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
             cv2.imwrite(filename, image.image)
-            with open(filename.replace(".png", ".json"), "w") as f:
-                json.dump(image.data, f)
+
         with open(f"{scene_dir}/meta.json", "w") as f:
             f.write(json_format.MessageToJson(scene.to_dict_light()))
 
