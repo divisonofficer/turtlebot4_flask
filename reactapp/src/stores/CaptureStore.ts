@@ -100,23 +100,26 @@ class CaptureStore {
   @action
   processCaptureProgress(progress: CaptureTaskProgress) {
     console.log(this.progress, progress);
-    if (this.progress.find((p) => p.uid === progress.uid)) {
-      if (progress.action === CaptureTaskProgress_Action.DONE) {
-        this.progress = this.progress.filter((p) => p.uid !== progress.uid);
-        return;
-      }
+    if (
+      progress.action === CaptureTaskProgress_Action.DONE ||
+      progress.action === CaptureTaskProgress_Action.ERROR
+    ) {
+      this.progress = this.progress.filter((p) => p.uid !== progress.uid);
+      this.capture_pendings_id = this.capture_pendings_id.filter(
+        (id) => id !== progress.captureId
+      );
       if (progress.action === CaptureTaskProgress_Action.ERROR) {
-        this.progress = this.progress.filter((p) => p.uid !== progress.uid);
         alertStore.addAlert(
           "error",
           `Capture Task Error : ${progress.message}`,
           "CaptureStore.processCaptureProgress"
         );
-        this.capture_pendings_id = this.capture_pendings_id.filter(
-          (id) => id !== progress.captureId
-        );
         return;
       }
+      return;
+    }
+
+    if (this.progress.find((p) => p.uid === progress.uid)) {
       this.progress = this.progress.map((p) => {
         if (p.uid === progress.uid) {
           return progress;
@@ -125,7 +128,7 @@ class CaptureStore {
       });
       return;
     }
-    this.progress = [progress, ...this.progress];
+    this.progress = [...this.progress, progress];
   }
 
   @action
