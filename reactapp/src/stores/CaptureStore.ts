@@ -9,6 +9,7 @@ import {
   CaptureMessageDefGroup,
   CaptureTaskProgress,
   CaptureTaskProgress_Action,
+  CaptureTopicTimestampLog,
 } from "../public/proto/capture";
 
 export const CAPTURE_TOPICS = {
@@ -50,6 +51,15 @@ class CaptureStore {
       CaptureTaskProgress,
       (data: CaptureTaskProgress) => this.processCaptureProgress(data)
     );
+    captureSocket.subscribeBuffer(
+      "/timestamp_logs",
+      CaptureTopicTimestampLog,
+      (data: CaptureTopicTimestampLog) => {
+        runInAction(() => {
+          this.captureTimestampLog = data;
+        });
+      }
+    );
   }
   /////////////////////////////////////////////
   // For All Backend Stored data
@@ -73,7 +83,10 @@ class CaptureStore {
   use_slam: boolean = false;
 
   is_capture_running: boolean = false;
+  ////// Task Logging
   progress: CaptureTaskProgress[] = [];
+  captureTimestampLog?: CaptureTopicTimestampLog = undefined;
+
   /////////////////////////////////////////////
   // For Capture Control
   /////////////////////////////////////////////
@@ -327,6 +340,16 @@ class CaptureStore {
         );
       })
       .fetch();
+  };
+
+  @action
+  fetchMultiSpectralInit = () => {
+    httpPost("/jai/device/init/all").fetch();
+  };
+
+  @action
+  fetchMultiSpectralClose = () => {
+    httpPost("/jai/device/jai_1600/close_stream").fetch();
   };
 
   @action
