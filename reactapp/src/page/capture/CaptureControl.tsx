@@ -159,6 +159,27 @@ export const CaptureSpaceControl = observer(() => {
   );
 });
 
+export const MultiSpectralCameraControl = observer(() => {
+  return (
+    <HStack>
+      <Btn
+        onClick={() => captureStore.fetchMultiSpectralInit()}
+        color={Color.Cyan}
+        size="sm"
+      >
+        MultiSpectralInit
+      </Btn>
+      <Btn
+        onClick={() => captureStore.fetchMultiSpectralClose()}
+        size="sm"
+        color={Color.Orange}
+      >
+        MultiSpectralClose
+      </Btn>{" "}
+    </HStack>
+  );
+});
+
 export const CaptureControl = observer(() => {
   return (
     <Flex wrap="wrap" gap="2" width="100%">
@@ -217,10 +238,30 @@ export const CaptureControl = observer(() => {
                   Queue
                 </Btn>{" "}
               </HStack>
+
               <CaptureSourceSwitch />
+
+              <MultiSpectralCameraControl />
             </>
           )}
         </>
+      )}
+      {captureStore.is_capture_running && captureStore.captureTimestampLog && (
+        <VStack
+          style={{
+            alignItems: "flex-start",
+            height: "15rem",
+            overflowY: "scroll",
+          }}
+        >
+          <H4>TimeStamp Logs</H4>
+          {captureStore.captureTimestampLog.logs.map((log, index) => (
+            <HStack>
+              <Body3>{log.topic}</Body3>
+              <Body3>{log.delayToSystem.toFixed(4)} ms</Body3>
+            </HStack>
+          ))}
+        </VStack>
       )}
     </Flex>
   );

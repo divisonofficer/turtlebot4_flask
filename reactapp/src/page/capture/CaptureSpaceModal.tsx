@@ -51,6 +51,8 @@ const SpaceItem = (props: StackProps & { space: CaptureAppSpace }) => {
 
       <VStack alignItems="flex-start" width="8rem">
         <Body3>ID : {space.spaceId}</Body3>
+        <Body3>Name : {space.spaceName}</Body3>
+
         <Body3>Captures : {space.captures.length}</Body3>
       </VStack>
     </HStack>
