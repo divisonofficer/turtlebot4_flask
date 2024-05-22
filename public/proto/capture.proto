@@ -62,10 +62,23 @@ message CaptureMessageDef{
     string topic = 1;
     string format = 2;
     RosMsgType ros_msg_type = 3;
+    double delay = 4;
 }
 
 message CaptureMessageDefGroup{
     string name = 1;
     bool enabled = 2;
     repeated CaptureMessageDef messages = 3;
+}
+
+
+message CaptureTopicTimestampLog{
+    message TimestampLog{
+        string topic = 1;
+        double timestamp = 2;
+        double delay_to_system = 3;
+    }
+
+    repeated TimestampLog logs = 1;
+
 }

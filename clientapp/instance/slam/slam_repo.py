@@ -8,7 +8,7 @@ from google.protobuf import json_format
 
 class SlamRepo:
     def __init__(self):
-        self.ROOT = "/tmp/slam"
+        self.ROOT = "tmp/slam"
 
         if not os.path.exists(self.ROOT):
             os.mkdir(self.ROOT)

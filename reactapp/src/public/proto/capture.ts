@@ -102,6 +102,7 @@ export interface CaptureMessageDef {
   topic: string;
   format: string;
   rosMsgType: CaptureMessageDef_RosMsgType;
+  delay: number;
 }
 
 export enum CaptureMessageDef_RosMsgType {
@@ -153,6 +154,16 @@ export interface CaptureMessageDefGroup {
   name: string;
   enabled: boolean;
   messages: CaptureMessageDef[];
+}
+
+export interface CaptureTopicTimestampLog {
+  logs: CaptureTopicTimestampLog_TimestampLog[];
+}
+
+export interface CaptureTopicTimestampLog_TimestampLog {
+  topic: string;
+  timestamp: number;
+  delayToSystem: number;
 }
 
 function createBaseCaptureAppCapture(): CaptureAppCapture {
@@ -723,7 +734,7 @@ export const CaptureTaskProgress = {
 };
 
 function createBaseCaptureMessageDef(): CaptureMessageDef {
-  return { topic: "", format: "", rosMsgType: 0 };
+  return { topic: "", format: "", rosMsgType: 0, delay: 0 };
 }
 
 export const CaptureMessageDef = {
@@ -736,6 +747,9 @@ export const CaptureMessageDef = {
     }
     if (message.rosMsgType !== 0) {
       writer.uint32(24).int32(message.rosMsgType);
+    }
+    if (message.delay !== 0) {
+      writer.uint32(33).double(message.delay);
     }
     return writer;
   },
@@ -768,6 +782,13 @@ export const CaptureMessageDef = {
 
           message.rosMsgType = reader.int32() as any;
           continue;
+        case 4:
+          if (tag !== 33) {
+            break;
+          }
+
+          message.delay = reader.double();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -782,6 +803,7 @@ export const CaptureMessageDef = {
       topic: isSet(object.topic) ? globalThis.String(object.topic) : "",
       format: isSet(object.format) ? globalThis.String(object.format) : "",
       rosMsgType: isSet(object.rosMsgType) ? captureMessageDef_RosMsgTypeFromJSON(object.rosMsgType) : 0,
+      delay: isSet(object.delay) ? globalThis.Number(object.delay) : 0,
     };
   },
 
@@ -796,6 +818,9 @@ export const CaptureMessageDef = {
     if (message.rosMsgType !== 0) {
       obj.rosMsgType = captureMessageDef_RosMsgTypeToJSON(message.rosMsgType);
     }
+    if (message.delay !== 0) {
+      obj.delay = message.delay;
+    }
     return obj;
   },
 
@@ -807,6 +832,7 @@ export const CaptureMessageDef = {
     message.topic = object.topic ?? "";
     message.format = object.format ?? "";
     message.rosMsgType = object.rosMsgType ?? 0;
+    message.delay = object.delay ?? 0;
     return message;
   },
 };
@@ -898,6 +924,160 @@ export const CaptureMessageDefGroup = {
     message.name = object.name ?? "";
     message.enabled = object.enabled ?? false;
     message.messages = object.messages?.map((e) => CaptureMessageDef.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCaptureTopicTimestampLog(): CaptureTopicTimestampLog {
+  return { logs: [] };
+}
+
+export const CaptureTopicTimestampLog = {
+  encode(message: CaptureTopicTimestampLog, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.logs) {
+      CaptureTopicTimestampLog_TimestampLog.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): CaptureTopicTimestampLog {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCaptureTopicTimestampLog();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.logs.push(CaptureTopicTimestampLog_TimestampLog.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CaptureTopicTimestampLog {
+    return {
+      logs: globalThis.Array.isArray(object?.logs)
+        ? object.logs.map((e: any) => CaptureTopicTimestampLog_TimestampLog.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CaptureTopicTimestampLog): unknown {
+    const obj: any = {};
+    if (message.logs?.length) {
+      obj.logs = message.logs.map((e) => CaptureTopicTimestampLog_TimestampLog.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CaptureTopicTimestampLog>, I>>(base?: I): CaptureTopicTimestampLog {
+    return CaptureTopicTimestampLog.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CaptureTopicTimestampLog>, I>>(object: I): CaptureTopicTimestampLog {
+    const message = createBaseCaptureTopicTimestampLog();
+    message.logs = object.logs?.map((e) => CaptureTopicTimestampLog_TimestampLog.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCaptureTopicTimestampLog_TimestampLog(): CaptureTopicTimestampLog_TimestampLog {
+  return { topic: "", timestamp: 0, delayToSystem: 0 };
+}
+
+export const CaptureTopicTimestampLog_TimestampLog = {
+  encode(message: CaptureTopicTimestampLog_TimestampLog, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.topic !== "") {
+      writer.uint32(10).string(message.topic);
+    }
+    if (message.timestamp !== 0) {
+      writer.uint32(17).double(message.timestamp);
+    }
+    if (message.delayToSystem !== 0) {
+      writer.uint32(25).double(message.delayToSystem);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): CaptureTopicTimestampLog_TimestampLog {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCaptureTopicTimestampLog_TimestampLog();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.topic = reader.string();
+          continue;
+        case 2:
+          if (tag !== 17) {
+            break;
+          }
+
+          message.timestamp = reader.double();
+          continue;
+        case 3:
+          if (tag !== 25) {
+            break;
+          }
+
+          message.delayToSystem = reader.double();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CaptureTopicTimestampLog_TimestampLog {
+    return {
+      topic: isSet(object.topic) ? globalThis.String(object.topic) : "",
+      timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
+      delayToSystem: isSet(object.delayToSystem) ? globalThis.Number(object.delayToSystem) : 0,
+    };
+  },
+
+  toJSON(message: CaptureTopicTimestampLog_TimestampLog): unknown {
+    const obj: any = {};
+    if (message.topic !== "") {
+      obj.topic = message.topic;
+    }
+    if (message.timestamp !== 0) {
+      obj.timestamp = message.timestamp;
+    }
+    if (message.delayToSystem !== 0) {
+      obj.delayToSystem = message.delayToSystem;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CaptureTopicTimestampLog_TimestampLog>, I>>(
+    base?: I,
+  ): CaptureTopicTimestampLog_TimestampLog {
+    return CaptureTopicTimestampLog_TimestampLog.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CaptureTopicTimestampLog_TimestampLog>, I>>(
+    object: I,
+  ): CaptureTopicTimestampLog_TimestampLog {
+    const message = createBaseCaptureTopicTimestampLog_TimestampLog();
+    message.topic = object.topic ?? "";
+    message.timestamp = object.timestamp ?? 0;
+    message.delayToSystem = object.delayToSystem ?? 0;
     return message;
   },
 };
