@@ -171,7 +171,8 @@ def capture_result_scene_images(space_id, capture_id, scene_id):
 @app.route("/result/<space_id>/<capture_id>/<scene_id>/<filename>", methods=["GET"])
 def capture_result_image(space_id, capture_id, scene_id, filename):
     return send_file(
-        capture_storage.get_capture_scene_filepath(
+        "../../"
+        + capture_storage.get_capture_scene_filepath(
             int(space_id), int(capture_id), int(scene_id), filename
         )
     )
@@ -184,10 +185,12 @@ def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
     if not space_id or not capture_id or not scene_id:
         return Response(status=404)
 
-    return send_file(
-        capture_storage.get_capture_scene_image_thumb(
+    return Response(
+        status=200,
+        response=capture_storage.get_capture_scene_image_thumb(
             int(space_id), int(capture_id), int(scene_id), filename
-        )
+        ).tobytes(),
+        mimetype="image/jpeg",
     )
 
 

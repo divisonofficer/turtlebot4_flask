@@ -125,6 +125,11 @@ class CaptureSingleScenario:
                     serialized_scene.SerializeToString(),
                     namespace="/socket",
                 )
+                self.socketIO.emit(
+                    "/timestamp_logs",
+                    self.capture_msg.timestamp_log.SerializeToString(),
+                    namespace="/socket",
+                )
             self.open_jai_stream(False)
             return scene
         except NoImageSignal:
@@ -163,7 +168,7 @@ class CaptureSingleScenario:
         Capture the multispectral camera four times with a 45-degree rotation of the polarizer.
         Repeat the process of rotating by 45 degrees and capturing the image.
         """
-        if not self.messageDef.hyperSpectral1.enabled:
+        if not self.messageDef.MultiChannel_Left.enabled:
             return []
         image_list = []
         self.ell.polarizer_turn(home=True)
@@ -179,7 +184,7 @@ class CaptureSingleScenario:
             if not self.capture_msg:
                 raise NoImageSignal()
 
-            self.capture_msg.vacate_second_msg_dict(self.messageDef.hyperSpectral1)
+            self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Left)
             while True:
                 if time() - self.capture_msg.timestamp_second > 10:
                     break
@@ -193,7 +198,7 @@ class CaptureSingleScenario:
                 raise NoImageSignal()
             print(time() - capture_msg.timestamp_second)
 
-            for topic in self.messageDef.hyperSpectral1.messages:
+            for topic in self.messageDef.MultiChannel_Left.messages:
                 image_list.append(
                     ImageBytes(
                         capture_msg.msg_dict[topic.topic],

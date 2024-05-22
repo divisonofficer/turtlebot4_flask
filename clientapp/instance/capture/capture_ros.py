@@ -11,7 +11,7 @@ from capture_type import CaptureSingleScene
 from capture_pb2 import CaptureTaskProgress, CaptureMessageDef
 from capture_storage import CaptureStorage
 from flask_socketio import SocketIO
-from capture_msg_def import CaptureMessageDefinition
+from capture_msg_def import CaptureMessageDefinition, ScenarioHyperParameter
 
 from capture_state import CaptureMessage
 import requests
@@ -48,11 +48,12 @@ class Ell14:
 
 class CaptureNode(Node):
     space_id: Optional[int]
-    capture_id: int
+    capture_id: Optional[int] = None
     capture_msg: Optional[CaptureMessage] = None
     use_slam: bool = False
 
     messageDef = CaptureMessageDefinition()
+    scenario_hyper = ScenarioHyperParameter()
 
     subscriptions_image: Dict[str, Subscription]
     socketIO: SocketIO
@@ -93,6 +94,7 @@ class CaptureNode(Node):
     def set_capture_flag(self, flag: bool):
         with self.lock:
             self.flag_capture_running = flag
+            self.capture_id = None
             # if self.messageDef.oakd.enabled:
             #     self.oakd_camera_command(start=flag)
 
@@ -128,6 +130,8 @@ class CaptureNode(Node):
             if self.use_slam:
                 self.slam_source.request_map_load(str(space_id))
 
+        requests.post("http://localhost/jai/device/init/all")
+
         self.space_id = space_id
         self.space_name = space_name
         self.messageDef.slam.enabled = self.use_slam
@@ -143,7 +147,8 @@ class CaptureNode(Node):
         """
         if self.space_id:
             self.storage.store_space_metadata(self.space_id)
-            self.slam_source.request_map_save_and_clean(str(self.space_id))
+            if self.use_slam:
+                self.slam_source.request_map_save_and_clean(str(self.space_id))
         else:
             return None
         self.space_id = None
@@ -158,8 +163,8 @@ class CaptureNode(Node):
         error = self.check_capture_call_available()
         if error:
             return error
-
-        thread = threading.Thread(target=self.run_capture_queue)
+        self.capture_id = int(time())
+        thread = threading.Thread(target=self.run_capture_queue, args=[self.capture_id])
         thread.start()
         return {
             "status": "success",
@@ -176,7 +181,9 @@ class CaptureNode(Node):
         if error:
             return error
 
-        threading.Thread(target=self.capture_single_job).start()
+        self.capture_id = int(time())
+
+        threading.Thread(target=self.capture_single_job, args=[self.capture_id]).start()
         sleep(1)
         return {
             "status": "success",
@@ -258,13 +265,15 @@ class CaptureNode(Node):
     ### Image Capture Tasks
     #######################################################
 
-    def store_scene_thread(self, scene: CaptureSingleScene):
+    def store_scene_thread(
+        self, space_id, capture_id, scene_id, scene: CaptureSingleScene
+    ):
         threading.Thread(
             target=self.storage.store_captured_scene,
-            args=(self.space_id, self.capture_id, scene.scene_id, scene),
+            args=(space_id, capture_id, scene_id, scene),
         ).start()
 
-    def run_capture_queue(self):
+    def run_capture_queue(self, capture_id: int):
         if not self.space_id:
             return
         """
@@ -276,38 +285,40 @@ class CaptureNode(Node):
         self.flag_abort = False
         self.capture_id = int(time())
 
+        space_id = self.space_id
+
         self.socket_progress(
             0,
-            uuid=f"{self.capture_id}/root",
+            uuid=f"{capture_id}/root",
             action=CaptureTaskProgress.Action.INIT,
             msg="Begin Rotating Capture",
-            capture_id=self.capture_id,
+            capture_id=capture_id,
         )
         scenes = []
-        for scene_id in range(20):
+        for scene_id in range(self.scenario_hyper.RotationQueueCount):
             if self.flag_abort:
                 self.get_logger().info("Capture aborted")
                 self.socket_progress(
                     100,
-                    uuid=f"{self.capture_id}/root",
+                    uuid=f"{capture_id}/root",
                     action=CaptureTaskProgress.Action.ERROR,
                     msg="Capture Aborted",
-                    capture_id=self.capture_id,
+                    capture_id=capture_id,
                 )
                 break
             self.socket_progress(
                 scene_id * 5,
-                uuid=f"{self.capture_id}/root",
+                uuid=f"{capture_id}/root",
                 action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take",
-                capture_id=self.capture_id,
+                capture_id=capture_id,
             )
 
             self.capture_msg = CaptureMessage(self.messageDef)
             scene = CaptureSingleScenario(
                 self.open_jai_stream,
                 self.socket_progress,
-                [self.space_id, self.capture_id, scene_id],
+                [space_id, capture_id, scene_id],
                 self.capture_msg,
                 self.lock,
                 self.socketIO,
@@ -316,35 +327,36 @@ class CaptureNode(Node):
             if not scene:
                 continue
             scenes.append(scene)
-            self.store_scene_thread(scene)
+            self.store_scene_thread(space_id, capture_id, scene_id, scene)
 
             self.socket_progress(
-                scene_id * 5 + 3,
-                uuid=f"{self.capture_id}/root",
+                int(scene_id * 20 / self.scenario_hyper.RotationQueueCount) + 3,
+                uuid=f"{capture_id}/root",
                 action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take done. Turn right",
-                capture_id=self.capture_id,
+                capture_id=capture_id,
             )
-            self.turn_right()
+            if scene_id != self.scenario_hyper.RotationQueueCount - 1:
+                self.turn_right()
         self.socket_progress(
             100,
-            uuid=f"{self.capture_id}/root",
+            uuid=f"{capture_id}/root",
             action=CaptureTaskProgress.Action.DONE,
             msg="Rotating Capture Done",
-            capture_id=self.capture_id,
+            capture_id=capture_id,
         )
         self.set_capture_flag(False)
 
-    def capture_single_job(self):
+    def capture_single_job(self, capture_id: int):
         if not self.space_id:
             return
         self.set_capture_flag(True)
-        self.capture_id = int(time())
+
         self.capture_msg = CaptureMessage(self.messageDef)
         scene = CaptureSingleScenario(
             self.open_jai_stream,
             self.socket_progress,
-            [self.space_id, self.capture_id, 0],
+            [self.space_id, capture_id, 0],
             self.capture_msg,
             self.lock,
             self.socketIO,
@@ -353,7 +365,7 @@ class CaptureNode(Node):
         if not scene:
             return None
         self.storage.store_captured_scene(
-            space_id=self.space_id, capture_id=self.capture_id, scene_id=0, scene=scene
+            space_id=self.space_id, capture_id=capture_id, scene_id=0, scene=scene
         )
         self.set_capture_flag(False)
 
@@ -362,14 +374,14 @@ class CaptureNode(Node):
 
     def turn_right(self):
         twist = Twist()
-        twist.angular.z = 0.4
+        twist.angular.z = self.scenario_hyper.RotationSpeed
         time_begin = time()
         while rclpy.ok():
 
             # Turn right the robot
             self.publisher_cmd_vel.publish(twist)
             sleep(0.15)
-            if time() - time_begin > 0.75:
+            if time() - time_begin > self.scenario_hyper.RotationInterval:
                 break
 
     def oakd_camera_command(self, start: Optional[bool] = None):

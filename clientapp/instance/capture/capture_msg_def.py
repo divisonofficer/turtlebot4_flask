@@ -9,18 +9,18 @@ MsgType = TypeVar("MsgType")
 
 class CaptureMessageDefinition:
 
-    hyperSpectral1 = CaptureMessageDefGroup(
-        name="hyperSpectral1",
+    MultiChannel_Left = CaptureMessageDefGroup(
+        name="MultiChannel_Left",
         messages=[
             CaptureMessageDef(
                 topic="/jai_1600/channel_0",
                 format="bayer_rg8",
-                ros_msg_type=CaptureMessageDef.RosMsgType.Image,
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
             ),
             CaptureMessageDef(
                 topic="/jai_1600/channel_1",
                 format="mono8",
-                ros_msg_type=CaptureMessageDef.RosMsgType.Image,
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
             ),
         ],
         enabled=False,
@@ -37,6 +37,7 @@ class CaptureMessageDefinition:
                 topic="/oakd/rgb/image_raw/compressed",
                 format="rgb",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                delay=2.0,
             ),
             # CaptureMessageDef(
             #     topic="/oakd/stereo/image_raw/compressedDepth",
@@ -47,11 +48,13 @@ class CaptureMessageDefinition:
                 topic="/oakd/left/image_raw/compressed",
                 format="rgb",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                delay=2.0,
             ),
             CaptureMessageDef(
                 topic="/oakd/right/image_raw/compressed",
                 format="rgb",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                delay=2.0,
             ),
             # CaptureMessageDef(
             #     topic="/oakd/rgb/image_raw/compressedDepth",
@@ -68,7 +71,7 @@ class CaptureMessageDefinition:
             CaptureMessageDef(
                 topic="/scan",
                 format="lidar",
-                ros_msg_type=CaptureMessageDef.RosMsgType.Image,
+                ros_msg_type=CaptureMessageDef.RosMsgType.LaserScan,
             ),
             CaptureMessageDef(
                 topic="/pose",
@@ -79,11 +82,16 @@ class CaptureMessageDefinition:
         enabled=False,
     )
 
+    topic_map: dict[str, CaptureMessageDef]
+
     def __init__(self):
-        pass
+        self.topic_map = {}
+        for group in self.entries():
+            for msg in group.messages:
+                self.topic_map[msg.topic] = msg
 
     def entries(self):
-        return [self.oakd, self.hyperSpectral1, self.slam]
+        return [self.oakd, self.MultiChannel_Left, self.slam]
 
     def to_dict(self):
         def_dict = {}
@@ -103,3 +111,17 @@ class CaptureMessageDefinition:
 
     def update_enable(self, group, status):
         self.__getattribute__(group).enabled = status
+
+    def resolve_topic(self, topic: str):
+        if topic in self.topic_map:
+            return self.topic_map[topic]
+        return None
+
+
+class ScenarioHyperParameter:
+    RotationQueueCount = 25
+    RotationSpeed = 0.25
+    RotationInterval = 0.75
+
+    def __init__(self):
+        pass
