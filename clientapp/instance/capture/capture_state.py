@@ -1,33 +1,30 @@
 from time import time
-from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped
-from typing import List, Optional, Any
+from typing import List, Any
 from capture_msg_def import CaptureMessageDefinition
-from capture_pb2 import CaptureMessageDefGroup
+from capture_pb2 import CaptureMessageDefGroup, CaptureTopicTimestampLog
 
 
 class CaptureMessage:
-    lidar_msg: Optional[LaserScan]
-    pose_msg: Optional[PoseWithCovarianceStamped]
     messages_received: bool
     messages_received_second: bool
     timestamp: float
     timestamp_second: float
     image_topics: List[str]
-    use_second_timestamp: dict[str, float] = {}
+    use_second_timestamp: dict[str, bool] = {}
+
+    timestamp_log: CaptureTopicTimestampLog
 
     msg_dict: dict[str, Any] = {}
 
     def __init__(self, definition: CaptureMessageDefinition):
         self.msg_dict = {}
-        self.lidar_msg = None
-        self.pose_msg = None
         self.messages_received = False
         self.messages_received_second = False
         self.timestamp = time()
         self.timestamp_second = time()
         self.use_second_timestamp = {}
         self.definition = definition
+        self.timestamp_log = CaptureTopicTimestampLog()
 
     def get_message(self, group: CaptureMessageDefGroup):
         return [
@@ -36,7 +33,6 @@ class CaptureMessage:
         ]
 
     def check_messages_received(self):
-
         keys = [
             [
                 msg.topic
@@ -55,72 +51,38 @@ class CaptureMessage:
                 msg_flag[i] = False
                 break
         self.messages_received, self.messages_received_second = msg_flag
-        # if self.messages_received:
-        #     print(keys[0], self.msg_dict.keys())
-        # if self.messages_received_second:
-        #     print(keys[1], self.msg_dict.keys())
-
-    #     if self.lidar_msg is not None and self.pose_msg is not None:
-    #         if len(self.image_msg_dict.values()) == len(self.image_topics):
-    #             self.messages_received = True
-    #             for msg in [self.lidar_msg, self.pose_msg] + list(
-    #                 self.image_msg_dict.values()
-    #             ):
-    #                 if (
-    #                     msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000
-    #                     < self.timestamp
-    #                 ):
-    #                     self.messages_received = False
-    #                     break
 
     def update_msg(self, topic: str, msg):
-
-        # if "oakd" in topic and time():
-        #     print(topic, " behind :", time() - msg.header.stamp.sec)
-        #     # ,
-        #     #     msg.header.stamp,
-        #     #     "entire_begin:",
-        #     #     self.timestamp,
-        #     #     "sub_begin: ",
-        #     #     self.timestamp_second,
-        #     #     "now: ",
-        #     #     time(),
-        #     # )
+        # if "jai" in topic:
+        #      print(topic, " behind :", time() - msg.header.stamp.sec, msg.header.stamp)
         if topic in self.msg_dict:
             return
-
-        if msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000 >= (
-            self.timestamp_second
-            if topic in self.use_second_timestamp
-            else self.timestamp
+        topic_def = self.definition.resolve_topic(topic)
+        if topic_def is None:
+            return
+        topic_delay = topic_def.delay
+        if (
+            msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000 - topic_delay
+            >= (
+                self.timestamp_second
+                if topic in self.use_second_timestamp
+                else self.timestamp
+            )
         ):
             self.msg_dict[topic] = msg
+
+            self.timestamp_log.logs.append(
+                CaptureTopicTimestampLog.TimestampLog(
+                    topic=topic,
+                    timestamp=msg.header.stamp.sec
+                    + msg.header.stamp.nanosec / 1000000000,
+                    delay_to_system=time()
+                    - msg.header.stamp.sec
+                    - msg.header.stamp.nanosec / 1000000000,
+                )
+            )
+
             self.check_messages_received()
-
-    # def get_msg_received(self):
-    #     if self.pose_msg is None:
-    #         raise NoPoseSignal("No pose signal received")
-
-    #     pose = self.pose_msg.pose.pose
-    #     pose = RosProtoConverter().rosPoseToProtoPose3D(pose)
-    #     # get lidar information
-
-    #     if self.lidar_msg is None:
-    #         raise NoLidarSignal("No lidar signal received")
-
-    #     lidar = CaptureLiDAR(self.lidar_msg)
-
-    #     # get image msgs
-
-    #     if len(self.image_msg_dict.values()) < len(self.image_topics):
-    #         raise NoImageSignal(
-    #             f"{len(self.image_msg_dict.values())} images received out of {len(self.image_topics)}"
-    #         )
-    #     image_list = [
-    #         ImageBytes(msg, topic, bayerInterpolation="channel_0" in topic)
-    #         for topic, msg in self.image_msg_dict.items()
-    #     ]
-    #     return pose, lidar, image_list
 
     def vacate_second_msg_dict(self, group: CaptureMessageDefGroup):
         self.messages_received_second = False
