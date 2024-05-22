@@ -4,6 +4,8 @@
 #include <Logger.h>
 #include <ParamManager.h>
 
+#include <chrono>
+
 MultiSpectralCamera::MultiSpectralCamera() {
   streamCallback[0] = nullptr;
   streamCallback[1] = nullptr;
@@ -26,6 +28,13 @@ void MultiSpectralCamera::addStreamCallback(
 }
 
 void MultiSpectralCamera::openStream() {
+  auto systemNano = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                            std::chrono::high_resolution_clock::now())
+                            .time_since_epoch())
+                        .count();
+  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
+  this->timestamp_begin = systemNano;
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
 

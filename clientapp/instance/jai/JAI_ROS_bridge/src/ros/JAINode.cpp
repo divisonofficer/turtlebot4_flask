@@ -1,8 +1,9 @@
 #include <JAINode.h>
 #include <Logger.h>
+#include <cv_bridge/cv_bridge.h>
 #include <jai.pb.h>
 
-#include <chrono>
+#include <opencv4/opencv2/opencv.hpp>
 
 std::vector<std::string> splitString(std::string str, std::string delimiter) {
   std::vector<std::string> parts;
@@ -30,12 +31,7 @@ void JAINode::createPublishers() {
 
   openStream(0);
   this->cameras[0]->initCameraTimestamp();
-  this->timestamp_begin_ros =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::time_point_cast<std::chrono::nanoseconds>(
-              std::chrono::high_resolution_clock::now())
-              .time_since_epoch())
-          .count();
+  this->timestamp_begin_ros = this->systemTimeNano();
 
   subscription_thread =
       std::thread([this]() { this->cameras.back()->runUntilInterrupted(); });
@@ -70,7 +66,7 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
   // Per Stream Publishers
   for (int i = 0; i < channel_count; i++) {
     imagePublishers[device_num][i] =
-        this->create_publisher<sensor_msgs::msg::Image>(
+        this->create_publisher<sensor_msgs::msg::CompressedImage>(
             device_name + "/channel_" + std::to_string(i), 10);
     cameraDeviceParamPublishers[device_num][i] =
         this->create_publisher<std_msgs::msg::String>(
@@ -89,33 +85,50 @@ std::function<void(PvBuffer*)> JAINode::getEbusRosCallback(
 void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
-  auto imageRosMsg = sensor_msgs::msg::Image();
-  // Info << (buffer->GetTimestamp() -
-  // this->cameras[device_num]->timestamp_begin +
-  //          this->timestamp_begin_ros) /
-  //             1000
-  //      << " <> "
-  //      << std::chrono::duration_cast<std::chrono::nanoseconds>(
-  //             std::chrono::time_point_cast<std::chrono::nanoseconds>(
-  //                 std::chrono::high_resolution_clock::now())
-  //                 .time_since_epoch())
-  //                 .count() /
-  //             1000;
 
-  imageRosMsg.header.stamp = rclcpp::Time(
-      buffer->GetTimestamp() - this->cameras[device_num]->timestamp_begin +
-      this->timestamp_begin_ros);
-  imageRosMsg.header.frame_id = "jai_camera";
-  imageRosMsg.height = buffer->GetImage()->GetHeight();
-  imageRosMsg.width = buffer->GetImage()->GetWidth();
-  imageRosMsg.encoding =
-      source_num == 1 ? "mono8"
-                      : "bayer_rggb8";  // todo : buffer pixel type 을 변환
-  imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
-                     buffer->GetImage()->GetWidth();
-  imageRosMsg.data =
-      std::vector<uint8_t>(buffer->GetDataPointer(),
-                           buffer->GetDataPointer() + buffer->GetPayloadSize());
+  auto current_time = this->systemTimeNano();
+  auto buffer_time =
+      buffer->GetTimestamp() + cameras[device_num]->timestamp_begin;
+  if (buffer_time > current_time) return;
+  if (current_time - buffer_time > 4000000000) {
+    ErrorLog << "Channel " << source_num << " "
+             << (current_time - buffer_time) / 1000000 % 100000 << "ms behinds";
+    return;
+  }
+  Info << "Channel " << source_num << " " << buffer_time / 1000000 % 100000
+       << " <> " << current_time / 1000000 % 100000;
+
+  // auto imageRosMsg = sensor_msgs::msg::Image();
+  // imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
+  // imageRosMsg.header.frame_id = "jai_camera";
+  // imageRosMsg.height = buffer->GetImage()->GetHeight();
+  // imageRosMsg.width = buffer->GetImage()->GetWidth();
+  // imageRosMsg.encoding =
+  //     source_num == 1 ? "mono8"
+  //                     : "bayer_rggb8";  // todo : buffer pixel type 을 변환
+  // imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
+  //                    buffer->GetImage()->GetWidth();
+  // imageRosMsg.data =
+  //     std::vector<uint8_t>(buffer->GetDataPointer(),
+  //                          buffer->GetDataPointer() +
+  //                          buffer->GetPayloadSize());
+
+  auto imageRosMsg = sensor_msgs::msg::CompressedImage();
+  imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
+  cv::Mat image =
+      cv::Mat(buffer->GetImage()->GetHeight(), buffer->GetImage()->GetWidth(),
+              CV_8UC1, buffer->GetDataPointer());
+  // if (source_num == 0) {
+  //   cv::cvtColor(image, image, cv::COLOR_BayerBG2BGR);
+  // }
+  std::vector<uint8_t> compressed_data;
+  std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
+                                         95};  // Adjust quality as needed
+  cv::imencode(".jpg", image, compressed_data, compression_params);
+  imageRosMsg.format = "jpeg";
+  imageRosMsg.header.frame_id = source_num == 0 ? "bayer" : "mono";
+  imageRosMsg.data = std::move(compressed_data);
+
   imagePublishers[device_num][source_num]->publish(imageRosMsg);
 }
 
@@ -141,6 +154,7 @@ void JAINode::openStream(int camera_num) {
     return;
   }
   cameras[camera_num]->openStream();
+  this->timestamp_begin_ros = this->systemTimeNano();
 }
 
 void JAINode::closeStream(int camera_num) {
@@ -196,4 +210,12 @@ void JAINode::join_thread() {
   subscription_thread.join();
 
   subscription_thread.detach();
+}
+
+long long JAINode::systemTimeNano() {
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+             std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                 std::chrono::high_resolution_clock::now())
+                 .time_since_epoch())
+      .count();
 }

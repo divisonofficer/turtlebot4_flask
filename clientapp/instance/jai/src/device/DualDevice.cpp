@@ -20,14 +20,14 @@ DualDevice::DualDevice(PvString &connection_ID) {
                          2.0f);
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
-  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 6000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 14000.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 6.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 7.0f);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
                              2);
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 1);
-  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 50000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 80000.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gain", 7.0f);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
@@ -44,7 +44,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 20000);
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 10000);
 
   streamManager->CreateStreamBuffers(rgb_device, rgb_stream, &rgb_buffer_list);
   streamManager->CreateStreamBuffers(rgb_device, nir_stream, &nir_buffer_list);

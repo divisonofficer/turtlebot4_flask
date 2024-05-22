@@ -9,7 +9,9 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "sensor_msgs/msg/compressed_image.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include <chrono>
 class JAINode : public rclcpp::Node {
  public:
   JAINode();
@@ -17,6 +19,9 @@ class JAINode : public rclcpp::Node {
   void join_thread();
 
  private:
+
+    long long systemTimeNano();
+
   void createPublishers();
 
   void enlistJAIDevice(int device_num, std::string device_name,
@@ -30,7 +35,7 @@ class JAINode : public rclcpp::Node {
   void closeStream(int camera_num = -1);
 
   std::vector<
-      std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> >
+      std::vector<rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
       imagePublishers;
 
   std::vector<
