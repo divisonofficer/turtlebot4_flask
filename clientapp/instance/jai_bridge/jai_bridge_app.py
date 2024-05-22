@@ -19,7 +19,7 @@ logging.basicConfig(
 from videostream import VideoStream
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from std_msgs.msg import String, Bool
 from typing import List, Dict, Any, Optional
 
@@ -48,7 +48,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                 type="bayer_rg8",
                 parameters=ParameterUpdate(
                     parameters=[
-                        ParameterValue(name="ExposureTime", value="6000", type="float"),
+                        ParameterValue(name="ExposureTime", value="9500", type="float"),
                         ParameterValue(name="Gain", value="7.0", type="float"),
                     ]
                 ),
@@ -59,9 +59,9 @@ DEVICE_INFO: List[DeviceInfo] = [
                 parameters=ParameterUpdate(
                     parameters=[
                         ParameterValue(
-                            name="ExposureTime", value="50000", type="float"
+                            name="ExposureTime", value="80000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="7.0", type="float"),
+                        ParameterValue(name="Gain", value="14.0", type="float"),
                     ]
                 ),
             ),
@@ -72,7 +72,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                 name="ExposureTime",
                 type="float",
                 min=100,
-                max=50000,
+                max=100000,
             ),
             ParameterInfo(
                 name="Gain",
@@ -151,7 +151,7 @@ class JaiBridgeNode(Node):
                 )
                 self.videoStreamSubscriptions[device_name].append(
                     self.create_subscription(
-                        Image,
+                        CompressedImage,
                         f"/{device_name}/channel_{i}",
                         self.videoStreams[device_name][i].cv_raw_callback,
                         10,
