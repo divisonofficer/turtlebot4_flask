@@ -5,6 +5,7 @@ from slam_pb2 import Pose3D
 from typing import List, Optional, Union
 from capture_pb2 import *
 from google.protobuf import json_format
+import numpy as np
 
 
 class ImageBytes:
@@ -22,18 +23,21 @@ class ImageBytes:
     ):
         self.topic = topic
         if type(image) == CompressedImage:
-            print(f"converting {topic} to cv2")
-            self.image = CvBridge().compressed_imgmsg_to_cv2(
-                image, desired_encoding="passthrough"
-            )
-            self.height, self.width = self.image.shape[:2]
+            # print(f"converting {topic} to cv2")
+            np_arr = np.frombuffer(image.data, np.uint8)
+
+            if bayerInterpolation:
+                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+            else:
+                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            self.image = cv_image
+
         elif type(image) == Image:
             self.width = image.width
             self.height = image.height
             # self.data = image.data.tolist()
             self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
-        if bayerInterpolation:
-            self.image = cv2.cvtColor(self.image, cv2.COLOR_BAYER_RG2RGB)
 
         # if topic == "/stereo/depth":
         #     self.image = cv2.normalize(

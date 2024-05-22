@@ -33,7 +33,12 @@ class VideoStream:
 
         if isinstance(msg, CompressedImage):
             np_arr = np.frombuffer(msg.data, np.uint8)
-            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            if msg.header.frame_id == "bayer":
+                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+            else:
+                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         else:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             if msg.encoding == "bayer_rggb8":

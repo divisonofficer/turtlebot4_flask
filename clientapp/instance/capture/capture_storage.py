@@ -9,7 +9,7 @@ from capture_pb2 import CaptureAppCapture, CaptureAppScene, CaptureAppSpace
 from google.protobuf import json_format
 from google.protobuf.json_format import ParseError
 
-CAPTURE_TEMP = "/tmp/oakd_capture"
+CAPTURE_TEMP = "tmp/oakd_capture"
 if not os.path.exists(CAPTURE_TEMP):
     os.mkdir(CAPTURE_TEMP)
 
@@ -21,6 +21,8 @@ DEVICE_DICT = {
 class CaptureStorage:
 
     def __init__(self):
+        self.image_jai_mask = cv2.imread("instance/capture/jai_binete.png")
+        self.image_jai_mask_128 = cv2.resize(self.image_jai_mask, (128, 128))
         pass
 
     def store_space_metadata(
@@ -70,6 +72,8 @@ class CaptureStorage:
 
         metadataList: list[CaptureAppSpace] = []
         for space in spaces:
+            if not os.path.isdir(os.path.join(CAPTURE_TEMP, space)):
+                continue
             meta = self.get_space_metadata(int(space))
 
             metadataList.append(meta)
@@ -174,9 +178,7 @@ class CaptureStorage:
     ):
         if not "." in filename:
             filename += ".png"
-        return os.path.join(
-            CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), filename
-        )
+        return f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/{filename}"
 
     def get_capture_scene_image_thumb(
         self, space_id: int, capture_id: int, scene_id: int, filename: str
@@ -185,47 +187,39 @@ class CaptureStorage:
             filename += ".png"
 
         if not os.path.exists(
-            os.path.join(
-                CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id), "thumb"
-            )
+            f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/thumb"
         ):
             try:
-                os.mkdir(
-                    os.path.join(
-                        CAPTURE_TEMP,
-                        str(space_id),
-                        str(capture_id),
-                        str(scene_id),
-                        "thumb",
-                    )
-                )
+                os.mkdir(f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/thumb")
             except FileExistsError:
                 pass
-        thumb = os.path.join(
-            CAPTURE_TEMP,
-            str(space_id),
-            str(capture_id),
-            str(scene_id),
-            "thumb",
-            filename,
-        )
-        if os.path.exists(thumb):
-            return thumb
+        thumb = f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/thumb/{filename}"
+        # if os.path.exists(thumb):
+        #     img = cv2.imread(thumb)
 
-        img = cv2.imread(
-            self.get_capture_scene_filepath(space_id, capture_id, scene_id, filename)
+        img_path = self.get_capture_scene_filepath(
+            space_id, capture_id, scene_id, filename
         )
+        if not os.path.exists(img_path):
+            return None
+
+        img = cv2.imread(img_path)
         img = cv2.resize(img, (128, 128))
-        _, img_encoded = cv2.imencode(".png", img)
-        img_encoded.tofile(thumb)
-        return thumb
+
+        if "jai_1600" in filename:
+            img = cv2.bitwise_and(img, self.image_jai_mask_128)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+            img[:, :, 3] = self.image_jai_mask_128[:, :, 0]
+        img_encoded = cv2.imencode(".png", img)[1]
+
+        if not os.path.exists(thumb):
+            img_encoded.tofile(thumb)
+        return img_encoded
 
     def get_capture_scene_images_paths(
         self, space_id: int, capture_id: int, scene_id: int
     ):
-        scene_dir = os.path.join(
-            CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id)
-        )
+        scene_dir = f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}"
         files = os.listdir(scene_dir)
         image_files = [f for f in files if f.endswith(".png") or f.endswith(".jpg")]
 
@@ -250,7 +244,7 @@ class CaptureStorage:
         ] + image_files_other
 
     def get_space_all_captures(self, space_id: int):
-        capture_dir = os.path.join(CAPTURE_TEMP, str(space_id))
+        capture_dir = f"{CAPTURE_TEMP}/{space_id}"
         if not os.path.exists(capture_dir):
             return []
         captures = os.listdir(capture_dir)
@@ -284,6 +278,14 @@ class CaptureStorage:
         space_dir = f"{CAPTURE_TEMP}/{space_id}"
         capture_dir = f"{CAPTURE_TEMP}/{space_id}/{capture_id}"
         scene_dir = f"{capture_dir}/{scene_id}"
+
+        if capture_id != scene.capture_id or scene_id != scene.scene_id:
+            capture_id = scene.capture_id
+            scene_id = scene.scene_id
+            print(
+                f"scene_id and capture_id mismatched. Setting to {capture_id} and {scene_id}"
+            )
+
         for d in [space_dir, capture_dir, scene_dir]:
             if not os.path.exists(d):
                 os.mkdir(d)
@@ -294,6 +296,20 @@ class CaptureStorage:
 
         with open(f"{scene_dir}/meta.json", "w") as f:
             f.write(json_format.MessageToJson(scene.to_dict_light()))
+
+    def delete_scene(self, space_id: int, capture_id: int, scene_id: int):
+        scene_dir = os.path.join(
+            CAPTURE_TEMP, str(space_id), str(capture_id), str(scene_id)
+        )
+        if os.path.exists(scene_dir):
+            for f in os.listdir(scene_dir):
+                (
+                    os.remove(os.path.join(scene_dir, f))
+                    if os.path.isfile(os.path.join(scene_dir, f))
+                    else os.rmdir(os.path.join(scene_dir, f))
+                )
+            os.rmdir(scene_dir)
+        return 200
 
     def gen_strokes_image(self, scene: CaptureSingleScene):
         images_nd: list[np.ndarray] = []
