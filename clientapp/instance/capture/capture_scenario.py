@@ -61,24 +61,35 @@ class CaptureSingleScenario:
             if time() - self.capture_msg.timestamp > 10:
                 break
             sleep(0.25)
-        if self.capture_msg.messages_received:
-            if self.messageDef.slam.enabled:
-                pose, lidar = self.capture_msg.get_message(self.messageDef.slam)
-                if not pose or not lidar:
-                    raise NoPoseSignal()
-                scene.robot_pose = RosProtoConverter().rosPoseToProtoPose3D(
-                    pose.pose.pose
-                )
-                scene.lidar_position = CaptureLiDAR(lidar)
 
-            if self.messageDef.oakd.enabled:
-                scene.picture_list += [
-                    ImageBytes(image=x, topic=self.messageDef.oakd.messages[idx].topic)
-                    for idx, x in enumerate(
-                        self.capture_msg.get_message(self.messageDef.oakd)
-                    )
-                    if isinstance(x, Image) or isinstance(x, CompressedImage)
-                ]
+        if self.messageDef.slam.enabled:
+            pose, lidar = self.capture_msg.get_message(self.messageDef.slam)
+            if not pose or not lidar:
+                raise NoPoseSignal()
+            scene.robot_pose = RosProtoConverter().rosPoseToProtoPose3D(pose.pose.pose)
+            scene.lidar_position = CaptureLiDAR(lidar)
+
+        if self.messageDef.oakd.enabled:
+            scene.picture_list += [
+                ImageBytes(image=x, topic=self.messageDef.oakd.messages[idx].topic)
+                for idx, x in enumerate(
+                    self.capture_msg.get_message(self.messageDef.oakd)
+                )
+                if isinstance(x, Image) or isinstance(x, CompressedImage)
+            ]
+
+        if self.messageDef.MultiChannel_Right.enabled:
+            scene.picture_list += [
+                ImageBytes(
+                    image=x,
+                    topic=self.messageDef.MultiChannel_Right.messages[idx].topic,
+                    bayerInterpolation="bayer" in x.header.frame_id,
+                )
+                for idx, x in enumerate(
+                    self.capture_msg.get_message(self.messageDef.MultiChannel_Right)
+                )
+                if isinstance(x, Image) or isinstance(x, CompressedImage)
+            ]
 
     def run_single_capture(self):
         """

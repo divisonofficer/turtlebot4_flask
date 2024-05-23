@@ -6,6 +6,7 @@ import os
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 import sys
+from time import time, sleep
 
 sys.path.append("../..")
 sys.path.append("../../../public/proto/python")
@@ -40,7 +41,7 @@ from google.protobuf.json_format import MessageToJson
 
 DEVICE_INFO: List[DeviceInfo] = [
     DeviceInfo(
-        name="jai_1600",
+        name="jai_1600_left",
         source_count=2,
         source_types=[
             SourceInfo(
@@ -48,20 +49,22 @@ DEVICE_INFO: List[DeviceInfo] = [
                 type="bayer_rg8",
                 parameters=ParameterUpdate(
                     parameters=[
-                        ParameterValue(name="ExposureTime", value="9500", type="float"),
-                        ParameterValue(name="Gain", value="7.0", type="float"),
+                        ParameterValue(
+                            name="ExposureTime", value="40000", type="float"
+                        ),
+                        ParameterValue(name="Gain", value="2.0", type="float"),
                     ]
                 ),
             ),
             SourceInfo(
-                name="rgb",
-                type="bayer_rg8",
+                name="nir",
+                type="mono8",
                 parameters=ParameterUpdate(
                     parameters=[
                         ParameterValue(
-                            name="ExposureTime", value="80000", type="float"
+                            name="ExposureTime", value="60000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="14.0", type="float"),
+                        ParameterValue(name="Gain", value="3.0", type="float"),
                     ]
                 ),
             ),
@@ -81,7 +84,52 @@ DEVICE_INFO: List[DeviceInfo] = [
                 max=16,
             ),
         ],
-    )
+    ),
+    DeviceInfo(
+        name="jai_1600_right",
+        source_count=2,
+        source_types=[
+            SourceInfo(
+                name="rgb",
+                type="bayer_rg8",
+                parameters=ParameterUpdate(
+                    parameters=[
+                        ParameterValue(
+                            name="ExposureTime", value="30000", type="float"
+                        ),
+                        ParameterValue(name="Gain", value="2.0", type="float"),
+                    ]
+                ),
+            ),
+            SourceInfo(
+                name="nir",
+                type="mono8",
+                parameters=ParameterUpdate(
+                    parameters=[
+                        ParameterValue(
+                            name="ExposureTime", value="30000", type="float"
+                        ),
+                        ParameterValue(name="Gain", value="3.0", type="float"),
+                    ]
+                ),
+            ),
+        ],
+        fps=2,
+        configurable=[
+            ParameterInfo(
+                name="ExposureTime",
+                type="float",
+                min=100,
+                max=100000,
+            ),
+            ParameterInfo(
+                name="Gain",
+                type="float",
+                min=1,
+                max=16,
+            ),
+        ],
+    ),
 ]
 
 
@@ -98,7 +146,7 @@ class JaiBridgeNode(Node):
     def __init__(self):
         super().__init__("jai_bridge_node")  # type: ignore
         self.register_clients()
-        self.create_timer(30, self.get_camera_params)
+        # self.create_timer(30, self.get_camera_params)
 
     def configure_callback_gen(self, device_name: str, channel_id: int):
         def configure_callback(msg: String):
@@ -123,6 +171,7 @@ class JaiBridgeNode(Node):
                 msg = String()
                 msg.data = source.parameters.SerializePartialToString().decode("utf-8")
                 self.service_clients[device.name][channel_id].publish(msg)
+                sleep(2)
 
     def register_clients(self):
         for device in DEVICE_INFO:
@@ -220,9 +269,6 @@ def camera_preview(device_name, channel_id, timestamp):
     )
 
 
-from time import time
-
-
 @app.route("/device/<device_name>/<channel_id>/configure", methods=["POST"])
 def configure_camera(device_name, channel_id):
     data = request.json
@@ -255,6 +301,13 @@ def get_camera_params():
 @app.route("/device/init/all", methods=["POST"])
 def initialize_camera_config():
     node.initialize_camera_config()
+    return {"status": "success"}
+
+
+@app.route("/device/close/all", methods=["POST"])
+def close_camera_stream_all():
+    for device in DEVICE_INFO:
+        node.call_service(device.name, "open_stream", False)
     return {"status": "success"}
 
 

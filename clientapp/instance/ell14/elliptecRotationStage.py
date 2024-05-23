@@ -138,7 +138,7 @@ class ElliptecRotationStage:
 
 
 elliptecMount = ElliptecRotationStage(
-    "/dev/serial/by-path/pci-0000:65:00.3-usb-0:2.3:1.0-port0", offset=-8529
+    "/dev/serial/by-path/pci-0000:65:00.3-usb-0:1.3:1.0-port0", offset=-8529
 )
 elliptecMount.home()
 

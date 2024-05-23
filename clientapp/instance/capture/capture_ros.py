@@ -117,8 +117,9 @@ class CaptureNode(Node):
             space_id = int(time())
             if not space_name:
                 space_name = f"Space {space_id}"
+            self.storage.store_space_metadata(space_id, space_name)
             if use_slam:
-                self.storage.store_space_metadata(space_id, space_name)
+
                 if self.slam_source.request_map_save(str(space_id)):
                     return {"status": "error", "message": "Failed to init slam"}
         else:
@@ -363,6 +364,7 @@ class CaptureNode(Node):
             self.ell,
         ).run_single_capture()
         if not scene:
+            self.set_capture_flag(False)
             return None
         self.storage.store_captured_scene(
             space_id=self.space_id, capture_id=capture_id, scene_id=0, scene=scene
@@ -379,10 +381,17 @@ class CaptureNode(Node):
         while rclpy.ok():
 
             # Turn right the robot
+            time_passed = time() - time_begin
+            twist.angular.z = (
+                self.scenario_hyper.RotationSpeed * 0.5
+                if time_passed / self.scenario_hyper.RotationInterval > 0.5
+                else self.scenario_hyper.RotationSpeed
+            )
             self.publisher_cmd_vel.publish(twist)
             sleep(0.15)
-            if time() - time_begin > self.scenario_hyper.RotationInterval:
+            if time_passed > self.scenario_hyper.RotationInterval:
                 break
+        sleep(0.5)
 
     def oakd_camera_command(self, start: Optional[bool] = None):
         if start == True:
