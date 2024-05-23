@@ -38,6 +38,12 @@ class JaiStore {
       .fetch();
   };
 
+  fetchJaiCameraStreamControl = (deviceName: string, open: boolean) => {
+    httpPost(
+      `/jai/device/${deviceName}/${open ? "open_stream" : "close_stream"}`
+    ).fetch();
+  };
+
   fetchJaiCameraUpdateParam = (
     device_name: string,
     source: number,
