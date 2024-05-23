@@ -20,10 +20,10 @@ bool DeviceManager::SelectDevice(PvString &aConnectionID, PvDevice *&aDevice) {
   }
   return true;
 }
-
 bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
-                               std::string &displayName) {
-  if (!findDeviceConnectionID(aConnectionID, displayName)) {
+                               std::string &displayName,
+                               std::string macAddress) {
+  if (!findDeviceConnectionID(aConnectionID, displayName, macAddress)) {
     return false;
   }
 
@@ -35,10 +35,21 @@ bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
   return true;
 }
 
-DualDevice *DeviceManager::connectDualDevice() {
+bool DeviceManager::findDevice(PvString &aConnectionID, PvDevice *&aDevice,
+                               std::string &displayName) {
+  findDevice(aConnectionID, aDevice, displayName, 0);
+
+  if (aConnectionID.GetAscii() == "") {
+    return false;
+  }
+  return true;
+}
+
+DualDevice *DeviceManager::connectDualDevice() { return connectDualDevice(""); }
+DualDevice *DeviceManager::connectDualDevice(std::string macAddress) {
   PvString lConnectionID;
   std::string displayName;
-  if (!findDeviceConnectionID(lConnectionID, displayName)) {
+  if (!findDeviceConnectionID(lConnectionID, displayName, macAddress)) {
     return nullptr;
   }
   DualDevice *dualDevice = new DualDevice(lConnectionID);
@@ -47,10 +58,17 @@ DualDevice *DeviceManager::connectDualDevice() {
 
 bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
                                            std::string &displayName) {
+  return findDeviceConnectionID(aConnectionID, displayName, "");
+}
+
+bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
+                                           std::string &displayName,
+                                           std::string macAddress = "") {
+  Info << "Finding Device Connection ID";
   PvSystem lSystem;
   PvDeviceInfo *aDeviceInfo = nullptr;
-  PvResult lResult;
   lSystem.Find();
+  int deviceCount = 0;
 
   // Find the first GEV Device
   for (int i = 0; i < lSystem.GetInterfaceCount(); i++) {
@@ -59,8 +77,21 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
       const PvDeviceInfo *lDeviceInfo = lInterface->GetDeviceInfo(j);
       if (!lDeviceInfo) continue;
       if (lDeviceInfo->GetType() != PvDeviceInfoTypeGEV) continue;
+      if (macAddress != "") {
+        const PvDeviceInfoGEV *lDeviceGEV =
+            dynamic_cast<const PvDeviceInfoGEV *>(lDeviceInfo);
+        if (lDeviceGEV->GetMACAddress().GetAscii() != macAddress) {
+          continue;
+        }
+      }
+
+      if (aConnectionIdSet.find(lDeviceInfo->GetConnectionID().GetAscii()) !=
+          aConnectionIdSet.end()) {
+        continue;
+      }
 
       aDeviceInfo = const_cast<PvDeviceInfo *>(lDeviceInfo);
+      break;
     }
   }
   // Get the connection ID and Display Name
@@ -70,9 +101,21 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
     ErrorLog << "No device found.";
     return false;
   }
+
   Info << "Device found: " << aDeviceInfo->GetDisplayID().GetAscii();
 
   // if IP Configuration is not valid, force new IP Address
+  int ipValidation = validateDeviceIP(aDeviceInfo);
+  if (ipValidation == -1) {
+    return false;
+  } else if (ipValidation == 1) {
+    return findDeviceConnectionID(aConnectionID, displayName, macAddress);
+  }
+  return true;
+}
+
+int DeviceManager::validateDeviceIP(const PvDeviceInfo *aDeviceInfo) {
+  PvResult lResult;
   if (aDeviceInfo->IsConfigurationValid() == false) {
     Info << "Device IP Configuration is not valid. Attempting to force new IP ";
     // Force New IP Address
@@ -84,16 +127,17 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
     }
     // @todo : Get available IP address from somewhere
     lResult = PvDeviceGEV::SetIPConfiguration(
-        lDeviceGEV->GetMACAddress().GetAscii(), "192.168.185.11",
+        lDeviceGEV->GetMACAddress().GetAscii(),
+        ("192.168.185." + std::to_string(rand() % 200 + 10)).c_str(),
         lDeviceGEV->GetSubnetMask().GetAscii(),
         lDeviceGEV->GetDefaultGateway().GetAscii());
     if (!lResult.IsOK()) {
       ErrorLog << "Unable to force new IP address.";
-      return false;
+      return -1;
     }
-    return findDeviceConnectionID(aConnectionID, displayName);
+    return 1;
   }
-  return true;
+  return 0;
 }
 
 PvDevice *DeviceManager::DeviceConnectToDevice(const PvString &aConnectionID) {
@@ -108,6 +152,12 @@ PvDevice *DeviceManager::DeviceConnectToDevice(const PvString &aConnectionID) {
           << lResult.GetCodeString().GetAscii() << " "
           << lResult.GetDescription().GetAscii() << "\n";
   }
+
+  /**
+   * If the connection is successful, add the connection ID to the set
+   * to avoid connecting to the same device again
+   **/
+  aConnectionIdSet.insert(aConnectionID.GetAscii());
 
   return lDevice;
 }

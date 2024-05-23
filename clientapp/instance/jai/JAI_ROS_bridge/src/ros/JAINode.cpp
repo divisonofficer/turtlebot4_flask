@@ -19,22 +19,32 @@ std::vector<std::string> splitString(std::string str, std::string delimiter) {
 }
 
 JAINode::JAINode() : Node("jai_node") {
+  initDevices();
   createPublishers();
   createServiceClient();
 }
 
 JAINode::~JAINode() { closeStream(); }
-
+void JAINode::initDevices() {
+  initMultispectralCamera(0, DEVICE_LEFT_NAME, DEVICE_LEFT_ADDRESS);
+  initMultispectralCamera(1, DEVICE_RIGHT_NAME, DEVICE_RIGHT_ADDRESS);
+}
 void JAINode::createPublishers() {
-  enlistJAIDevice(0, "jai_1600", 2);
-  initMultispectralCamera(0);
+  logPublisher =
+      this->create_publisher<std_msgs::msg::String>("jai_1600/log", 10);
 
-  openStream(0);
+  enlistJAIDevice(0, cameras[0]->deviceName, 2);
+  enlistJAIDevice(1, cameras[1]->deviceName, 2);
+
+  openStream(-1);
+
   this->cameras[0]->initCameraTimestamp();
   this->timestamp_begin_ros = this->systemTimeNano();
 
-  subscription_thread =
-      std::thread([this]() { this->cameras.back()->runUntilInterrupted(); });
+  subscription_thread.push_back(
+      std::thread([this]() { this->cameras[0]->runUntilInterrupted(); }));
+  subscription_thread.push_back(
+      std::thread([this]() { this->cameras.back()->runUntilInterrupted(); }));
 }
 
 void JAINode::enlistJAIDevice(int device_num, std::string device_name,
@@ -67,7 +77,7 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
   for (int i = 0; i < channel_count; i++) {
     imagePublishers[device_num][i] =
         this->create_publisher<sensor_msgs::msg::CompressedImage>(
-            device_name + "/channel_" + std::to_string(i), 10);
+            device_name + "/channel_" + std::to_string(i), 3);
     cameraDeviceParamPublishers[device_num][i] =
         this->create_publisher<std_msgs::msg::String>(
             device_name + "/channel_" + std::to_string(i) + "/device_param",
@@ -82,6 +92,26 @@ std::function<void(PvBuffer*)> JAINode::getEbusRosCallback(
   };
 }
 
+bool JAINode::validateBufferTimestamp(int device_num, int source_num,
+                                      int64_t buffer_time,
+                                      int64_t current_time) {
+  if (buffer_time > current_time) return false;
+  if (current_time - buffer_time > 4000000000) {
+    ErrorLog << "Device " << device_num << " Channel " << source_num << " "
+             << (current_time - buffer_time) / 1000000 % 100000 << "ms behinds";
+    return false;
+  }
+
+  std_msgs::msg::String msg;
+  msg.data = "Device " + std::to_string(device_num) + "Channel " +
+             std::to_string(source_num) + " " +
+             std::to_string((current_time - buffer_time) / 1000000 % 100000) +
+             "ms behinds";
+
+  logPublisher->publish(msg);
+  return true;
+}
+
 void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
@@ -89,38 +119,15 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   auto current_time = this->systemTimeNano();
   auto buffer_time =
       buffer->GetTimestamp() + cameras[device_num]->timestamp_begin;
-  if (buffer_time > current_time) return;
-  if (current_time - buffer_time > 4000000000) {
-    ErrorLog << "Channel " << source_num << " "
-             << (current_time - buffer_time) / 1000000 % 100000 << "ms behinds";
+  if (!validateBufferTimestamp(device_num, source_num, buffer_time,
+                               current_time))
     return;
-  }
-  Info << "Channel " << source_num << " " << buffer_time / 1000000 % 100000
-       << " <> " << current_time / 1000000 % 100000;
-
-  // auto imageRosMsg = sensor_msgs::msg::Image();
-  // imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
-  // imageRosMsg.header.frame_id = "jai_camera";
-  // imageRosMsg.height = buffer->GetImage()->GetHeight();
-  // imageRosMsg.width = buffer->GetImage()->GetWidth();
-  // imageRosMsg.encoding =
-  //     source_num == 1 ? "mono8"
-  //                     : "bayer_rggb8";  // todo : buffer pixel type 을 변환
-  // imageRosMsg.step = buffer->GetImage()->GetBitsPerPixel() / 8 *
-  //                    buffer->GetImage()->GetWidth();
-  // imageRosMsg.data =
-  //     std::vector<uint8_t>(buffer->GetDataPointer(),
-  //                          buffer->GetDataPointer() +
-  //                          buffer->GetPayloadSize());
 
   auto imageRosMsg = sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
   cv::Mat image =
       cv::Mat(buffer->GetImage()->GetHeight(), buffer->GetImage()->GetWidth(),
               CV_8UC1, buffer->GetDataPointer());
-  // if (source_num == 0) {
-  //   cv::cvtColor(image, image, cv::COLOR_BayerBG2BGR);
-  // }
   std::vector<uint8_t> compressed_data;
   std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
                                          95};  // Adjust quality as needed
@@ -132,8 +139,9 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   imagePublishers[device_num][source_num]->publish(imageRosMsg);
 }
 
-void JAINode::initMultispectralCamera(int camera_num) {
-  cameras.push_back(new MultiSpectralCamera());
+void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
+                                      std::string macAddress) {
+  cameras.push_back(new MultiSpectralCamera(deviceName, macAddress));
 
   Info << "Prepare Callback for Stream 0";
   cameras.back()->addStreamCallback(0, [this, camera_num](PvBuffer* buffer) {
@@ -150,6 +158,7 @@ void JAINode::openStream(int camera_num) {
   if (camera_num < 0) {
     for (int i = 0; i < cameras.size(); i++) {
       openStream(i);
+      sleep(1);
     }
     return;
   }
@@ -175,8 +184,8 @@ void JAINode::createServiceClient() {
 }
 
 void JAINode::createCameraConfigureService(int device_num, int channel_num) {
-  std::string service_namespace =
-      "jai_1600/channel_" + std::to_string(channel_num);
+  std::string service_namespace = cameras[device_num]->deviceName +
+                                  "/channel_" + std::to_string(channel_num);
   this->cameraDeviceParamSubscribers[device_num][channel_num] =
       this->create_subscription<std_msgs::msg::String>(
           service_namespace + "/manual_configure", 10,
@@ -207,9 +216,12 @@ void JAINode::emitRosDeviceParamMsg(int device_num, int source_num) {
 }
 
 void JAINode::join_thread() {
-  subscription_thread.join();
-
-  subscription_thread.detach();
+  for (auto& t : subscription_thread) {
+    t.join();
+  }
+  for (auto& t : subscription_thread) {
+    t.detach();
+  }
 }
 
 long long JAINode::systemTimeNano() {

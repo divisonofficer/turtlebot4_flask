@@ -7,9 +7,21 @@
 #include <chrono>
 
 MultiSpectralCamera::MultiSpectralCamera() {
+  this->macAddressInit = "";
+  initDevice();
+}
+
+MultiSpectralCamera::MultiSpectralCamera(std::string deviceName,
+                                         std::string macAddress) {
+  this->deviceName = deviceName;
+  this->macAddressInit = macAddress;
+  initDevice();
+}
+
+void MultiSpectralCamera::initDevice() {
   streamCallback[0] = nullptr;
   streamCallback[1] = nullptr;
-  dualDevice = DeviceManager::getInstance()->connectDualDevice();
+  dualDevice = DeviceManager::getInstance()->connectDualDevice(macAddressInit);
   flagInterrupted = false;
 }
 
@@ -33,7 +45,17 @@ void MultiSpectralCamera::openStream() {
                             std::chrono::high_resolution_clock::now())
                             .time_since_epoch())
                         .count();
+
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
+
+  //   __int64_t timestampLatchValue = rand() % 10000000;
+
+  // dualDevice->getDevice(0)->GetParameters()->SetIntegerValue(
+  //     "TimestampLatchValue", timestampLatchValue);
+  // dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampLatch");
+
+  // this->timestamp_begin = systemNano - timestampLatchValue;
+
   this->timestamp_begin = systemNano;
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
