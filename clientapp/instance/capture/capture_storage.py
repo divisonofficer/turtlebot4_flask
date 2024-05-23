@@ -14,7 +14,8 @@ if not os.path.exists(CAPTURE_TEMP):
     os.mkdir(CAPTURE_TEMP)
 
 DEVICE_DICT = {
-    "_jai_1600": 2,
+    "_jai_1600_left": 2,
+    "_jai_1600_right": 2,
 }
 
 
@@ -206,7 +207,7 @@ class CaptureStorage:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (128, 128))
 
-        if "jai_1600" in filename:
+        if "jai_1600_left" in filename:
             img = cv2.bitwise_and(img, self.image_jai_mask_128)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
             img[:, :, 3] = self.image_jai_mask_128[:, :, 0]
