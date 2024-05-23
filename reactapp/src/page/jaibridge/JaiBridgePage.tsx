@@ -13,8 +13,10 @@ import { DeviceInfo } from "../../public/proto/jai";
 import { Body3, H4 } from "../../design/text/textsystem";
 import { VideoStream } from "../../design/other/video";
 import { observer } from "mobx-react";
-import { ArrowArcRight } from "@phosphor-icons/react";
+import { Pause } from "@phosphor-icons/react";
 import { PolarizerControl } from "./PolarizerControl";
+import { Play } from "@phosphor-icons/react/dist/ssr";
+import { ViewIcon } from "@chakra-ui/icons";
 
 export const SourceDeviceParamSlide = observer(
   (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
@@ -109,11 +111,28 @@ export const JaiDeviceControl = (props: { device: DeviceInfo }) => {
   return (
     <VStack>
       <H4>{props.device.name}</H4>
-      <IconButton
-        icon={<ArrowArcRight />}
-        onClick={() => jaiStore.fetchJaiDeviceParam()}
-        aria-label=""
-      />
+      <HStack>
+        <IconButton
+          icon={<ViewIcon />}
+          onClick={() => jaiStore.fetchJaiDeviceParam()}
+          aria-label="Refresh Parameters"
+        />
+        <IconButton
+          icon={<Play />}
+          onClick={() =>
+            jaiStore.fetchJaiCameraStreamControl(props.device.name, true)
+          }
+          aria-label="Open Camera Stream"
+        />
+        <IconButton
+          icon={<Pause />}
+          onClick={() =>
+            jaiStore.fetchJaiCameraStreamControl(props.device.name, false)
+          }
+          aria-label="Close Camera Stream"
+        />
+      </HStack>
+
       <HStack>
         {Array.from({ length: props.device.sourceCount }).map((_, index) => {
           return (

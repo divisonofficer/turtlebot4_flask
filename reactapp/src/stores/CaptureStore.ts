@@ -349,7 +349,7 @@ class CaptureStore {
 
   @action
   fetchMultiSpectralClose = () => {
-    httpPost("/jai/device/jai_1600/close_stream").fetch();
+    httpPost("/jai/device/close/all").fetch();
   };
 
   @action
