@@ -24,8 +24,7 @@ void AcquireManager::AcquireImages(PvDevice* aDevice, PvStream* aStream) {
   Debug << "\n\n";
 
   // Tell the device to stop sending images.
-  Debug << "Sending AcquisitionStop command to the device"
-        << "\n";
+  Debug << "Sending AcquisitionStop command to the device" << "\n";
   streamPause(params);
 }
 
@@ -126,7 +125,7 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     Debug << "Payload type is not Image";
 
   } else {
-    Debug << "Image acquired";
+    // Debug << "Image acquired";
     return lBuffer;
   }
   queueBuffer(aStream, lBuffer);
@@ -229,17 +228,16 @@ void AcquireManager::bufferDestroy(PvDevice* aDevice, PvStream* aStream) {
 void AcquireManager::payloadImageProcess(PvBuffer* lBuffer) {
   auto image = lBuffer->GetImage();
   Debug << " Image with " << image->GetWidth() << "x" << image->GetHeight()
-        << " pixels"
-        << " and " << image->GetPixelType() << " " << image->GetBitsPerPixel()
-        << " bits per pixel";
+        << " pixels" << " and " << image->GetPixelType() << " "
+        << image->GetBitsPerPixel() << " bits per pixel";
 
   std::string path = "output/" + std::to_string(lBuffer->GetBlockID()) + ".png";
   writer->Store(lBuffer, path.c_str(), PvBufferFormatPNG);
 }
 
 void AcquireManager::payloadChuckDataProcess(PvBuffer* lBuffer) {
-  Debug << " Chunk Data payload type"
-        << " with " << lBuffer->GetChunkCount() << " chunks";
+  Debug << " Chunk Data payload type" << " with " << lBuffer->GetChunkCount()
+        << " chunks";
 }
 
 void AcquireManager::payloadRawDataProcess(PvBuffer* lBuffer) {

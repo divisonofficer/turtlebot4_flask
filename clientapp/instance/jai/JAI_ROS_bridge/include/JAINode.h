@@ -1,6 +1,7 @@
 #include <Camera.h>
 #include <PvBuffer.h>
 
+#include <chrono>
 #include <functional>
 #include <map>
 #include <std_msgs/msg/bool.hpp>
@@ -11,7 +12,12 @@
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include <chrono>
+
+#define DEVICE_LEFT_NAME "jai_1600_left"
+#define DEVICE_RIGHT_NAME "jai_1600_right"
+#define DEVICE_LEFT_ADDRESS "00:0c:df:0a:b9:62"
+#define DEVICE_RIGHT_ADDRESS "00:0c:df:0a:c6:c8"
+
 class JAINode : public rclcpp::Node {
  public:
   JAINode();
@@ -19,8 +25,7 @@ class JAINode : public rclcpp::Node {
   void join_thread();
 
  private:
-
-    long long systemTimeNano();
+  long long systemTimeNano();
 
   void createPublishers();
 
@@ -34,9 +39,14 @@ class JAINode : public rclcpp::Node {
   void openStream(int camera_num = -1);
   void closeStream(int camera_num = -1);
 
-  std::vector<
-      std::vector<rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+  bool validateBufferTimestamp(int device_num, int source_num,
+                               int64_t buffer_time, int64_t current_time);
+
+  std::vector<std::vector<
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
       imagePublishers;
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr logPublisher;
 
   std::vector<
       std::vector<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr> >
@@ -55,7 +65,10 @@ class JAINode : public rclcpp::Node {
   std::function<void(PvBuffer*)> getEbusRosCallback(const int device_num,
                                                     const int source_num);
 
-  void initMultispectralCamera(int camera_num);
+  void initDevices();
+
+  void initMultispectralCamera(int camera_num, std::string deviceName,
+                               std::string macAddress);
 
   std::vector<MultiSpectralCamera*> cameras;
 
@@ -63,7 +76,7 @@ class JAINode : public rclcpp::Node {
 
   void emitRosDeviceParamMsg(int device_num, int source_num);
 
-  std::thread subscription_thread;
+  std::vector<std::thread> subscription_thread;
 
   int64_t timestamp_begin_ros;
 };

@@ -35,4 +35,4 @@ class StreamManager {
   static StreamManager staticInstance;
 };
 
-#define BUFFER_COUNT (64)
+#define BUFFER_COUNT (8)
