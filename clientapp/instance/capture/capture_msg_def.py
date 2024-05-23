@@ -13,12 +13,28 @@ class CaptureMessageDefinition:
         name="MultiChannel_Left",
         messages=[
             CaptureMessageDef(
-                topic="/jai_1600/channel_0",
+                topic="/jai_1600_left/channel_0",
                 format="bayer_rg8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
             ),
             CaptureMessageDef(
-                topic="/jai_1600/channel_1",
+                topic="/jai_1600_left/channel_1",
+                format="mono8",
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            ),
+        ],
+        enabled=False,
+    )
+    MultiChannel_Right = CaptureMessageDefGroup(
+        name="MultiChannel_Right",
+        messages=[
+            CaptureMessageDef(
+                topic="/jai_1600_right/channel_0",
+                format="bayer_rg8",
+                ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+            ),
+            CaptureMessageDef(
+                topic="/jai_1600_right/channel_1",
                 format="mono8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
             ),
@@ -91,7 +107,7 @@ class CaptureMessageDefinition:
                 self.topic_map[msg.topic] = msg
 
     def entries(self):
-        return [self.oakd, self.MultiChannel_Left, self.slam]
+        return [self.oakd, self.MultiChannel_Left, self.MultiChannel_Right, self.slam]
 
     def to_dict(self):
         def_dict = {}
@@ -120,8 +136,8 @@ class CaptureMessageDefinition:
 
 class ScenarioHyperParameter:
     RotationQueueCount = 25
-    RotationSpeed = 0.25
-    RotationInterval = 0.75
+    RotationSpeed = 0.2
+    RotationInterval = 0.60
 
     def __init__(self):
         pass
