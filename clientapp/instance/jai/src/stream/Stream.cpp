@@ -79,8 +79,9 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
   //   ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPD", 20000);
   // }
 
-  ParamManager::setParam(lStreamGEV->GetParameters(), "MaximumPendingResends",
-                         1000);
+  // ParamManager::setParam(lStreamGEV->GetParameters(),
+  // "MaximumPendingResends",
+  //                        1000);
   // ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 5000);
   // ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 5000);
   ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 1000);

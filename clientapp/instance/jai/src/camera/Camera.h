@@ -5,6 +5,7 @@
 class MultiSpectralCamera {
  public:
   MultiSpectralCamera();
+  MultiSpectralCamera(std::string deviceName, std::string macAddress);
   ~MultiSpectralCamera();
 
   void openStream();
@@ -35,9 +36,13 @@ class MultiSpectralCamera {
 
   int64_t timestamp_begin;
 
+  std::string deviceName;
+
  private:
+  void initDevice();
   std::function<void(PvBuffer*)> streamCallback[2];
   DualDevice* dualDevice;
   std::atomic<bool> flagInterrupted;
+  std::string macAddressInit;
 };
 ;

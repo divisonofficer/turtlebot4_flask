@@ -17,7 +17,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
   StreamManager::getInstance()->ConfigureStream(rgb_device, nir_stream, 1);
 
   ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
-                         2.0f);
+                         4.0f);
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 14000.0f);
@@ -42,9 +42,15 @@ DualDevice::DualDevice(PvString &connection_ID) {
    */
 
   ParamManager::setParam(rgb_device->GetParameters(),
+                         "GevStreamChannelSelector", 0);
+
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 0);
+
+  ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 10000);
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
+                         rand() % 10 * 5000 + 30000);
 
   streamManager->CreateStreamBuffers(rgb_device, rgb_stream, &rgb_buffer_list);
   streamManager->CreateStreamBuffers(rgb_device, nir_stream, &nir_buffer_list);

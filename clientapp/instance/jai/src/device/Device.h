@@ -1,5 +1,7 @@
 #include <DualDevice.h>
 #include <PvDevice.h>
+
+#include <set>
 class DeviceManager {
  public:
   /**
@@ -22,14 +24,26 @@ class DeviceManager {
   bool findDevice(PvString &aConnectionID, PvDevice *&aDevice,
                   std::string &displayName);
 
+  bool findDevice(PvString &aConnectionID, PvDevice *&aDevice,
+                  std::string &displayName, std::string macAddress);
+
   PvDevice *DeviceConnectToDevice(const PvString &aConnectionID);
 
   DualDevice *connectDualDevice();
+  DualDevice *connectDualDevice(std::string macAddress);
 
   static DeviceManager *getInstance();
 
  private:
   static DeviceManager staticInstance;
+
   bool findDeviceConnectionID(PvString &aConnectionID,
                               std::string &displayName);
+
+  bool findDeviceConnectionID(PvString &aConnectionID, std::string &displayName,
+                              std::string macAddress);
+
+  int validateDeviceIP(const PvDeviceInfo *aDeviceInfo);
+
+  std::set<std::string> aConnectionIdSet;
 };
