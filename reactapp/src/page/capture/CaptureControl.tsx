@@ -11,6 +11,10 @@ import {
   PopoverTrigger,
   Progress,
   ProgressLabel,
+  Slider,
+  SliderFilledTrack,
+  SliderThumb,
+  SliderTrack,
   Switch,
   VStack,
   useDisclosure,
@@ -180,6 +184,47 @@ export const MultiSpectralCameraControl = observer(() => {
   );
 });
 
+export const CaptureScenarioHyperparameterControl = observer(() => {
+  const parameter = captureStore.scenario_hyperparameters;
+
+  return parameter ? (
+    <VStack>
+      {parameter.hyperparameters.map((param, index) => (
+        <HStack
+          style={{
+            width: "20rem",
+          }}
+        >
+          <Body3>{param.name}</Body3>
+          <Slider
+            min={param.range[0]}
+            max={param.range[1]}
+            size={"md"}
+            style={{
+              width: "100%",
+
+              height: "1rem",
+            }}
+            step={param.gap}
+            value={param.value}
+            onChange={(value) => {
+              captureStore.fetchScenarioHyperparameterUpdate(param.name, value);
+            }}
+          >
+            <SliderTrack>
+              <SliderFilledTrack />
+            </SliderTrack>
+            <SliderThumb />
+          </Slider>
+          <H4>{param.value}</H4>
+        </HStack>
+      ))}
+    </VStack>
+  ) : (
+    <></>
+  );
+});
+
 export const CaptureControl = observer(() => {
   return (
     <Flex wrap="wrap" gap="2" width="100%">
@@ -242,6 +287,8 @@ export const CaptureControl = observer(() => {
               <CaptureSourceSwitch />
 
               <MultiSpectralCameraControl />
+
+              <CaptureScenarioHyperparameterControl />
             </>
           )}
         </>

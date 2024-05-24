@@ -25,7 +25,9 @@ class JaiStore {
   fetchJaiDeviceInfo = () => {
     httpGet("/jai/device")
       .onSuccess((data) => {
-        this.jaiDeviceInfo = data;
+        this.jaiDeviceInfo = data.map((device: any) =>
+          DeviceInfo.fromJSON(device)
+        );
       })
       .fetch();
   };
@@ -42,6 +44,10 @@ class JaiStore {
     httpPost(
       `/jai/device/${deviceName}/${open ? "open_stream" : "close_stream"}`
     ).fetch();
+  };
+
+  fetchJaiParameterSave = () => {
+    httpPost(`/jai/device/update/all`).fetch();
   };
 
   fetchJaiCameraUpdateParam = (
