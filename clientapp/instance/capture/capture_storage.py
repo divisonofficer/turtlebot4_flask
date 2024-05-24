@@ -2,7 +2,7 @@ import os
 import json
 import cv2
 import numpy as np
-from capture_type import CaptureSingleScene
+from capture_type import CaptureSingleScene, ImageBytes
 from time import time
 from typing import Optional, Dict, Any
 from capture_pb2 import CaptureAppCapture, CaptureAppScene, CaptureAppSpace
@@ -171,6 +171,7 @@ class CaptureStorage:
                 continue
         if len(scenes) == 0:
             return None
+        scenes.sort(key=lambda x: x.scene_id)
         capture.scenes.extend(scenes)
         return capture
 
@@ -295,8 +296,25 @@ class CaptureStorage:
             filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
             cv2.imwrite(filename, image.image)
 
+        scene_dict = scene.to_dict_light()
+        scene_dict.images[:] = self.get_capture_scene_images_paths(
+            space_id, capture_id, scene_id
+        )
         with open(f"{scene_dir}/meta.json", "w") as f:
-            f.write(json_format.MessageToJson(scene.to_dict_light()))
+            f.write(json_format.MessageToJson(scene_dict))
+
+    def store_captured_scene_image(
+        self, image: ImageBytes, space_id: int, capture_id: int, scene_id: int
+    ):
+        space_dir = f"{CAPTURE_TEMP}/{space_id}"
+        capture_dir = f"{space_dir}/{capture_id}"
+        scene_dir = f"{capture_dir}/{scene_id}"
+        if not os.path.exists(capture_dir):
+            os.mkdir(capture_dir)
+        if not os.path.exists(scene_dir):
+            os.makedirs(scene_dir)
+        filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
+        cv2.imwrite(filename, image.image)
 
     def delete_scene(self, space_id: int, capture_id: int, scene_id: int):
         scene_dir = os.path.join(
