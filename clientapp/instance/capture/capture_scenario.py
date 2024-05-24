@@ -1,5 +1,5 @@
 from sqlite3 import Timestamp
-from typing import Callable
+from typing import Callable, Optional
 from capture_pb2 import *
 from capture_state import CaptureMessage
 from capture_type import (
@@ -10,6 +10,7 @@ from capture_type import (
     CompressedImage,
 )
 import threading
+from capture_storage import CaptureStorage
 from slam_types import RosProtoConverter
 from time import time, sleep
 from flask_socketio import SocketIO
@@ -43,6 +44,7 @@ class CaptureSingleScenario:
         lock: threading.Lock,
         socketIO: SocketIO,
         ell,
+        storage: CaptureStorage,
     ):
         self.open_jai_stream = open_jai_stream
         self.socket_progress = socket_progress
@@ -52,6 +54,7 @@ class CaptureSingleScenario:
         self.lock = lock
         self.socketIO = socketIO
         self.ell = ell
+        self.storage = storage
 
     def get_basic_msgs(self, scene: CaptureSingleScene):
         while True:
@@ -182,7 +185,6 @@ class CaptureSingleScenario:
         if not self.messageDef.MultiChannel_Left.enabled:
             return []
         image_list = []
-        self.ell.polarizer_turn(home=True)
         for deg in [0, 45, 90, 135]:
             self.socket_progress(
                 deg * 15 // 45 + 30,
@@ -220,4 +222,13 @@ class CaptureSingleScenario:
 
             if deg < 135:
                 self.ell.polarizer_turn()
+
+            for image in image_list:
+                self.storage.store_captured_scene_image(
+                    image,
+                    self.space_id,
+                    self.capture_id,
+                    self.scene_id,
+                )
+            image_list = []
         return image_list
