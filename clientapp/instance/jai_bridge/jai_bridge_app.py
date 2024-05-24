@@ -1,3 +1,4 @@
+import json
 from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -6,6 +7,7 @@ import os
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 import sys
+from google.protobuf.json_format import MessageToDict
 from time import time, sleep
 
 sys.path.append("../..")
@@ -53,6 +55,9 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="40000", type="float"
                         ),
                         ParameterValue(name="Gain", value="2.0", type="float"),
+                        ParameterValue(
+                            name="AcquisitionFrameRate", value="2.0", type="float"
+                        ),
                     ]
                 ),
             ),
@@ -76,12 +81,21 @@ DEVICE_INFO: List[DeviceInfo] = [
                 type="float",
                 min=100,
                 max=100000,
+                source=ParameterInfo.Source.SOURCE,
             ),
             ParameterInfo(
                 name="Gain",
                 type="float",
                 min=1,
                 max=16,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="AcquisitionFrameRate",
+                type="float",
+                min=0.1,
+                max=8,
+                source=ParameterInfo.Source.DEVICE,
             ),
         ],
     ),
@@ -98,6 +112,9 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="30000", type="float"
                         ),
                         ParameterValue(name="Gain", value="2.0", type="float"),
+                        ParameterValue(
+                            name="AcquisitionFrameRate", value="2.0", type="float"
+                        ),
                     ]
                 ),
             ),
@@ -121,12 +138,21 @@ DEVICE_INFO: List[DeviceInfo] = [
                 type="float",
                 min=100,
                 max=100000,
+                source=ParameterInfo.Source.SOURCE,
             ),
             ParameterInfo(
                 name="Gain",
                 type="float",
                 min=1,
                 max=16,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="AcquisitionFrameRate",
+                type="float",
+                min=0.1,
+                max=8,
+                source=ParameterInfo.Source.DEVICE,
             ),
         ],
     ),
@@ -166,6 +192,7 @@ class JaiBridgeNode(Node):
         return configure_callback
 
     def initialize_camera_config(self):
+        self.load_device_info_from_json_file()
         for device in DEVICE_INFO:
             for channel_id, source in enumerate(device.source_types):
                 msg = String()
@@ -250,6 +277,45 @@ class JaiBridgeNode(Node):
             ros_request.data = request
             self.device_service_clients[device_name][service_name].publish(ros_request)
 
+    def device_info_to_json_file(self):
+        json.dump(
+            [MessageToDict(device) for device in DEVICE_INFO],
+            open("device_info.json", "w"),
+        )
+
+    def load_device_info_from_json_file(self):
+        global DEVICE_INFO
+        DEVICE_INFO = []
+        with open("device_info.json") as json_file:
+            device_info_json = json.load(json_file)
+            for device_json in device_info_json:
+                device_proto = DeviceInfo()
+                ParseDict(device_json, device_proto, ignore_unknown_fields=True)
+                DEVICE_INFO.append(device_proto)
+
+        for device in DEVICE_INFO:
+            self.configure_dict[device.name] = [
+                {
+                    param.name: {"value": param.value, "type": param.type}
+                    for param in source.parameters.parameters
+                }
+                for source in device.source_types
+            ]
+
+    def update_device_info_state(self):
+        global DEVICE_INFO
+        for device_name, device_config in self.configure_dict.items():
+            device = [x for x in DEVICE_INFO if x.name == device_name][0]
+
+            for channel_id, channel_config in enumerate(device_config):
+                for key, value in channel_config.items():
+                    source = device.source_types[channel_id]
+                    for param in source.parameters.parameters:
+                        if param.name == key:
+                            param.value = value["value"]
+                            break
+        self.device_info_to_json_file()
+
 
 node: JaiBridgeNode
 
@@ -284,6 +350,7 @@ def configure_camera(device_name, channel_id):
 
 
 from json import JSONDecoder
+from google.protobuf.json_format import ParseDict
 
 
 @app.route("/device")
@@ -301,6 +368,12 @@ def get_camera_params():
 @app.route("/device/init/all", methods=["POST"])
 def initialize_camera_config():
     node.initialize_camera_config()
+    return {"status": "success"}
+
+
+@app.route("/device/update/all", methods=["POST"])
+def update_device_info_state():
+    node.update_device_info_state()
     return {"status": "success"}
 
 
@@ -329,6 +402,7 @@ with app.app_context():
     spin_node()
 
     node.initialize_camera_config()
+
 
 if __name__ == "__main__":
     socketio.run(app, port="5015")  # type: ignore

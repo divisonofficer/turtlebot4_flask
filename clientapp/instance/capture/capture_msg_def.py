@@ -1,7 +1,11 @@
 from sensor_msgs.msg import Image, LaserScan, CompressedImage
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from typing import Any, TypeVar
-from capture_pb2 import CaptureMessageDef, CaptureMessageDefGroup
+from capture_pb2 import (
+    CaptureMessageDef,
+    CaptureMessageDefGroup,
+    CaptureScenarioHyperparameter,
+)
 from google.protobuf import json_format
 
 MsgType = TypeVar("MsgType")
@@ -135,9 +139,41 @@ class CaptureMessageDefinition:
 
 
 class ScenarioHyperParameter:
-    RotationQueueCount = 25
-    RotationSpeed = 0.2
-    RotationInterval = 0.60
+    RotationQueueCount = CaptureScenarioHyperparameter.HyperParameter(
+        name="RotationQueueCount",
+        value=30,
+        gap=1,
+        range=[1, 50],
+    )
+    RotationSpeed = CaptureScenarioHyperparameter.HyperParameter(
+        name="RotationSpeed",
+        value=0.25,
+        gap=0.025,
+        range=[0.1, 0.5],
+    )
+    RotationInterval = CaptureScenarioHyperparameter.HyperParameter(
+        name="RotationInterval",
+        value=0.6,
+        gap=0.05,
+        range=[0.1, 1.0],
+    )
 
     def __init__(self):
-        pass
+        for entry in self.entries():
+            setattr(self, "_" + entry.name, entry.value)
+
+    def entries(self):
+        return [self.RotationQueueCount, self.RotationSpeed, self.RotationInterval]
+
+    def update(self, name, value):
+        entry: CaptureScenarioHyperparameter.HyperParameter = self.__getattribute__(
+            name
+        )
+        if entry.range[0] <= value <= entry.range[1]:
+            entry.value = value
+
+    def to_msg(self):
+        msg = CaptureScenarioHyperparameter()
+        for entry in self.entries():
+            msg.hyperparameters.append(entry)
+        return msg

@@ -18,7 +18,7 @@ from capture_storage import CaptureStorage
 from flask_socketio import SocketIO
 import cv2
 import threading
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 import json
 
 
@@ -189,9 +189,23 @@ def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
         status=200,
         response=capture_storage.get_capture_scene_image_thumb(
             int(space_id), int(capture_id), int(scene_id), filename
-        ).tobytes(),
+        ).tobytes(),  # type: ignore
         mimetype="image/jpeg",
     )
+
+
+@app.route("/hyperparameters", methods=["GET"])
+def get_scenario_hyperparameters():
+    return MessageToDict(capture_node.scenario_hyper.to_msg())
+
+
+@app.route("/hyperparameters", methods=["POST"])
+def set_scenario_hyperparameters():
+    name = request.json.get("name") if request.json else None
+    value = request.json.get("value") if request.json else None
+    capture_node.scenario_hyper.update(name, value)
+
+    return MessageToDict(capture_node.scenario_hyper.to_msg())
 
 
 if __name__ == "__main__":

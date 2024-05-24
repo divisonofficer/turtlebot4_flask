@@ -296,7 +296,7 @@ class CaptureNode(Node):
             capture_id=capture_id,
         )
         scenes = []
-        for scene_id in range(self.scenario_hyper.RotationQueueCount):
+        for scene_id in range(round(self.scenario_hyper.RotationQueueCount.value)):
             if self.flag_abort:
                 self.get_logger().info("Capture aborted")
                 self.socket_progress(
@@ -324,21 +324,27 @@ class CaptureNode(Node):
                 self.lock,
                 self.socketIO,
                 self.ell,
+                self.storage,
             ).run_single_capture()
             if not scene:
                 continue
             scenes.append(scene)
-            self.store_scene_thread(space_id, capture_id, scene_id, scene)
 
             self.socket_progress(
-                int(scene_id * 20 / self.scenario_hyper.RotationQueueCount) + 3,
+                int(scene_id * 20 / self.scenario_hyper.RotationQueueCount.value) + 3,
                 uuid=f"{capture_id}/root",
                 action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take done. Turn right",
                 capture_id=capture_id,
             )
-            if scene_id != self.scenario_hyper.RotationQueueCount - 1:
+
+            if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
                 self.turn_right()
+            self.ell.polarizer_turn(home=True)
+            self.storage.store_captured_scene(
+                space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
+            )
+
         self.socket_progress(
             100,
             uuid=f"{capture_id}/root",
@@ -362,6 +368,7 @@ class CaptureNode(Node):
             self.lock,
             self.socketIO,
             self.ell,
+            self.storage,
         ).run_single_capture()
         if not scene:
             self.set_capture_flag(False)
@@ -376,22 +383,22 @@ class CaptureNode(Node):
 
     def turn_right(self):
         twist = Twist()
-        twist.angular.z = self.scenario_hyper.RotationSpeed
+        twist.angular.z = self.scenario_hyper.RotationSpeed.value
         time_begin = time()
         while rclpy.ok():
 
             # Turn right the robot
             time_passed = time() - time_begin
             twist.angular.z = (
-                self.scenario_hyper.RotationSpeed * 0.5
-                if time_passed / self.scenario_hyper.RotationInterval > 0.5
-                else self.scenario_hyper.RotationSpeed
+                self.scenario_hyper.RotationSpeed.value * 0.5
+                if time_passed / self.scenario_hyper.RotationInterval.value > 0.5
+                else self.scenario_hyper.RotationSpeed.value
             )
             self.publisher_cmd_vel.publish(twist)
-            sleep(0.15)
-            if time_passed > self.scenario_hyper.RotationInterval:
+            sleep(0.10)
+            if time_passed > self.scenario_hyper.RotationInterval.value:
                 break
-        sleep(0.5)
+        sleep(2)
 
     def oakd_camera_command(self, start: Optional[bool] = None):
         if start == True:
