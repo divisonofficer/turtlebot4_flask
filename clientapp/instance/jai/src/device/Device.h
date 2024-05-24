@@ -43,7 +43,7 @@ class DeviceManager {
   bool findDeviceConnectionID(PvString &aConnectionID, std::string &displayName,
                               std::string macAddress);
 
-  int validateDeviceIP(const PvDeviceInfo *aDeviceInfo);
+  int validateDeviceIP(const PvDeviceInfo *aDeviceInfo, std::string ipAddress);
 
   std::set<std::string> aConnectionIdSet;
 };

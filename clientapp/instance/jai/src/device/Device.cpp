@@ -67,12 +67,19 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
   Info << "Finding Device Connection ID";
   PvSystem lSystem;
   PvDeviceInfo *aDeviceInfo = nullptr;
+  PvInterface *lInterface = nullptr;
   lSystem.Find();
   int deviceCount = 0;
+  std::string ipAddress;
 
   // Find the first GEV Device
   for (int i = 0; i < lSystem.GetInterfaceCount(); i++) {
-    const PvInterface *lInterface = lSystem.GetInterface(i);
+    lInterface = const_cast<PvInterface *>(lSystem.GetInterface(i));
+    if (lInterface->GetDeviceCount()) {
+      std::string uniqueID = lInterface->GetUniqueID().GetAscii();
+      ipAddress = uniqueID.substr(17, uniqueID.length() - 17);
+      Info << "Interface found: " << ipAddress;
+    }
     for (int j = 0; j < lInterface->GetDeviceCount(); j++) {
       const PvDeviceInfo *lDeviceInfo = lInterface->GetDeviceInfo(j);
       if (!lDeviceInfo) continue;
@@ -105,7 +112,7 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
   Info << "Device found: " << aDeviceInfo->GetDisplayID().GetAscii();
 
   // if IP Configuration is not valid, force new IP Address
-  int ipValidation = validateDeviceIP(aDeviceInfo);
+  int ipValidation = validateDeviceIP(aDeviceInfo, ipAddress);
   if (ipValidation == -1) {
     return false;
   } else if (ipValidation == 1) {
@@ -114,7 +121,8 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
   return true;
 }
 
-int DeviceManager::validateDeviceIP(const PvDeviceInfo *aDeviceInfo) {
+int DeviceManager::validateDeviceIP(const PvDeviceInfo *aDeviceInfo,
+                                    std::string ipAddress) {
   PvResult lResult;
   if (aDeviceInfo->IsConfigurationValid() == false) {
     Info << "Device IP Configuration is not valid. Attempting to force new IP ";
@@ -128,7 +136,7 @@ int DeviceManager::validateDeviceIP(const PvDeviceInfo *aDeviceInfo) {
     // @todo : Get available IP address from somewhere
     lResult = PvDeviceGEV::SetIPConfiguration(
         lDeviceGEV->GetMACAddress().GetAscii(),
-        ("192.168.185." + std::to_string(rand() % 200 + 10)).c_str(),
+        (ipAddress.substr(0, 12) + std::to_string(rand() % 200 + 10)).c_str(),
         lDeviceGEV->GetSubnetMask().GetAscii(),
         lDeviceGEV->GetDefaultGateway().GetAscii());
     if (!lResult.IsOK()) {
