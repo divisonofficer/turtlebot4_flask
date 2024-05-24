@@ -14,6 +14,52 @@ export interface ParameterInfo {
   type: string;
   min: number;
   max: number;
+  source: ParameterInfo_Source;
+}
+
+export enum ParameterInfo_Source {
+  DEVICE = 0,
+  SOURCE = 1,
+  STREAM = 2,
+  STRMAM_GEV = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function parameterInfo_SourceFromJSON(object: any): ParameterInfo_Source {
+  switch (object) {
+    case 0:
+    case "DEVICE":
+      return ParameterInfo_Source.DEVICE;
+    case 1:
+    case "SOURCE":
+      return ParameterInfo_Source.SOURCE;
+    case 2:
+    case "STREAM":
+      return ParameterInfo_Source.STREAM;
+    case 3:
+    case "STRMAM_GEV":
+      return ParameterInfo_Source.STRMAM_GEV;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return ParameterInfo_Source.UNRECOGNIZED;
+  }
+}
+
+export function parameterInfo_SourceToJSON(object: ParameterInfo_Source): string {
+  switch (object) {
+    case ParameterInfo_Source.DEVICE:
+      return "DEVICE";
+    case ParameterInfo_Source.SOURCE:
+      return "SOURCE";
+    case ParameterInfo_Source.STREAM:
+      return "STREAM";
+    case ParameterInfo_Source.STRMAM_GEV:
+      return "STRMAM_GEV";
+    case ParameterInfo_Source.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
 }
 
 export interface ParameterValue {
@@ -41,7 +87,7 @@ export interface DeviceInfo {
 }
 
 function createBaseParameterInfo(): ParameterInfo {
-  return { name: "", type: "", min: 0, max: 0 };
+  return { name: "", type: "", min: 0, max: 0, source: 0 };
 }
 
 export const ParameterInfo = {
@@ -57,6 +103,9 @@ export const ParameterInfo = {
     }
     if (message.max !== 0) {
       writer.uint32(37).float(message.max);
+    }
+    if (message.source !== 0) {
+      writer.uint32(40).int32(message.source);
     }
     return writer;
   },
@@ -96,6 +145,13 @@ export const ParameterInfo = {
 
           message.max = reader.float();
           continue;
+        case 5:
+          if (tag !== 40) {
+            break;
+          }
+
+          message.source = reader.int32() as any;
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -111,6 +167,7 @@ export const ParameterInfo = {
       type: isSet(object.type) ? globalThis.String(object.type) : "",
       min: isSet(object.min) ? globalThis.Number(object.min) : 0,
       max: isSet(object.max) ? globalThis.Number(object.max) : 0,
+      source: isSet(object.source) ? parameterInfo_SourceFromJSON(object.source) : 0,
     };
   },
 
@@ -128,6 +185,9 @@ export const ParameterInfo = {
     if (message.max !== 0) {
       obj.max = message.max;
     }
+    if (message.source !== 0) {
+      obj.source = parameterInfo_SourceToJSON(message.source);
+    }
     return obj;
   },
 
@@ -140,6 +200,7 @@ export const ParameterInfo = {
     message.type = object.type ?? "";
     message.min = object.min ?? 0;
     message.max = object.max ?? 0;
+    message.source = object.source ?? 0;
     return message;
   },
 };

@@ -82,3 +82,15 @@ message CaptureTopicTimestampLog{
     repeated TimestampLog logs = 1;
 
 }
+
+message CaptureScenarioHyperparameter{
+    message HyperParameter{
+        string name = 1;
+        double value = 2;
+        double gap = 3;
+        repeated double range = 4;
+        string info = 5;
+    }
+    repeated HyperParameter hyperparameters = 1;
+
+}
