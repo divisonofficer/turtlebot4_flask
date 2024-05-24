@@ -9,14 +9,21 @@ import {
 } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 import { jaiStore } from "../../stores/JaiStore";
-import { DeviceInfo } from "../../public/proto/jai";
+import {
+  DeviceInfo,
+  ParameterInfo,
+  ParameterInfo_Source,
+} from "../../public/proto/jai";
 import { Body3, H4 } from "../../design/text/textsystem";
 import { VideoStream } from "../../design/other/video";
 import { observer } from "mobx-react";
-import { Pause } from "@phosphor-icons/react";
+import { BookOpen, FloppyDisk, Pause } from "@phosphor-icons/react";
 import { PolarizerControl } from "./PolarizerControl";
 import { Play } from "@phosphor-icons/react/dist/ssr";
-import { ViewIcon } from "@chakra-ui/icons";
+import { CloseIcon, ViewIcon } from "@chakra-ui/icons";
+import { Btn } from "../../design/button/button";
+import { Color } from "../../design/color";
+import { captureStore } from "../../stores/CaptureStore";
 
 export const SourceDeviceParamSlide = observer(
   (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
@@ -93,14 +100,19 @@ export const JaiDeviceSource = (props: {
           height: "18rem",
         }}
       />
-      {props.device.configurable.map((_, index) => {
+      {props.device.configurable.map((conf, index) => {
         return (
-          <SourceDeviceParamSlide
-            device={props.device}
-            sourceIndex={props.sourceIndex}
-            paramIndex={index}
-            key={index}
-          />
+          !(
+            conf.source === ParameterInfo_Source.DEVICE &&
+            props.sourceIndex === 1
+          ) && (
+            <SourceDeviceParamSlide
+              device={props.device}
+              sourceIndex={props.sourceIndex}
+              paramIndex={index}
+              key={index}
+            />
+          )
         );
       })}
     </VStack>
@@ -133,7 +145,11 @@ export const JaiDeviceControl = (props: { device: DeviceInfo }) => {
         />
       </HStack>
 
-      <HStack>
+      <HStack
+        style={{
+          alignItems: "flex-start",
+        }}
+      >
         {Array.from({ length: props.device.sourceCount }).map((_, index) => {
           return (
             <JaiDeviceSource
@@ -150,11 +166,46 @@ export const JaiDeviceControl = (props: { device: DeviceInfo }) => {
 
 export const JAiBridgeControl = observer(() => {
   return (
-    <HStack>
-      {jaiStore.jaiDeviceInfo.map((device, index) => {
-        return <JaiDeviceControl device={device} key={index} />;
-      })}
-    </HStack>
+    <VStack>
+      <HStack>
+        <Btn
+          icon={<FloppyDisk />}
+          onClick={() => {
+            jaiStore.fetchJaiParameterSave();
+          }}
+          size="sm"
+          color={Color.Indigo}
+        >
+          Save Parameters
+        </Btn>
+        <Btn
+          icon={<BookOpen />}
+          onClick={() => {
+            captureStore.fetchMultiSpectralInit();
+          }}
+          size="sm"
+          color={Color.Green}
+        >
+          Force Parameters to eBUS
+        </Btn>
+        <Btn
+          icon={<CloseIcon />}
+          onClick={() => {
+            captureStore.fetchMultiSpectralClose();
+          }}
+          size="sm"
+          color={Color.Red}
+        >
+          Shutdown All Streams
+        </Btn>
+      </HStack>
+
+      <HStack>
+        {jaiStore.jaiDeviceInfo.map((device, index) => {
+          return <JaiDeviceControl device={device} key={index} />;
+        })}
+      </HStack>
+    </VStack>
   );
 });
 
