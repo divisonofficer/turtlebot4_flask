@@ -7,6 +7,7 @@ import {
   CaptureAppScene,
   CaptureAppSpace,
   CaptureMessageDefGroup,
+  CaptureScenarioHyperparameter,
   CaptureTaskProgress,
   CaptureTaskProgress_Action,
   CaptureTopicTimestampLog,
@@ -71,6 +72,7 @@ class CaptureStore {
   captureScenes: CaptureAppScene[] = [];
   captures: CaptureAppCapture[] = [];
   capture_pendings_id: number[] = [];
+  capture_view_image_filenames: { [key: string]: boolean } = {};
 
   map_name?: string = undefined;
 
@@ -91,9 +93,32 @@ class CaptureStore {
   // For Capture Control
   /////////////////////////////////////////////
   def_switchs: { [key: string]: CaptureMessageDefGroup } = {};
+  scenario_hyperparameters?: CaptureScenarioHyperparameter = undefined;
   /////////////////////////////////////////////
   // Capture Control Action
   /////////////////////////////////////////////
+
+  @action
+  fetchCaptureHyperparameters() {
+    httpGet("/capture/hyperparameters")
+      .onSuccess((data: CaptureScenarioHyperparameter) => {
+        this.scenario_hyperparameters = data;
+      })
+      .fetch();
+  }
+
+  @action
+  fetchScenarioHyperparameterUpdate(name: string, value: number) {
+    httpPost("/capture/hyperparameters", {
+      name: name,
+      value: value,
+    })
+      .onSuccess((data: CaptureScenarioHyperparameter) => {
+        this.scenario_hyperparameters = data;
+      })
+      .fetch();
+  }
+
   @action
   extendSceneId(scene_meta: CaptureAppScene) {
     setTimeout(
@@ -200,6 +225,7 @@ class CaptureStore {
             this.space_name = data.space_name;
 
             this.fetchCaptureSpace(data.space_id);
+            this.fetchCaptureHyperparameters();
           }
         }
       )
@@ -389,6 +415,12 @@ class CaptureStore {
       .onSuccess((data) => {
         runInAction(() => {
           this.captures = data;
+          if (this.captures.length > 0) {
+            const scene = this.captures[0].scenes[0];
+            scene.images.forEach((image) => {
+              this.capture_view_image_filenames[image] = false;
+            });
+          }
         });
       })
       .fetch();
