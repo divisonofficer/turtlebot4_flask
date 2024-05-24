@@ -6,6 +6,16 @@ message ParameterInfo{
     string type = 2;
     float min = 3;
     float max = 4;
+
+    enum Source{
+        DEVICE = 0;
+        SOURCE = 1;
+        STREAM = 2;
+        STRMAM_GEV = 3;
+
+    }
+
+    Source source = 5;
 }
 
 

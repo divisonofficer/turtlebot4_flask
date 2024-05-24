@@ -166,6 +166,18 @@ export interface CaptureTopicTimestampLog_TimestampLog {
   delayToSystem: number;
 }
 
+export interface CaptureScenarioHyperparameter {
+  hyperparameters: CaptureScenarioHyperparameter_HyperParameter[];
+}
+
+export interface CaptureScenarioHyperparameter_HyperParameter {
+  name: string;
+  value: number;
+  gap: number;
+  range: number[];
+  info: string;
+}
+
 function createBaseCaptureAppCapture(): CaptureAppCapture {
   return { spaceId: 0, captureId: 0, scenes: [] };
 }
@@ -1078,6 +1090,205 @@ export const CaptureTopicTimestampLog_TimestampLog = {
     message.topic = object.topic ?? "";
     message.timestamp = object.timestamp ?? 0;
     message.delayToSystem = object.delayToSystem ?? 0;
+    return message;
+  },
+};
+
+function createBaseCaptureScenarioHyperparameter(): CaptureScenarioHyperparameter {
+  return { hyperparameters: [] };
+}
+
+export const CaptureScenarioHyperparameter = {
+  encode(message: CaptureScenarioHyperparameter, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.hyperparameters) {
+      CaptureScenarioHyperparameter_HyperParameter.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): CaptureScenarioHyperparameter {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCaptureScenarioHyperparameter();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.hyperparameters.push(CaptureScenarioHyperparameter_HyperParameter.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CaptureScenarioHyperparameter {
+    return {
+      hyperparameters: globalThis.Array.isArray(object?.hyperparameters)
+        ? object.hyperparameters.map((e: any) => CaptureScenarioHyperparameter_HyperParameter.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: CaptureScenarioHyperparameter): unknown {
+    const obj: any = {};
+    if (message.hyperparameters?.length) {
+      obj.hyperparameters = message.hyperparameters.map((e) => CaptureScenarioHyperparameter_HyperParameter.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CaptureScenarioHyperparameter>, I>>(base?: I): CaptureScenarioHyperparameter {
+    return CaptureScenarioHyperparameter.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CaptureScenarioHyperparameter>, I>>(
+    object: I,
+  ): CaptureScenarioHyperparameter {
+    const message = createBaseCaptureScenarioHyperparameter();
+    message.hyperparameters =
+      object.hyperparameters?.map((e) => CaptureScenarioHyperparameter_HyperParameter.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCaptureScenarioHyperparameter_HyperParameter(): CaptureScenarioHyperparameter_HyperParameter {
+  return { name: "", value: 0, gap: 0, range: [], info: "" };
+}
+
+export const CaptureScenarioHyperparameter_HyperParameter = {
+  encode(message: CaptureScenarioHyperparameter_HyperParameter, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.value !== 0) {
+      writer.uint32(17).double(message.value);
+    }
+    if (message.gap !== 0) {
+      writer.uint32(25).double(message.gap);
+    }
+    writer.uint32(34).fork();
+    for (const v of message.range) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    if (message.info !== "") {
+      writer.uint32(42).string(message.info);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): CaptureScenarioHyperparameter_HyperParameter {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCaptureScenarioHyperparameter_HyperParameter();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        case 2:
+          if (tag !== 17) {
+            break;
+          }
+
+          message.value = reader.double();
+          continue;
+        case 3:
+          if (tag !== 25) {
+            break;
+          }
+
+          message.gap = reader.double();
+          continue;
+        case 4:
+          if (tag === 33) {
+            message.range.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.range.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.info = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CaptureScenarioHyperparameter_HyperParameter {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      value: isSet(object.value) ? globalThis.Number(object.value) : 0,
+      gap: isSet(object.gap) ? globalThis.Number(object.gap) : 0,
+      range: globalThis.Array.isArray(object?.range) ? object.range.map((e: any) => globalThis.Number(e)) : [],
+      info: isSet(object.info) ? globalThis.String(object.info) : "",
+    };
+  },
+
+  toJSON(message: CaptureScenarioHyperparameter_HyperParameter): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.value !== 0) {
+      obj.value = message.value;
+    }
+    if (message.gap !== 0) {
+      obj.gap = message.gap;
+    }
+    if (message.range?.length) {
+      obj.range = message.range;
+    }
+    if (message.info !== "") {
+      obj.info = message.info;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CaptureScenarioHyperparameter_HyperParameter>, I>>(
+    base?: I,
+  ): CaptureScenarioHyperparameter_HyperParameter {
+    return CaptureScenarioHyperparameter_HyperParameter.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CaptureScenarioHyperparameter_HyperParameter>, I>>(
+    object: I,
+  ): CaptureScenarioHyperparameter_HyperParameter {
+    const message = createBaseCaptureScenarioHyperparameter_HyperParameter();
+    message.name = object.name ?? "";
+    message.value = object.value ?? 0;
+    message.gap = object.gap ?? 0;
+    message.range = object.range?.map((e) => e) || [];
+    message.info = object.info ?? "";
     return message;
   },
 };
