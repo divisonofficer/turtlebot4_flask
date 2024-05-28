@@ -1,3 +1,4 @@
+import gc
 from time import time, sleep
 from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Joy
@@ -295,7 +296,6 @@ class CaptureNode(Node):
             msg="Begin Rotating Capture",
             capture_id=capture_id,
         )
-        scenes = []
         for scene_id in range(round(self.scenario_hyper.RotationQueueCount.value)):
             if self.flag_abort:
                 self.get_logger().info("Capture aborted")
@@ -308,7 +308,7 @@ class CaptureNode(Node):
                 )
                 break
             self.socket_progress(
-                scene_id * 5,
+                round(scene_id * (100 / self.scenario_hyper.RotationQueueCount.value)),
                 uuid=f"{capture_id}/root",
                 action=CaptureTaskProgress.Action.ACTIVE,
                 msg=f"{scene_id}th take",
@@ -328,7 +328,6 @@ class CaptureNode(Node):
             ).run_single_capture()
             if not scene:
                 continue
-            scenes.append(scene)
 
             self.socket_progress(
                 int(scene_id * 20 / self.scenario_hyper.RotationQueueCount.value) + 3,
@@ -344,6 +343,7 @@ class CaptureNode(Node):
             self.storage.store_captured_scene(
                 space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
             )
+            scene.picture_list = []
 
         self.socket_progress(
             100,
@@ -353,6 +353,7 @@ class CaptureNode(Node):
             capture_id=capture_id,
         )
         self.set_capture_flag(False)
+        gc.collect()
 
     def capture_single_job(self, capture_id: int):
         if not self.space_id:

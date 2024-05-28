@@ -44,28 +44,26 @@ class VideoStream:
             if msg.encoding == "bayer_rggb8":
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
 
-            if self.timestampWatermark:
-                time_text = time.strftime(
-                    "%H:%M:%S", time.localtime(msg.header.stamp.sec)
-                )
-                cv2.putText(
-                    cv_image,
-                    time_text,
-                    (15, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    2,
-                    (255, 255, 255),
-                    2,
-                    cv2.LINE_AA,
-                )
+        if self.timestampWatermark:
+            time_text = time.strftime("%H:%M:%S", time.localtime(msg.header.stamp.sec))
+            cv2.putText(
+                cv_image,
+                time_text,
+                (15, 50),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                2,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA,
+            )
 
-            if self.preview_compress:
-                height = cv_image.shape[0]
-                width = cv_image.shape[1]
-                aspect_ratio = width / height
-                new_width = 256
-                new_height = int(new_width / aspect_ratio)
-                cv_image = cv2.resize(cv_image, (new_width, new_height))
+        if self.preview_compress:
+            height = cv_image.shape[0]
+            width = cv_image.shape[1]
+            aspect_ratio = width / height
+            new_width = 256
+            new_height = int(new_width / aspect_ratio)
+            cv_image = cv2.resize(cv_image, (new_width, new_height))
         self.output_frame = cv_image
 
     def cv_ndarray_callback(self, image):
@@ -102,7 +100,6 @@ class VideoStream:
 
             self.yield_time_interval = time.time() - self.yield_time
             self.yield_time = time.time()
-            self.output_frame = None
 
             if self.interval_callback:
                 self.interval_callback(

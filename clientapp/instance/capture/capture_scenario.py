@@ -103,6 +103,7 @@ class CaptureSingleScenario:
         """
         self.open_jai_stream(True)
         try:
+            capture_begin_time = time()
             self.socket_progress(
                 0,
                 scene_id=self.scene_id,
@@ -138,6 +139,13 @@ class CaptureSingleScenario:
                     "/recent_scene",
                     serialized_scene.SerializeToString(),
                     namespace="/socket",
+                )
+                self.capture_msg.timestamp_log.logs.append(
+                    CaptureTopicTimestampLog.TimestampLog(
+                        topic="Full Capture Process",
+                        timestamp=capture_begin_time,
+                        delay_to_system=time() - capture_begin_time,
+                    )
                 )
                 self.socketIO.emit(
                     "/timestamp_logs",
