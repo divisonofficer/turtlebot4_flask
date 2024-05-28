@@ -230,7 +230,7 @@ class JaiBridgeNode(Node):
                         CompressedImage,
                         f"/{device_name}/channel_{i}",
                         self.videoStreams[device_name][i].cv_raw_callback,
-                        10,
+                        1,
                     )
                 )
 
@@ -242,6 +242,18 @@ class JaiBridgeNode(Node):
                         10,
                     )
                 )
+        self.videoStreams["oakd"] = [
+            VideoStream(preview_compress=True, timestampWatermark=True)
+        ]
+
+        self.videoStreamSubscriptions["oakd"] = [
+            self.create_subscription(
+                CompressedImage,
+                "/oakd/rgb/image_raw/compressed",
+                self.videoStreams["oakd"][0].cv_raw_callback,
+                1,
+            )
+        ]
 
     def publish_configure(
         self,
