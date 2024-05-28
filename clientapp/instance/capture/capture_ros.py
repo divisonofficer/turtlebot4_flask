@@ -27,7 +27,7 @@ class Ell14:
     def __init__(self):
         pass
 
-    def polarizer_turn(self, home=None):
+    def polarizer_turn(self, home=None, angle=None):
         """
         Request ell14 server to turn the rotation stage of polarizer
         If home is True, then turn to home position
@@ -38,7 +38,7 @@ class Ell14:
         if (
             requests.post(
                 "http://localhost/ell/angle",
-                json={"angle": 45},
+                json={"angle": angle if angle else 45},
                 headers={"Content-Type": "application/json"},
             ).status_code
             != 200
