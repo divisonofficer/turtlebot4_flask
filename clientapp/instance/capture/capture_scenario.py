@@ -55,6 +55,7 @@ class CaptureSingleScenario:
         self.socketIO = socketIO
         self.ell = ell
         self.storage = storage
+        self.ANGLES = capture_msg.definition.ANGLES
 
     def get_basic_msgs(self, scene: CaptureSingleScene):
         while True:
@@ -186,6 +187,9 @@ class CaptureSingleScenario:
         return None
 
     def run_polarized_capture(self):
+        if self.ANGLES[0] > 0:
+            self.ell.polarizer_turn(angle=self.ANGLES[0])
+            sleep(1)
         """
         Capture the multispectral camera four times with a 45-degree rotation of the polarizer.
         Repeat the process of rotating by 45 degrees and capturing the image.
@@ -193,7 +197,7 @@ class CaptureSingleScenario:
         if not self.messageDef.MultiChannel_Left.enabled:
             return []
         image_list = []
-        for deg in [0, 45, 90, 135]:
+        for idx, deg in enumerate(self.ANGLES):
             self.socket_progress(
                 deg * 15 // 45 + 30,
                 scene_id=self.scene_id,
@@ -228,8 +232,8 @@ class CaptureSingleScenario:
                     )
                 )
 
-            if deg < 135:
-                self.ell.polarizer_turn()
+            if idx < 3:
+                self.ell.polarizer_turn(angle=self.ANGLES[idx + 1] - self.ANGLES[idx])
 
             for image in image_list:
                 self.storage.store_captured_scene_image(

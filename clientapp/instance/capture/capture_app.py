@@ -20,6 +20,8 @@ import cv2
 import threading
 from google.protobuf.json_format import MessageToJson, MessageToDict
 import json
+from polarization_compute import PolarizationCompute
+import numpy as np
 
 
 def messageToDict(message):
@@ -35,6 +37,7 @@ socketIO = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 capture_node: CaptureNode
 diag_node: CaptureDiagnostic
 capture_storage = CaptureStorage()
+p_compute = PolarizationCompute()
 
 
 with app.app_context():
@@ -206,6 +209,47 @@ def set_scenario_hyperparameters():
     capture_node.scenario_hyper.update(name, value)
 
     return MessageToDict(capture_node.scenario_hyper.to_msg())
+
+
+@app.route("/polarization/qwpangle", methods=["POST"])
+def update_qwp_angles():
+    angles = request.json.get("angles") if request.json else None
+    if angles and type(angles) == list:
+        capture_node.messageDef.ANGLES = angles
+
+    return {"status": "success"}
+
+
+@app.route(
+    "/polarization/linear/<space>/<capture>/<scene>/<channel>/<angle>", methods=["GET"]
+)
+def get_polarization_calibration(space, capture, scene, channel, angle):
+
+    images = capture_storage.get_capture_scene_images_paths(
+        int(space), int(capture), int(scene)
+    )
+    images = [x for x in images if "jai_1600_left_" + channel in x]
+    print(images)
+    p_compute.update_qwp_angles(
+        [int(x.split(channel)[1].split(".")[0]) for x in images]
+    )
+    images = [f"tmp/oakd_capture/{space}/{capture}/{scene}/{x}" for x in images]
+    p_compute.put_image_list(images)
+
+    p_compute.update_linear_matrix(np.pi / 180 * float(angle))
+
+    # Create a list of images
+    images = p_compute.compute()
+
+    # Create a new image by concatenating the four images horizontally
+    images = [np.concatenate(x, axis=0) for x in images]
+    result_image = np.concatenate(images, axis=1)
+
+    # Convert the result image back to an ndarray
+    result_array = np.array(result_image)
+    result_image_bytes = cv2.imencode(".jpg", result_array)[1].tobytes()
+    response = Response(result_image_bytes, mimetype="image/jpeg")
+    return response
 
 
 if __name__ == "__main__":
