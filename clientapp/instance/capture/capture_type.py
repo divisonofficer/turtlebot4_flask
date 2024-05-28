@@ -6,23 +6,30 @@ from typing import List, Optional, Union
 from capture_pb2 import *
 from google.protobuf import json_format
 import numpy as np
+from cv2.typing import MatLike
 
 
 class ImageBytes:
     width: int
     height: int
     # data: List[int]
-    image: cv2.typing.MatLike
+    image: MatLike
     topic: str
 
     def __init__(
         self,
-        image: Union[Image, CompressedImage],
+        image: Union[Image, CompressedImage, MatLike],
         topic: str = "/oakd/rgb/preview/image_raw",
         bayerInterpolation: bool = False,
     ):
         self.topic = topic
-        if type(image) == CompressedImage:
+
+        if type(image) == np.ndarray:
+            self.width = image.shape[1]
+            self.height = image.shape[0]
+            self.image = image
+
+        elif type(image) == CompressedImage:
             # print(f"converting {topic} to cv2")
             np_arr = np.frombuffer(image.data, np.uint8)
 
