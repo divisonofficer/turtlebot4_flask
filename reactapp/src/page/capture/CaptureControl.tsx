@@ -2,6 +2,7 @@ import {
   Button,
   Flex,
   HStack,
+  Input,
   Popover,
   PopoverArrow,
   PopoverBody,
@@ -27,6 +28,8 @@ import { slamStore } from "../../stores/SlamStore";
 import { CaptureSpaceInitModal, CaptureSpaceModal } from "./CaptureSpaceModal";
 import { Color } from "../../design/color";
 import { SlamState_Status } from "../../public/proto/slam";
+import { useState } from "react";
+import { httpPost } from "../../connect/http/request";
 
 const CaptureSourceSwitch = observer(() => {
   return (
@@ -186,9 +189,31 @@ export const MultiSpectralCameraControl = observer(() => {
 
 export const CaptureScenarioHyperparameterControl = observer(() => {
   const parameter = captureStore.scenario_hyperparameters;
-
+  const [qwpAngles, setQwpAngles] = useState([30, 60, 90, 135]);
   return parameter ? (
     <VStack>
+      <HStack>
+        <H4>QWP Angles</H4>
+        <Input
+          value={qwpAngles.join(",")}
+          onChange={(e) => {
+            setQwpAngles(
+              e.target.value.split(",").map((angle) => parseInt(angle))
+            );
+          }}
+        />
+        <Btn
+          size="sm"
+          onClick={() => {
+            httpPost("/capture/polarization/qwpangle", {
+              angles: qwpAngles,
+            }).fetch();
+          }}
+        >
+          update
+        </Btn>
+      </HStack>
+
       {parameter.hyperparameters.map((param, index) => (
         <HStack
           style={{

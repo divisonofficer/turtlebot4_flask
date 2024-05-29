@@ -5,6 +5,7 @@ import {
   PlusSquareIcon,
 } from "@chakra-ui/icons";
 import {
+  Angle,
   ArrowBendDoubleUpLeft,
   Camera,
   CameraSlash,
@@ -83,6 +84,11 @@ export const menuList: MenuItem[] = [
     icon: CameraSlash,
     name: "JaiBridge",
     destination: "/jaibridge",
+  },
+  {
+    icon: Angle,
+    name: "Polarization",
+    destination: "/polarization",
   },
 ];
 

@@ -17,6 +17,7 @@ import { Appbar } from "./page/appbar/Appbar";
 import { CapturePage } from "./page/capture/CapturePage";
 import { AlertView } from "./page/appbar/AlertView";
 import { JaiBridgePage } from "./page/jaibridge/JaiBridgePage";
+import { PolarizationCalibrationPage } from "./page/polarization/PolarizationCalibration";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -38,6 +39,7 @@ function App() {
         <Route path="/slam" element={<SlamPage />} />
         <Route path="/capture" element={<CapturePage />} />
         <Route path="/jaibridge" element={<JaiBridgePage />} />
+        <Route path="/polarization" element={<PolarizationCalibrationPage />} />
       </Routes>
     );
   };
