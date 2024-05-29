@@ -1,13 +1,14 @@
-import { HStack, VStack } from "@chakra-ui/react";
+import { HStack, Input, VStack } from "@chakra-ui/react";
 import { InfoCardBtn } from "../../design/other/infocard";
 import { ArrowArcRight, House } from "@phosphor-icons/react";
 import { httpPost } from "../../connect/http/request";
 import { H2 } from "../../design/text/textsystem";
+import { useState } from "react";
 
 export const PolarizerControl = () => {
   const fetchTurnRight = () => {
     httpPost("/ell/angle", {
-      angle: 45,
+      angle: angle,
     }).fetch();
   };
 
@@ -16,6 +17,8 @@ export const PolarizerControl = () => {
       angle: 0,
     }).fetch();
   };
+
+  const [angle, setAngle] = useState(45);
 
   return (
     <VStack>
@@ -26,6 +29,13 @@ export const PolarizerControl = () => {
           title="TURN"
           Icon={ArrowArcRight}
           onClick={fetchTurnRight}
+        />
+        <Input
+          placeholder="angle"
+          type="number"
+          value={angle}
+          width="5rem"
+          onChange={(e) => setAngle(Number(e.target.value))}
         />
       </HStack>{" "}
     </VStack>

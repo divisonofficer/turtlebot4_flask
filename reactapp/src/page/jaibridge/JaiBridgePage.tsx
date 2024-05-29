@@ -205,6 +205,13 @@ export const JAiBridgeControl = observer(() => {
           return <JaiDeviceControl device={device} key={index} />;
         })}
       </HStack>
+      <VideoStream
+        url={`/jai/preview/oakd/0`}
+        style={{
+          width: "24rem",
+          height: "18rem",
+        }}
+      />
     </VStack>
   );
 });
