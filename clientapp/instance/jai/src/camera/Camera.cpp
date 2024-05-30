@@ -117,7 +117,12 @@ void MultiSpectralCamera::configureDevice(int source, std::string command,
     });
   } else if (type == "bool") {
     configureSourceRuntime(source, [&](PvGenParameterArray* params) {
-      ParamManager::setParam(params, command.c_str(), std::stoi(value));
+      ParamManager::setParamEnum(params, command.c_str(),
+                                 value == "True" ? 1 : 0);
+    });
+  } else if (type == "boolean") {
+    configureSourceRuntime(source, [&](PvGenParameterArray* params) {
+      ParamManager::setParam(params, command.c_str(), value == "True");
     });
   } else if (type == "enum") {
     configureSourceRuntime(source, [&](PvGenParameterArray* params) {
@@ -181,3 +186,44 @@ void MultiSpectralCamera::printCameraConfig() {
 }
 
 void MultiSpectralCamera::interrupt() { flagInterrupted = true; }
+
+std::string MultiSpectralCamera::getParameter(int source,
+                                              std::string parameter) {
+  ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                             "SourceSelector", source);
+  auto value = ParamManager::getParameterAsString(
+      dualDevice->getDevice(0)->GetParameters(), parameter.c_str());
+  return value;
+}
+
+double MultiSpectralCamera::holdAutoExposureAndGetValue(bool hold) {
+  auto exposureStatus = ParamManager::getParameterAsString(
+      dualDevice->getDevice(0)->GetParameters(), "ExposureAuto");
+  for (int i = 0; i < 2; i++) {
+    ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                               "SourceSelector", i);
+    if (hold) {
+      if (exposureStatus == "0") {
+        ErrorLog << "Exposure Auto is already off";
+        return -1;
+      }
+      double value;
+      dualDevice->getDevice(0)->GetParameters()->GetFloatValue("ExposureTime",
+                                                               value);
+      ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                                 "ExposureAuto", 0);
+      value = value * 0.85;
+      ParamManager::setParam(dualDevice->getDevice(0)->GetParameters(),
+                             "ExposureTime", float(value));
+    } else {
+      if (exposureStatus == "2") {
+        ErrorLog << "Exposure Auto is already on";
+        return -1;
+      }
+
+      ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                                 "ExposureAuto", 2);
+    }
+  }
+  return 1;
+}

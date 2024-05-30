@@ -21,5 +21,10 @@ class ParamManager {
                                const char* paramName, const int value);
 
   static bool isParamExists(PvGenParameterArray* params, const char* paramName);
+  static PvGenType getParamType(PvGenParameterArray* params,
+                                const char* paramName);
+
+  static std::string getParameterAsString(PvGenParameterArray* params,
+                                          const char* paramName);
   static void printPvResult(PvResult result);
 };

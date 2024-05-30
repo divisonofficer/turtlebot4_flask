@@ -25,9 +25,11 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image, CompressedImage
 from std_msgs.msg import String, Bool
 from typing import List, Dict, Any, Optional
+import cv2
 
 from jai_pb2 import (
     DeviceInfo,
+    ParameterEnum,
     ParameterInfo,
     ParameterValue,
     ParameterUpdate,
@@ -58,6 +60,14 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
+                        ParameterValue(
+                            name="ExposureAutoControlMax", value="100000", type="float"
+                        ),
+                        ParameterValue(
+                            name="ExposureAutoControlMin", value="1000", type="float"
+                        ),
+                        ParameterValue(name="ExposureAuto", value="0", type="enum"),
+                        ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -70,11 +80,19 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="60000", type="float"
                         ),
                         ParameterValue(name="Gain", value="3.0", type="float"),
+                        ParameterValue(
+                            name="ExposureAutoControlMax", value="100000", type="float"
+                        ),
+                        ParameterValue(
+                            name="ExposureAutoControlMin", value="1000", type="float"
+                        ),
+                        ParameterValue(name="ExposureAuto", value="0", type="enum"),
+                        ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
         ],
-        fps=2,
+        fps=4,
         configurable=[
             ParameterInfo(
                 name="ExposureTime",
@@ -96,6 +114,50 @@ DEVICE_INFO: List[DeviceInfo] = [
                 min=0.1,
                 max=8,
                 source=ParameterInfo.Source.DEVICE,
+            ),
+            ParameterInfo(
+                name="ExposureAutoControlMax",
+                type="float",
+                min=1000,
+                max=100000,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="ExposureAutoControlMin",
+                type="float",
+                min=100,
+                max=5000,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="ExposureAuto",
+                type="enum",
+                source=ParameterInfo.Source.SOURCE,
+                enumDefs=[
+                    ParameterEnum(
+                        index=0,
+                        value="Off",
+                    ),
+                    ParameterEnum(
+                        index=2,
+                        value="Continuous",
+                    ),
+                ],
+            ),
+            ParameterInfo(
+                name="GainAuto",
+                type="enum",
+                source=ParameterInfo.Source.SOURCE,
+                enumDefs=[
+                    ParameterEnum(
+                        index=0,
+                        value="Off",
+                    ),
+                    ParameterEnum(
+                        index=2,
+                        value="Continuous",
+                    ),
+                ],
             ),
         ],
     ),
@@ -115,6 +177,14 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
+                        ParameterValue(
+                            name="ExposureAutoControlMax", value="100000", type="float"
+                        ),
+                        ParameterValue(
+                            name="ExposureAutoControlMin", value="1000", type="float"
+                        ),
+                        ParameterValue(name="ExposureAuto", value="0", type="enum"),
+                        ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -127,11 +197,19 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="30000", type="float"
                         ),
                         ParameterValue(name="Gain", value="3.0", type="float"),
+                        ParameterValue(
+                            name="ExposureAutoControlMax", value="100000", type="float"
+                        ),
+                        ParameterValue(
+                            name="ExposureAutoControlMin", value="1000", type="float"
+                        ),
+                        ParameterValue(name="ExposureAuto", value="0", type="enum"),
+                        ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
         ],
-        fps=2,
+        fps=4,
         configurable=[
             ParameterInfo(
                 name="ExposureTime",
@@ -153,6 +231,50 @@ DEVICE_INFO: List[DeviceInfo] = [
                 min=0.1,
                 max=8,
                 source=ParameterInfo.Source.DEVICE,
+            ),
+            ParameterInfo(
+                name="ExposureAutoControlMax",
+                type="float",
+                min=1000,
+                max=100000,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="ExposureAutoControlMin",
+                type="float",
+                min=100,
+                max=5000,
+                source=ParameterInfo.Source.SOURCE,
+            ),
+            ParameterInfo(
+                name="ExposureAuto",
+                type="enum",
+                source=ParameterInfo.Source.SOURCE,
+                enumDefs=[
+                    ParameterEnum(
+                        index=0,
+                        value="Off",
+                    ),
+                    ParameterEnum(
+                        index=2,
+                        value="Continuous",
+                    ),
+                ],
+            ),
+            ParameterInfo(
+                name="GainAuto",
+                type="enum",
+                source=ParameterInfo.Source.SOURCE,
+                enumDefs=[
+                    ParameterEnum(
+                        index=0,
+                        value="Off",
+                    ),
+                    ParameterEnum(
+                        index=2,
+                        value="Continuous",
+                    ),
+                ],
             ),
         ],
     ),
@@ -176,17 +298,25 @@ class JaiBridgeNode(Node):
 
     def configure_callback_gen(self, device_name: str, channel_id: int):
         def configure_callback(msg: String):
-            data_line = msg.data.split(";")
+            parameters = ParameterUpdate.FromString(msg.data.encode("utf-8"))
+
             if device_name not in self.configure_dict:
                 self.configure_dict[device_name] = []
             while channel_id >= len(self.configure_dict[device_name]):
                 self.configure_dict[device_name].append({})
-            for line in data_line:
-                config_name, config_value = line.split("=")
 
-                self.configure_dict[device_name][channel_id][config_name] = {
-                    "value": config_value,
-                    "type": None,
+            device = [x for x in DEVICE_INFO if x.name == device_name][0]
+
+            self.configure_dict[device_name][channel_id]["timestamp"] = time()
+
+            for param in parameters.parameters:
+
+                self.configure_dict[device_name][channel_id][param.name] = {
+                    "value": param.value,
+                    "type": [x for x in device.configurable if x.name == param.name][
+                        0
+                    ].type,
+                    "name": param.name,
                 }
 
         return configure_callback
@@ -219,7 +349,10 @@ class JaiBridgeNode(Node):
                 self.device_service_clients[device_name] = {
                     "open_stream": self.create_publisher(
                         Bool, f"/{device_name}/stream_trigger", 10
-                    )
+                    ),
+                    "auto_exposure_hold_trigger": self.create_publisher(
+                        Bool, f"/{device_name}/auto_exposure_hold_trigger", 10
+                    ),
                 }
 
                 self.videoStreams[device_name].append(
@@ -278,7 +411,23 @@ class JaiBridgeNode(Node):
         for device_name, device_config in self.configure_dict.items():
             for channel_id, channel_config in enumerate(device_config):
                 msg = String()
+                params = ParameterUpdate()
+
+                for key, value in channel_config.items():
+                    if key == "timestamp":
+                        continue
+                    param = ParameterValue()
+                    param.name = key
+                    param.value = ""
+                    params.parameters.extend([param])
+                msg.data = params.SerializeToString().decode("utf-8")
                 self.service_clients[device_name][channel_id].publish(msg)
+        time_stand = time()
+        while self.configure_dict[DEVICE_INFO[0].name][0].get("timestamp") is None or self.configure_dict[DEVICE_INFO[0].name][0].get("timestamp") < time_stand:  # type: ignore
+            sleep(1)
+
+            if time() - time_stand > 10:
+                return {"status": "error", "message": "Timeout"}
         return self.configure_dict
 
     def call_service(
@@ -286,6 +435,12 @@ class JaiBridgeNode(Node):
     ):
         if service_name == "open_stream":
             ros_request = Bool()
+            ros_request.data = request
+            self.device_service_clients[device_name][service_name].publish(ros_request)
+
+        if service_name == "auto_exposure_hold_trigger":
+            ros_request = Bool()
+            request = (request == "true") if type(request) == str else request
             ros_request.data = request
             self.device_service_clients[device_name][service_name].publish(ros_request)
 
@@ -328,6 +483,18 @@ class JaiBridgeNode(Node):
                             break
         self.device_info_to_json_file()
 
+    def get_device_params(self, param_request: list[tuple[str, int, str]]):
+        time_begin = time()
+        result = []
+        for device_name, channel_id, param_name in param_request:
+            timestamp = self.configure_dict[device_name][channel_id].get("timestamp")
+            while time_begin > timestamp if timestamp else time_begin - 1:
+                sleep(1)
+                if time() - time_begin > 10:
+                    return {"status": "error", "message": "Timeout"}
+            result.append(self.configure_dict[device_name][channel_id][param_name])
+        return result
+
 
 node: JaiBridgeNode
 
@@ -336,6 +503,18 @@ import threading
 
 def spin_node():
     threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
+
+
+@app.route("/snapshot/<device_name>/<channel_id>")
+def get_camera_snapshot(device_name, channel_id):
+    channel_id = channel_id.split("_")[1] if "_" in channel_id else channel_id
+
+    result_image_bytes = cv2.imencode(".png", node.videoStreams[device_name][int(channel_id)].cv_image)[1].tobytes()  # type: ignore
+
+    return Response(
+        result_image_bytes,
+        mimetype="image/jpeg",
+    )
 
 
 @app.route("/preview/<device_name>/<channel_id>/<timestamp>")
@@ -406,6 +585,29 @@ def open_camera_stream(device_name):
 def close_camera_stream(device_name):
     node.call_service(device_name, "open_stream", False)
     return {"status": "success"}
+
+
+@app.route("/device/<device_name>/auto_exposure_hold", methods=["POST"])
+def auto_exposure_hold(device_name):
+    node.call_service(
+        device_name,
+        "auto_exposure_hold_trigger",
+        request.json["hold"] if request.json else False,
+    )
+
+    return node.get_camera_params()
+
+
+@app.route("/device/all/auto_exposure_hold", methods=["POST"])
+def auto_exposure_hold_all():
+    for device in DEVICE_INFO:
+        node.call_service(
+            device.name,
+            "auto_exposure_hold_trigger",
+            request.json["hold"] if request.json else False,
+        )
+
+    return node.get_camera_params()
 
 
 with app.app_context():
