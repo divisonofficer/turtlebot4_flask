@@ -73,19 +73,58 @@ PvResult ParamManager::setParam(PvGenParameterArray* params,
 
 bool ParamManager::isParamExists(PvGenParameterArray* params,
                                  const char* paramName) {
+  auto type = getParamType(params, paramName);
+  if (type != PvGenType::PvGenTypeUndefined) {
+    return true;
+  }
+  return false;
+}
+
+PvGenType ParamManager::getParamType(PvGenParameterArray* params,
+                                     const char* paramName) {
   auto param = params->Get(paramName);
   if (param) {
     PvGenType type;
     param->GetType(type);
     Debug << "Parameter " << paramName << " found with type " << type;
-    return true;
+    return type;
   }
   ErrorLog << "Parameter " << paramName << " not found";
-  return false;
+  return PvGenType::PvGenTypeUndefined;
 }
 
 void ParamManager::printPvResult(PvResult result) {
   if (!result.IsOK()) {
     ErrorLog << "PvResult: " << result.GetCodeString().GetAscii();
+  }
+}
+
+std::string ParamManager::getParameterAsString(PvGenParameterArray* params,
+                                               const char* paramName) {
+  auto type = getParamType(params, paramName);
+  PvString s_value;
+  switch (type) {
+    case PvGenType::PvGenTypeFloat:
+      double d_value;
+      params->GetFloatValue(paramName, d_value);
+      return std::to_string(d_value);
+    case PvGenType::PvGenTypeInteger:
+      int64_t i_value;
+      params->GetIntegerValue(paramName, i_value);
+      return std::to_string(i_value);
+    case PvGenType::PvGenTypeBoolean:
+      bool b_value;
+      params->GetBooleanValue(paramName, b_value);
+      return std::to_string(b_value);
+    case PvGenType::PvGenTypeString:
+
+      params->GetStringValue(paramName, s_value);
+      return s_value.GetAscii();
+    case PvGenType::PvGenTypeEnum:
+      int64_t value;
+      params->GetEnumValue(paramName, value);
+      return std::to_string(value);
+    default:
+      return "";
   }
 }

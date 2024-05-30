@@ -34,9 +34,13 @@ class MultiSpectralCamera {
   void configureSourceRuntime(
       int source, std::function<void(PvGenParameterArray*)> runBlock);
 
+  std::string getParameter(int source, std::string parameter);
+
   int64_t timestamp_begin;
 
   std::string deviceName;
+
+  double holdAutoExposureAndGetValue(bool hold);
 
  private:
   void initDevice();
