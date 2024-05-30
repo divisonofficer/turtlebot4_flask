@@ -6,6 +6,7 @@ message ParameterInfo{
     string type = 2;
     float min = 3;
     float max = 4;
+    
 
     enum Source{
         DEVICE = 0;
@@ -16,6 +17,12 @@ message ParameterInfo{
     }
 
     Source source = 5;
+    repeated ParameterEnum enumDefs = 6;
+}
+
+message ParameterEnum{
+    int32 index = 1;
+    string value = 2;
 }
 
 
