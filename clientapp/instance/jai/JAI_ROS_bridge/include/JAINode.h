@@ -62,6 +62,9 @@ class JAINode : public rclcpp::Node {
   std::vector<rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr>
       cameraStreamTriggerSubscribers;
 
+  std::vector<rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr>
+      cameraAutoExposureHoldTriggerSubscribers;
+
   std::function<void(PvBuffer*)> getEbusRosCallback(const int device_num,
                                                     const int source_num);
 
@@ -74,7 +77,7 @@ class JAINode : public rclcpp::Node {
 
   void emitRosImageMsg(int device_num, int source_num, PvBuffer* buffer);
 
-  void emitRosDeviceParamMsg(int device_num, int source_num);
+  void emitRosDeviceParamMsg(int device_num, int source_num, std::string param);
 
   std::vector<std::thread> subscription_thread;
 

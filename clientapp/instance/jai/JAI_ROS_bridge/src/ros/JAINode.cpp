@@ -55,6 +55,7 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
     cameraDeviceParamPublishers.resize(device_num + 1);
     cameraDeviceParamSubscribers.resize(device_num + 1);
     cameraStreamTriggerSubscribers.resize(device_num + 1);
+    cameraAutoExposureHoldTriggerSubscribers.resize(device_num + 1);
   }
   // Adjust size of Stream Channel Vectors
   if (imagePublishers[device_num].size() < channel_count) {
@@ -72,6 +73,16 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
             } else {
               this->cameras[device_num]->closeStream();
             }
+          });
+
+  cameraAutoExposureHoldTriggerSubscribers[device_num] =
+      this->create_subscription<std_msgs::msg::Bool>(
+          device_name + "/auto_exposure_hold_trigger", 10,
+          [this, device_num](std_msgs::msg::Bool trigger) {
+            auto ret = this->cameras[device_num]->holdAutoExposureAndGetValue(
+                trigger.data);
+            // emitRosDeviceParamMsg(device_num, 0, "ExposureTime");
+            // emitRosDeviceParamMsg(device_num, 1, "ExposureTime");
           });
   // Per Stream Publishers
   for (int i = 0; i < channel_count; i++) {
@@ -195,23 +206,29 @@ void JAINode::createCameraConfigureService(int device_num, int channel_num) {
             auto msg_proto = new ParameterUpdate();
             msg_proto->ParseFromString(msg->data);
             for (const auto param : msg_proto->parameters()) {
-              this->cameras[device_num]->configureDevice(
-                  channel_num, param.name(), param.type(), param.value());
+              if (param.value() != "") {
+                this->cameras[device_num]->configureDevice(
+                    channel_num, param.name(), param.type(), param.value());
+              }
+              this->emitRosDeviceParamMsg(device_num, channel_num,
+                                          param.name());
             }
             this->cameras[device_num]->openStream();
-            this->emitRosDeviceParamMsg(device_num, channel_num);
+
             free(msg_proto);
           });
 }
 
-void JAINode::emitRosDeviceParamMsg(int device_num, int source_num) {
+void JAINode::emitRosDeviceParamMsg(int device_num, int source_num,
+                                    std::string parameter) {
   std_msgs::msg::String msg;
-  char buffer[500];
+  ParameterUpdate param_update;
+  ParameterValue* param_info = param_update.add_parameters();
+  param_info->set_name(parameter);
 
-  sprintf(buffer, "ExposureTime=%f;Gain=%f",
-          cameras[device_num]->getExposure(source_num),
-          cameras[device_num]->getGain(source_num));
-  msg.data = buffer;
+  param_info->set_value(
+      cameras[device_num]->getParameter(source_num, parameter));
+  msg.data = param_update.SerializeAsString();
   cameraDeviceParamPublishers[device_num][source_num]->publish(msg);
 }
 
