@@ -1,3 +1,4 @@
+from time import sleep
 from flask import Flask, Response, request, send_from_directory
 from flask_cors import CORS
 from elliptecRotationStage import elliptecMount
@@ -23,6 +24,8 @@ def set_device_angle():
 @app.route("/angle/home", methods=["POST"])
 def initiate_angle_home():
     elliptecMount.home()
+    sleep(1)
+    elliptecMount.move_by(12.25)
     return Response(status=200)
 
 
