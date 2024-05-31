@@ -100,7 +100,7 @@ def message_group_cmd(group, cmd):
 
 @app.route("/capture", methods=["POST"])
 def capture_at():
-    result = capture_node.run_capture_queue_thread()
+    result = capture_node.init_capture_thread("queue")
     if not result:
         return Response(status=500)
     if result["status"] == "error":
@@ -110,7 +110,7 @@ def capture_at():
 
 @app.route("/capture/single", methods=["POST"])
 def capture_single():
-    result = capture_node.run_capture_queue_single()
+    result = capture_node.init_capture_thread("single")
     if not result:
         return Response(status=500)
     if result["status"] == "error":
@@ -217,37 +217,48 @@ def update_qwp_angles():
     if angles and type(angles) == list:
         capture_node.messageDef.ANGLES = angles
 
-    return {"status": "success"}
+    return {"angles": capture_node.messageDef.ANGLES}
+
+
+@app.route("/polarization/qwpangle", methods=["GET"])
+def get_current_qwp_angles_preset():
+    return {"angles": capture_node.messageDef.ANGLES}
+
+
+from time import sleep
+
+
+@app.route("/polarization/linear/<space>/<capture>/<scene>/<angle>/<qwpangle>")
+def polarization_calibration_render(space, capture, scene, angle, qwpangle):
+    if p_compute.prepare_scene(angle, qwpangle):
+
+        images = capture_storage.get_capture_scene_images_paths(
+            int(space), int(capture), int(scene)
+        )
+        images = [x for x in images if "jai_1600_left_" in x]
+        # print(images)
+        p_compute.update_qwp_angles(
+            [
+                (int(x.split("channel_0_")[1].split(".")[0]) + float(qwpangle))
+                for x in images
+                if "channel_0" in x
+            ]
+        )
+        images = [f"tmp/oakd_capture/{space}/{capture}/{scene}/{x}" for x in images]
+        p_compute.put_image_list((int(space), int(capture), int(scene)), images)
+
+        p_compute.update_linear_matrix(np.pi / 180 * float(angle))
+        p_compute.compute()
+    return Response(response=p_compute.image_np_dict.keys())
 
 
 @app.route(
-    "/polarization/linear/<space>/<capture>/<scene>/<channel>/<angle>", methods=["GET"]
+    "/polarization/view/<property>",
+    methods=["GET"],
 )
-def get_polarization_calibration(space, capture, scene, channel, angle):
-
-    images = capture_storage.get_capture_scene_images_paths(
-        int(space), int(capture), int(scene)
-    )
-    images = [x for x in images if "jai_1600_left_" + channel in x]
-    print(images)
-    p_compute.update_qwp_angles(
-        [int(x.split(channel)[1].split(".")[0]) for x in images]
-    )
-    images = [f"tmp/oakd_capture/{space}/{capture}/{scene}/{x}" for x in images]
-    p_compute.put_image_list(images)
-
-    p_compute.update_linear_matrix(np.pi / 180 * float(angle))
-
-    # Create a list of images
-    images = p_compute.compute()
-
-    # Create a new image by concatenating the four images horizontally
-    images = [np.concatenate(x, axis=0) for x in images]
-    result_image = np.concatenate(images, axis=1)
-
-    # Convert the result image back to an ndarray
-    result_array = np.array(result_image)
-    result_image_bytes = cv2.imencode(".jpg", result_array)[1].tobytes()
+def get_polarization_calibration(property):
+    image = p_compute.get_image_by_property(property)
+    result_image_bytes = cv2.imencode(".jpg", image)[1].tobytes()
     response = Response(result_image_bytes, mimetype="image/jpeg")
     return response
 
