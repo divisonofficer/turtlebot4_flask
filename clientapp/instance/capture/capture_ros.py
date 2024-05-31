@@ -156,7 +156,7 @@ class CaptureNode(Node):
         self.space_id = None
         return True
 
-    def run_capture_queue_thread(self):
+    def init_capture_thread(self, capture_mode: str = "single"):
         """
         Request Capture Rotation Queue
         Robot begins to rotate and capture images, asynchronously
@@ -166,32 +166,38 @@ class CaptureNode(Node):
         if error:
             return error
         self.capture_id = int(time())
-        thread = threading.Thread(target=self.run_capture_queue, args=[self.capture_id])
+
+        thread = threading.Thread(
+            target=self.run_capture_thread, args=[capture_mode, self.capture_id]
+        )
         thread.start()
+
         return {
             "status": "success",
             "space_id": self.space_id,
             "capture_id": self.capture_id,
         }
 
-    def run_capture_queue_single(self):
-        """
-        Request Single Scene Capture
-        Robot captures a single scene and stores it in the storage
-        """
-        error = self.check_capture_call_available()
-        if error:
-            return error
+    def run_capture_thread(self, capture_mod: str = "single", capture_id: int = -1):
+        #### Pre Capture Task
+        self.ell.polarizer_turn(home=True)
+        self.set_capture_flag(True)
 
-        self.capture_id = int(time())
+        if capture_mod == "single":
+            self.capture_single_job(capture_id)
 
-        threading.Thread(target=self.capture_single_job, args=[self.capture_id]).start()
-        sleep(1)
-        return {
-            "status": "success",
-            "space_id": self.space_id,
-            "capture_id": self.capture_id,
-        }
+        if capture_mod == "queue":
+            self.run_capture_queue(capture_id)
+
+        ### Post Capture Task
+
+        self.ell.polarizer_turn(home=True)
+        self.set_capture_flag(False)
+        if (
+            self.messageDef.MultiChannel_Left.enabled
+            or self.messageDef.MultiChannel_Right.enabled
+        ):
+            self.hold_jai_autoExposure(False)
 
     def check_capture_call_available(self):
         """
@@ -259,21 +265,13 @@ class CaptureNode(Node):
             return
         if msg.buttons[3] == 1:  # X button
             if msg.buttons[4] == 1:  # L1 Button
-                self.run_capture_queue_thread()
+                self.init_capture_thread("queue")
             else:
-                self.run_capture_queue_single()
+                self.init_capture_thread("single")
 
     ########################################################
     ### Image Capture Tasks
     #######################################################
-
-    def store_scene_thread(
-        self, space_id, capture_id, scene_id, scene: CaptureSingleScene
-    ):
-        threading.Thread(
-            target=self.storage.store_captured_scene,
-            args=(space_id, capture_id, scene_id, scene),
-        ).start()
 
     def run_capture_queue(self, capture_id: int):
         if not self.space_id:
@@ -283,7 +281,6 @@ class CaptureNode(Node):
         This function triggers capture thread
         For each iteration, the camera captures scene and robot turns right for about 10 degrees
         """
-        self.set_capture_flag(True)
         self.flag_abort = False
         self.capture_id = int(time())
 
@@ -315,6 +312,13 @@ class CaptureNode(Node):
                 capture_id=capture_id,
             )
 
+            if (
+                self.messageDef.MultiChannel_Left.enabled
+                or self.messageDef.MultiChannel_Right.enabled
+            ):
+                params = self.hold_jai_autoExposure(True)
+                print(params)
+
             self.capture_msg = CaptureMessage(self.messageDef)
             scene = CaptureSingleScenario(
                 self.open_jai_stream,
@@ -339,6 +343,12 @@ class CaptureNode(Node):
 
             if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
                 self.turn_right()
+                if (
+                    self.messageDef.MultiChannel_Left.enabled
+                    or self.messageDef.MultiChannel_Right.enabled
+                ):
+                    self.hold_jai_autoExposure(False)
+
             self.ell.polarizer_turn(home=True)
             self.storage.store_captured_scene(
                 space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
@@ -352,13 +362,11 @@ class CaptureNode(Node):
             msg="Rotating Capture Done",
             capture_id=capture_id,
         )
-        self.set_capture_flag(False)
         gc.collect()
 
     def capture_single_job(self, capture_id: int):
         if not self.space_id:
             return
-        self.set_capture_flag(True)
 
         self.capture_msg = CaptureMessage(self.messageDef)
         scene = CaptureSingleScenario(
@@ -372,15 +380,25 @@ class CaptureNode(Node):
             self.storage,
         ).run_single_capture()
         if not scene:
-            self.set_capture_flag(False)
             return None
         self.storage.store_captured_scene(
             space_id=self.space_id, capture_id=capture_id, scene_id=0, scene=scene
         )
-        self.set_capture_flag(False)
 
     def open_jai_stream(self, open: bool):
         self.publisher_jai_trigger.publish(Bool(data=open))
+
+    def hold_jai_autoExposure(self, hold: bool):
+        request = requests.post(
+            f"http://localhost/jai/device/all/auto_exposure_hold",
+            json={"hold": hold},
+        )
+
+        if not request.ok:
+            raise Exception("Failed to hold auto exposure")
+
+        if hold:
+            return request.json()
 
     def turn_right(self):
         twist = Twist()
@@ -399,7 +417,6 @@ class CaptureNode(Node):
             sleep(0.10)
             if time_passed > self.scenario_hyper.RotationInterval.value:
                 break
-        sleep(2)
 
     def oakd_camera_command(self, start: Optional[bool] = None):
         if start == True:
