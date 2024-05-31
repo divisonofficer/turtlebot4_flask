@@ -26,6 +26,7 @@ class VideoStream:
         self.subscriber = create_subscriber(self.cv_raw_callback)
 
     output_frame = None
+    cv_image = None
     interval_callback = None
     lock = threading.Lock()
 
@@ -43,7 +44,7 @@ class VideoStream:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             if msg.encoding == "bayer_rggb8":
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
-
+        self.cv_image = cv_image.copy()
         if self.timestampWatermark:
             time_text = time.strftime("%H:%M:%S", time.localtime(msg.header.stamp.sec))
             cv2.putText(
