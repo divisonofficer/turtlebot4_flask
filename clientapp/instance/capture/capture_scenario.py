@@ -33,6 +33,9 @@ class PolarizerError(Exception):
     pass
 
 
+DEBUG_LAST_CAPTURE_TIME = 0.0
+
+
 class CaptureSingleScenario:
 
     def __init__(
@@ -96,6 +99,16 @@ class CaptureSingleScenario:
             ]
 
     def run_single_capture(self):
+        global DEBUG_LAST_CAPTURE_TIME
+        if DEBUG_LAST_CAPTURE_TIME > 0:
+            self.capture_msg.timestamp_log.logs.append(
+                CaptureTopicTimestampLog.TimestampLog(
+                    topic="Next Capture Preparation",
+                    timestamp=DEBUG_LAST_CAPTURE_TIME,
+                    delay_to_system=time() - DEBUG_LAST_CAPTURE_TIME,
+                )
+            )
+        DEBUG_LAST_CAPTURE_TIME = time()
         """
         vacate capture_msg and wait for all messages to arrive
         create CaptureSingleScene object with lidar, pose, and images
