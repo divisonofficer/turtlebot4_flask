@@ -15,6 +15,7 @@ export interface ParameterInfo {
   min: number;
   max: number;
   source: ParameterInfo_Source;
+  enumDefs: ParameterEnum[];
 }
 
 export enum ParameterInfo_Source {
@@ -62,6 +63,11 @@ export function parameterInfo_SourceToJSON(object: ParameterInfo_Source): string
   }
 }
 
+export interface ParameterEnum {
+  index: number;
+  value: string;
+}
+
 export interface ParameterValue {
   name: string;
   type: string;
@@ -87,7 +93,7 @@ export interface DeviceInfo {
 }
 
 function createBaseParameterInfo(): ParameterInfo {
-  return { name: "", type: "", min: 0, max: 0, source: 0 };
+  return { name: "", type: "", min: 0, max: 0, source: 0, enumDefs: [] };
 }
 
 export const ParameterInfo = {
@@ -106,6 +112,9 @@ export const ParameterInfo = {
     }
     if (message.source !== 0) {
       writer.uint32(40).int32(message.source);
+    }
+    for (const v of message.enumDefs) {
+      ParameterEnum.encode(v!, writer.uint32(50).fork()).ldelim();
     }
     return writer;
   },
@@ -152,6 +161,13 @@ export const ParameterInfo = {
 
           message.source = reader.int32() as any;
           continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.enumDefs.push(ParameterEnum.decode(reader, reader.uint32()));
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -168,6 +184,9 @@ export const ParameterInfo = {
       min: isSet(object.min) ? globalThis.Number(object.min) : 0,
       max: isSet(object.max) ? globalThis.Number(object.max) : 0,
       source: isSet(object.source) ? parameterInfo_SourceFromJSON(object.source) : 0,
+      enumDefs: globalThis.Array.isArray(object?.enumDefs)
+        ? object.enumDefs.map((e: any) => ParameterEnum.fromJSON(e))
+        : [],
     };
   },
 
@@ -188,6 +207,9 @@ export const ParameterInfo = {
     if (message.source !== 0) {
       obj.source = parameterInfo_SourceToJSON(message.source);
     }
+    if (message.enumDefs?.length) {
+      obj.enumDefs = message.enumDefs.map((e) => ParameterEnum.toJSON(e));
+    }
     return obj;
   },
 
@@ -201,6 +223,81 @@ export const ParameterInfo = {
     message.min = object.min ?? 0;
     message.max = object.max ?? 0;
     message.source = object.source ?? 0;
+    message.enumDefs = object.enumDefs?.map((e) => ParameterEnum.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseParameterEnum(): ParameterEnum {
+  return { index: 0, value: "" };
+}
+
+export const ParameterEnum = {
+  encode(message: ParameterEnum, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.index !== 0) {
+      writer.uint32(8).int32(message.index);
+    }
+    if (message.value !== "") {
+      writer.uint32(18).string(message.value);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ParameterEnum {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseParameterEnum();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break;
+          }
+
+          message.index = reader.int32();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ParameterEnum {
+    return {
+      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
+      value: isSet(object.value) ? globalThis.String(object.value) : "",
+    };
+  },
+
+  toJSON(message: ParameterEnum): unknown {
+    const obj: any = {};
+    if (message.index !== 0) {
+      obj.index = Math.round(message.index);
+    }
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ParameterEnum>, I>>(base?: I): ParameterEnum {
+    return ParameterEnum.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ParameterEnum>, I>>(object: I): ParameterEnum {
+    const message = createBaseParameterEnum();
+    message.index = object.index ?? 0;
+    message.value = object.value ?? "";
     return message;
   },
 };
