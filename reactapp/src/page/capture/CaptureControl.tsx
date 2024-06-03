@@ -27,9 +27,9 @@ import { observer } from "mobx-react";
 import { slamStore } from "../../stores/SlamStore";
 import { CaptureSpaceInitModal, CaptureSpaceModal } from "./CaptureSpaceModal";
 import { Color } from "../../design/color";
-import { SlamState_Status } from "../../public/proto/slam";
-import { useState } from "react";
-import { httpPost } from "../../connect/http/request";
+import { useEffect, useState } from "react";
+import { httpGet, httpPost } from "../../connect/http/request";
+import { jaiStore } from "../../stores/JaiStore";
 
 const CaptureSourceSwitch = observer(() => {
   return (
@@ -183,6 +183,13 @@ export const MultiSpectralCameraControl = observer(() => {
       >
         MultiSpectralClose
       </Btn>{" "}
+      <Btn
+        onClick={() => {
+          jaiStore.fetchJaiCameraHoldAutoExposureAll(false);
+        }}
+      >
+        AutoExposureOn
+      </Btn>
     </HStack>
   );
 });
@@ -190,6 +197,15 @@ export const MultiSpectralCameraControl = observer(() => {
 export const CaptureScenarioHyperparameterControl = observer(() => {
   const parameter = captureStore.scenario_hyperparameters;
   const [qwpAngles, setQwpAngles] = useState([30, 60, 90, 135]);
+
+  useEffect(() => {
+    httpGet("/capture/polarization/qwpangle")
+      .onSuccess((data: { angles: number[] }) => {
+        setQwpAngles(data.angles);
+      })
+      .fetch();
+  }, []);
+
   return parameter ? (
     <VStack>
       <HStack>
