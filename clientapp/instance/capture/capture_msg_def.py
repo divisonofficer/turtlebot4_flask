@@ -12,7 +12,7 @@ MsgType = TypeVar("MsgType")
 
 
 class CaptureMessageDefinition:
-    ANGLES = [0, 30, 60, 135]
+    ANGLES = [0, 30, 45, 60, 75]
     MultiChannel_Left = CaptureMessageDefGroup(
         name="MultiChannel_Left",
         messages=[

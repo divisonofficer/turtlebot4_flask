@@ -9,6 +9,30 @@ from typing import Union
 import numpy as np
 
 
+def decode_jai_compressedImage(msg: CompressedImage):
+    np_arr = np.frombuffer(msg.data, np.uint8)
+    frame_format = ""
+    frame_bits = 8
+
+    frame_format = msg.header.frame_id.split("_")[0]
+    frame_bits = int(msg.header.frame_id.split("_")[1].split("bit")[0])
+
+    if frame_bits != 8:
+        cv_image = np.reshape(np_arr, (2160, 1440, 2)).astype(np.uint16)
+        cv_image = cv_image[:1080, :, 0] + (cv_image[:1080, :, 1] << 8)
+
+    else:
+        cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+
+    if frame_format == "bayer":
+        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+
+    if frame_bits != 8:
+        cv_image = cv_image << (16 - frame_bits)
+
+    return cv_image
+
+
 class VideoStream:
     def __init__(
         self,
@@ -34,17 +58,20 @@ class VideoStream:
 
         if isinstance(msg, CompressedImage):
             np_arr = np.frombuffer(msg.data, np.uint8)
+            frame_format = ""
+            frame_bits = 8
+            if "bit" in msg.header.frame_id:
+                cv_image = (decode_jai_compressedImage(msg) / 256).astype(np.uint8)
 
-            if msg.header.frame_id == "bayer":
-                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+            if frame_format == "bayer":
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
-            else:
-                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            self.cv_image = cv_image.copy()
         else:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             if msg.encoding == "bayer_rggb8":
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
-        self.cv_image = cv_image.copy()
+
         if self.timestampWatermark:
             time_text = time.strftime("%H:%M:%S", time.localtime(msg.header.stamp.sec))
             cv2.putText(
