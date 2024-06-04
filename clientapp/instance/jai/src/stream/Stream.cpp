@@ -94,9 +94,6 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
 
 void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
                                         std::vector<PvBuffer*>* aBufferList) {
-  // Reading payload size from device
-  uint32_t lSize = aDevice->GetPayloadSize();
-
   // Use BUFFER_COUNT or the maximum number of buffers, whichever is smaller
   uint32_t lBufferCount = (aStream->GetQueuedBufferMaximum() < BUFFER_COUNT)
                               ? aStream->GetQueuedBufferMaximum()
@@ -108,7 +105,7 @@ void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
     PvBuffer* lBuffer = new PvBuffer;
 
     // Have the new buffer object allocate payload memory
-    lBuffer->Alloc(static_cast<uint32_t>(lSize));
+    lBuffer->Alloc(static_cast<uint32_t>(BUFFER_SIZE));
 
     // Add to external list - used to eventually release the buffers
     aBufferList->push_back(lBuffer);

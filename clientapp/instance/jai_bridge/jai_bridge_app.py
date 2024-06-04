@@ -67,7 +67,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureAutoControlMin", value="1000", type="float"
                         ),
                         ParameterValue(name="ExposureAuto", value="0", type="enum"),
-                        ParameterValue(name="GainAuto", value="0", type="enum"),
+                        # ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -87,7 +87,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureAutoControlMin", value="1000", type="float"
                         ),
                         ParameterValue(name="ExposureAuto", value="0", type="enum"),
-                        ParameterValue(name="GainAuto", value="0", type="enum"),
+                        # ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -144,21 +144,21 @@ DEVICE_INFO: List[DeviceInfo] = [
                     ),
                 ],
             ),
-            ParameterInfo(
-                name="GainAuto",
-                type="enum",
-                source=ParameterInfo.Source.SOURCE,
-                enumDefs=[
-                    ParameterEnum(
-                        index=0,
-                        value="Off",
-                    ),
-                    ParameterEnum(
-                        index=2,
-                        value="Continuous",
-                    ),
-                ],
-            ),
+            # ParameterInfo(
+            #     name="GainAuto",
+            #     type="enum",
+            #     source=ParameterInfo.Source.SOURCE,
+            #     enumDefs=[
+            #         ParameterEnum(
+            #             index=0,
+            #             value="Off",
+            #         ),
+            #         ParameterEnum(
+            #             index=2,
+            #             value="Continuous",
+            #         ),
+            #     ],
+            # ),
         ],
     ),
     DeviceInfo(
@@ -184,7 +184,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureAutoControlMin", value="1000", type="float"
                         ),
                         ParameterValue(name="ExposureAuto", value="0", type="enum"),
-                        ParameterValue(name="GainAuto", value="0", type="enum"),
+                        # ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -204,7 +204,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureAutoControlMin", value="1000", type="float"
                         ),
                         ParameterValue(name="ExposureAuto", value="0", type="enum"),
-                        ParameterValue(name="GainAuto", value="0", type="enum"),
+                        # ParameterValue(name="GainAuto", value="0", type="enum"),
                     ]
                 ),
             ),
@@ -261,21 +261,21 @@ DEVICE_INFO: List[DeviceInfo] = [
                     ),
                 ],
             ),
-            ParameterInfo(
-                name="GainAuto",
-                type="enum",
-                source=ParameterInfo.Source.SOURCE,
-                enumDefs=[
-                    ParameterEnum(
-                        index=0,
-                        value="Off",
-                    ),
-                    ParameterEnum(
-                        index=2,
-                        value="Continuous",
-                    ),
-                ],
-            ),
+            # ParameterInfo(
+            #     name="GainAuto",
+            #     type="enum",
+            #     source=ParameterInfo.Source.SOURCE,
+            #     enumDefs=[
+            #         ParameterEnum(
+            #             index=0,
+            #             value="Off",
+            #         ),
+            #         ParameterEnum(
+            #             index=2,
+            #             value="Continuous",
+            #         ),
+            #     ],
+            # ),
         ],
     ),
 ]
@@ -313,9 +313,11 @@ class JaiBridgeNode(Node):
 
                 self.configure_dict[device_name][channel_id][param.name] = {
                     "value": param.value,
-                    "type": [x for x in device.configurable if x.name == param.name][
-                        0
-                    ].type,
+                    "type": (
+                        [x for x in device.configurable if x.name == param.name][0].type
+                        if param.name in [x.name for x in device.configurable]
+                        else None
+                    ),
                     "name": param.name,
                 }
 

@@ -1,10 +1,9 @@
 #include <JAINode.h>
 #include <Logger.h>
-#include <cv_bridge/cv_bridge.h>
 #include <jai.pb.h>
+#include <omp.h>
 
 #include <opencv4/opencv2/opencv.hpp>
-
 std::vector<std::string> splitString(std::string str, std::string delimiter) {
   std::vector<std::string> parts;
   size_t pos = 0;
@@ -123,6 +122,29 @@ bool JAINode::validateBufferTimestamp(int device_num, int source_num,
   return true;
 }
 
+// OpenMP 사용을 위한 헤더 파일
+
+void JAINode::convertTo16Bit(const uint8_t* src, int width, int height,
+                             cv::Mat& dst, int bitDepth, bool isRGB) {
+  dst = cv::Mat(height, width * 2, CV_8UC1);
+
+  int channels = isRGB ? 3 : 1;
+
+  int shift = bitDepth == 10 ? 6 : 4;
+#pragma omp parallel for collapse(2)  // OpenMP 병렬 처리
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      for (int c = 0; c < channels; ++c) {
+        dst.at<uint8_t>(y, x) = *src;
+        dst.at<uint8_t>(y, x + width) =
+            (*(src + 1) << shift) + ((*src) >> (8 - shift));
+
+        src += 2;
+      }
+    }
+  }
+}
+
 void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
@@ -136,17 +158,90 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
 
   auto imageRosMsg = sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
-  cv::Mat image =
-      cv::Mat(buffer->GetImage()->GetHeight(), buffer->GetImage()->GetWidth(),
-              CV_8UC1, buffer->GetDataPointer());
-  std::vector<uint8_t> compressed_data;
-  std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
-                                         95};  // Adjust quality as needed
-  cv::imencode(".jpg", image, compressed_data, compression_params);
-  imageRosMsg.format = "jpeg";
-  imageRosMsg.header.frame_id = source_num == 0 ? "bayer" : "mono";
-  imageRosMsg.data = std::move(compressed_data);
+  auto pixelType = buffer->GetImage()->GetPixelType();
+  auto pixelSize = buffer->GetImage()->GetPixelSize(pixelType);
 
+  int compressType;
+  std::string imageFormat = "jpg";
+  std::string colorType;
+  int basePixelNumber = 8;
+  switch (pixelType) {
+    case PvPixelMono8:
+      colorType = "mono";
+      compressType = CV_8UC1;
+      break;
+    case PvPixelBayerRG8:
+      colorType = "bayer";
+      compressType = CV_8UC1;
+      break;
+    case PvPixelBayerRG10:
+      basePixelNumber = 10;
+      colorType = "bayer";
+      compressType = CV_16UC1;
+      break;
+    case PvPixelBayerRG12:
+      colorType = "bayer";
+      basePixelNumber = 12;
+      compressType = CV_16UC1;
+      break;
+    case PvPixelMono10:
+      colorType = "mono";
+      basePixelNumber = 10;
+      compressType = CV_16UC1;
+      break;
+    case PvPixelMono12:
+      colorType = "mono";
+      basePixelNumber = 12;
+      compressType = CV_16UC1;
+      break;
+    case PvPixelRGB8:
+      colorType = "rgb";
+      compressType = CV_8UC3;
+      break;
+    case PvPixelRGB12:
+      colorType = "rgb";
+      basePixelNumber = 12;
+      compressType = CV_16UC3;
+      break;
+    case PvPixelRGB10:
+
+    case PvPixelRGB10p32:
+    case PvPixelRGB10p:
+      colorType = "rgb";
+      basePixelNumber = 10;
+      compressType = CV_16UC3;
+      break;
+
+    default:
+      colorType = "unknown";
+      compressType = CV_8UC1;
+      break;
+  }
+
+  cv::Mat image;
+  // auto beginTime = this->systemTimeNano();
+
+  // if (compressType == CV_16UC1 || compressType == CV_16UC3) {
+  //   convertTo16Bit(buffer->GetDataPointer(), buffer->GetImage()->GetWidth(),
+  //                  buffer->GetImage()->GetHeight(), image, basePixelNumber,
+  //                  colorType == "rgb");
+  // } else {
+  //   image =
+  //       cv::Mat(buffer->GetImage()->GetHeight(),
+  //       buffer->GetImage()->GetWidth(),
+  //               compressType, buffer->GetDataPointer());
+  // }
+
+  // std::vector<uint8_t> compressed_data;
+  // std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
+  //                                        95};  // Adjust quality as needed
+  // cv::imencode("." + imageFormat, image, compressed_data,
+  // compression_params);
+  imageRosMsg.format = imageFormat;
+  imageRosMsg.header.frame_id =
+      colorType + "_" + std::to_string(basePixelNumber) + "bit";
+  imageRosMsg.data.assign(buffer->GetDataPointer(),
+                          buffer->GetDataPointer() + buffer->GetSize());
   imagePublishers[device_num][source_num]->publish(imageRosMsg);
 }
 

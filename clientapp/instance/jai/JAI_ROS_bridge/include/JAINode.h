@@ -1,5 +1,6 @@
 #include <Camera.h>
 #include <PvBuffer.h>
+#include <cv_bridge/cv_bridge.h>
 
 #include <chrono>
 #include <functional>
@@ -41,6 +42,9 @@ class JAINode : public rclcpp::Node {
 
   bool validateBufferTimestamp(int device_num, int source_num,
                                int64_t buffer_time, int64_t current_time);
+
+  void convertTo16Bit(const uint8_t* src, int width, int height, cv::Mat& dst,
+                      int bitDepth, bool isRGB);
 
   std::vector<std::vector<
       rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >

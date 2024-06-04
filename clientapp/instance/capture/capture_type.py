@@ -7,6 +7,7 @@ from capture_pb2 import *
 from google.protobuf import json_format
 import numpy as np
 from cv2.typing import MatLike
+from videostream import decode_jai_compressedImage
 
 
 class ImageBytes:
@@ -33,11 +34,14 @@ class ImageBytes:
             # print(f"converting {topic} to cv2")
             np_arr = np.frombuffer(image.data, np.uint8)
 
-            if bayerInterpolation:
-                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
-                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+            if "bit" in image.header.frame_id:
+                cv_image = decode_jai_compressedImage(image)
             else:
-                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                if bayerInterpolation:
+                    cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+                    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+                else:
+                    cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             self.image = cv_image
 
         elif type(image) == Image:
@@ -45,12 +49,6 @@ class ImageBytes:
             self.height = image.height
             # self.data = image.data.tolist()
             self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
-
-        # if topic == "/stereo/depth":
-        #     self.image = cv2.normalize(
-        #         self.image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1
-        #     )
-        #     self.image = cv2.convertScaleAbs(self.image)
 
     def to_dict(self):
         return {
