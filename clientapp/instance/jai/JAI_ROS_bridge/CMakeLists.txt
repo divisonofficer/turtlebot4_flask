@@ -16,7 +16,11 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(Protobuf REQUIRED)
+# OpenCV 찾기
 find_package(OpenCV REQUIRED)
+
+# OpenMP 찾기
+find_package(OpenMP REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -26,6 +30,7 @@ set(dependencies
   std_msgs
   cv_bridge
   OpenCV
+  OpenMP
 )
 
 set(JAI_LIB_DIR /opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/lib)

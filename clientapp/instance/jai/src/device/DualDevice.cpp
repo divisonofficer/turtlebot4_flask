@@ -26,6 +26,8 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
                              2);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
+                             PvPixelBayerRG10);
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 1);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureTime", 80000.0f);
@@ -34,7 +36,8 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(), "Gain", 7.0f);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
                              2);
-
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
+                             PvPixelMono10);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionSyncMode",
                              1);
 
@@ -46,7 +49,8 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 0);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 0);
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
+                         rand() % 2 + 1000);
 
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);

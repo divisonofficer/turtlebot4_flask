@@ -209,7 +209,7 @@ class CaptureSingleScenario:
         """
         if not self.messageDef.MultiChannel_Left.enabled:
             return []
-        image_list = []
+        image_list: list[ImageBytes] = []
         for idx, deg in enumerate(self.ANGLES):
             self.socket_progress(
                 deg * 15 // 45 + 30,
@@ -245,7 +245,7 @@ class CaptureSingleScenario:
                     )
                 )
 
-            if idx < 3:
+            if idx < len(self.ANGLES) - 1:
                 self.ell.polarizer_turn(angle=self.ANGLES[idx + 1] - self.ANGLES[idx])
 
             for image in image_list:
