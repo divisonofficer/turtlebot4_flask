@@ -46,8 +46,15 @@ class CaptureMessage:
         msg_flag = [True, len(keys[1]) > 0]
         for i in range(2):
             for k in keys[i]:
+                topic_def = self.definition.resolve_topic(k)
+                if topic_def is None:
+                    return
                 if k in self.msg_dict and self.msg_dict[k]:
-                    continue
+                    if (
+                        topic_def.interpolation < 1
+                        or len(self.msg_dict[k]) >= topic_def.interpolation
+                    ):
+                        continue
                 msg_flag[i] = False
                 break
         self.messages_received, self.messages_received_second = msg_flag
@@ -55,11 +62,12 @@ class CaptureMessage:
     def update_msg(self, topic: str, msg):
         # if "jai" in topic:
         #      print(topic, " behind :", time() - msg.header.stamp.sec, msg.header.stamp)
-        if topic in self.msg_dict:
-            return
         topic_def = self.definition.resolve_topic(topic)
-        if topic_def is None:
+        if not topic_def:
             return
+        if topic in self.msg_dict and topic_def.interpolation < 1:
+            return
+
         topic_delay = topic_def.delay
         if (
             msg.header.stamp.sec + msg.header.stamp.nanosec / 1000000000 - topic_delay
@@ -69,7 +77,10 @@ class CaptureMessage:
                 else self.timestamp
             )
         ):
-            self.msg_dict[topic] = msg
+            if topic in self.msg_dict and topic_def.interpolation > 0:
+                self.msg_dict[topic].append(msg)
+            else:
+                self.msg_dict[topic] = msg if topic_def.interpolation < 1 else [msg]
 
             self.timestamp_log.logs.append(
                 CaptureTopicTimestampLog.TimestampLog(

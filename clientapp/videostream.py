@@ -63,15 +63,16 @@ class VideoStream:
             if "bit" in msg.header.frame_id:
                 cv_image = (decode_jai_compressedImage(msg) / 256).astype(np.uint8)
 
-            if frame_format == "bayer":
-                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+                if frame_format == "bayer":
+                    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
+            else:
+                cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-            self.cv_image = cv_image.copy()
         else:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             if msg.encoding == "bayer_rggb8":
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BayerBG2BGR)
-
+        self.cv_image = cv_image.copy()
         if self.timestampWatermark:
             time_text = time.strftime("%H:%M:%S", time.localtime(msg.header.stamp.sec))
             cv2.putText(

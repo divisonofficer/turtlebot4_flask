@@ -314,9 +314,6 @@ class CaptureStorage:
         if not os.path.exists(scene_dir):
             os.makedirs(scene_dir)
         filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
-        if image.image.dtype == np.uint16:
-            np.save(filename.replace("png", "np"), image.image)
-            image.image = (image.image / 256).astype(np.uint8)
         cv2.imwrite(filename, image.image)
 
     def delete_scene(self, space_id: int, capture_id: int, scene_id: int):
