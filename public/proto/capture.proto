@@ -63,6 +63,7 @@ message CaptureMessageDef{
     string format = 2;
     RosMsgType ros_msg_type = 3;
     double delay = 4;
+    int32 interpolation = 5;
 }
 
 message CaptureMessageDefGroup{

@@ -103,6 +103,7 @@ export interface CaptureMessageDef {
   format: string;
   rosMsgType: CaptureMessageDef_RosMsgType;
   delay: number;
+  interpolation: number;
 }
 
 export enum CaptureMessageDef_RosMsgType {
@@ -746,7 +747,7 @@ export const CaptureTaskProgress = {
 };
 
 function createBaseCaptureMessageDef(): CaptureMessageDef {
-  return { topic: "", format: "", rosMsgType: 0, delay: 0 };
+  return { topic: "", format: "", rosMsgType: 0, delay: 0, interpolation: 0 };
 }
 
 export const CaptureMessageDef = {
@@ -762,6 +763,9 @@ export const CaptureMessageDef = {
     }
     if (message.delay !== 0) {
       writer.uint32(33).double(message.delay);
+    }
+    if (message.interpolation !== 0) {
+      writer.uint32(40).int32(message.interpolation);
     }
     return writer;
   },
@@ -801,6 +805,13 @@ export const CaptureMessageDef = {
 
           message.delay = reader.double();
           continue;
+        case 5:
+          if (tag !== 40) {
+            break;
+          }
+
+          message.interpolation = reader.int32();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -816,6 +827,7 @@ export const CaptureMessageDef = {
       format: isSet(object.format) ? globalThis.String(object.format) : "",
       rosMsgType: isSet(object.rosMsgType) ? captureMessageDef_RosMsgTypeFromJSON(object.rosMsgType) : 0,
       delay: isSet(object.delay) ? globalThis.Number(object.delay) : 0,
+      interpolation: isSet(object.interpolation) ? globalThis.Number(object.interpolation) : 0,
     };
   },
 
@@ -833,6 +845,9 @@ export const CaptureMessageDef = {
     if (message.delay !== 0) {
       obj.delay = message.delay;
     }
+    if (message.interpolation !== 0) {
+      obj.interpolation = Math.round(message.interpolation);
+    }
     return obj;
   },
 
@@ -845,6 +860,7 @@ export const CaptureMessageDef = {
     message.format = object.format ?? "";
     message.rosMsgType = object.rosMsgType ?? 0;
     message.delay = object.delay ?? 0;
+    message.interpolation = object.interpolation ?? 0;
     return message;
   },
 };

@@ -12,7 +12,7 @@ MsgType = TypeVar("MsgType")
 
 
 class CaptureMessageDefinition:
-    ANGLES = [0, 30, 45, 60, 75]
+    ANGLES = [30, 60, 270, 315]
     MultiChannel_Left = CaptureMessageDefGroup(
         name="MultiChannel_Left",
         messages=[
@@ -20,11 +20,13 @@ class CaptureMessageDefinition:
                 topic="/jai_1600_left/channel_0",
                 format="bayer_rg8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                interpolation=5,
             ),
             CaptureMessageDef(
                 topic="/jai_1600_left/channel_1",
                 format="mono8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                interpolation=5,
             ),
         ],
         enabled=False,
@@ -36,11 +38,13 @@ class CaptureMessageDefinition:
                 topic="/jai_1600_right/channel_0",
                 format="bayer_rg8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                interpolation=5,
             ),
             CaptureMessageDef(
                 topic="/jai_1600_right/channel_1",
                 format="mono8",
                 ros_msg_type=CaptureMessageDef.RosMsgType.CompressedImage,
+                interpolation=5,
             ),
         ],
         enabled=False,
@@ -158,12 +162,24 @@ class ScenarioHyperParameter:
         range=[0.1, 1.0],
     )
 
+    JaiInterpolationNumber = CaptureScenarioHyperparameter.HyperParameter(
+        name="JaiInterpolationNumber",
+        value=3,
+        gap=1,
+        range=[1, 10],
+    )
+
     def __init__(self):
         for entry in self.entries():
             setattr(self, "_" + entry.name, entry.value)
 
     def entries(self):
-        return [self.RotationQueueCount, self.RotationSpeed, self.RotationInterval]
+        return [
+            self.RotationQueueCount,
+            self.RotationSpeed,
+            self.RotationInterval,
+            self.JaiInterpolationNumber,
+        ]
 
     def update(self, name, value):
         entry: CaptureScenarioHyperparameter.HyperParameter = self.__getattribute__(

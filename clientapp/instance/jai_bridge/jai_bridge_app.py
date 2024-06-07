@@ -56,12 +56,12 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="ExposureTime", value="40000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="2.0", type="float"),
+                        ParameterValue(name="Gain", value="1.0", type="float"),
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
                         ParameterValue(
-                            name="ExposureAutoControlMax", value="100000", type="float"
+                            name="ExposureAutoControlMax", value="200000", type="float"
                         ),
                         ParameterValue(
                             name="ExposureAutoControlMin", value="1000", type="float"
@@ -79,9 +79,9 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="ExposureTime", value="60000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="3.0", type="float"),
+                        ParameterValue(name="Gain", value="1.0", type="float"),
                         ParameterValue(
-                            name="ExposureAutoControlMax", value="100000", type="float"
+                            name="ExposureAutoControlMax", value="200000", type="float"
                         ),
                         ParameterValue(
                             name="ExposureAutoControlMin", value="1000", type="float"
@@ -119,7 +119,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                 name="ExposureAutoControlMax",
                 type="float",
                 min=1000,
-                max=100000,
+                max=250000,
                 source=ParameterInfo.Source.SOURCE,
             ),
             ParameterInfo(
@@ -173,12 +173,12 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="ExposureTime", value="30000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="2.0", type="float"),
+                        ParameterValue(name="Gain", value="1.0", type="float"),
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
                         ParameterValue(
-                            name="ExposureAutoControlMax", value="100000", type="float"
+                            name="ExposureAutoControlMax", value="200000", type="float"
                         ),
                         ParameterValue(
                             name="ExposureAutoControlMin", value="1000", type="float"
@@ -196,9 +196,9 @@ DEVICE_INFO: List[DeviceInfo] = [
                         ParameterValue(
                             name="ExposureTime", value="30000", type="float"
                         ),
-                        ParameterValue(name="Gain", value="3.0", type="float"),
+                        ParameterValue(name="Gain", value="1.0", type="float"),
                         ParameterValue(
-                            name="ExposureAutoControlMax", value="100000", type="float"
+                            name="ExposureAutoControlMax", value="200000", type="float"
                         ),
                         ParameterValue(
                             name="ExposureAutoControlMin", value="1000", type="float"
@@ -236,7 +236,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                 name="ExposureAutoControlMax",
                 type="float",
                 min=1000,
-                max=100000,
+                max=250000,
                 source=ParameterInfo.Source.SOURCE,
             ),
             ParameterInfo(
@@ -358,7 +358,7 @@ class JaiBridgeNode(Node):
                 }
 
                 self.videoStreams[device_name].append(
-                    VideoStream(preview_compress=True, timestampWatermark=True)
+                    VideoStream(timestampWatermark=True)
                 )
                 self.videoStreamSubscriptions[device_name].append(
                     self.create_subscription(
