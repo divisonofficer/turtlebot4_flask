@@ -1,5 +1,4 @@
-from sqlite3 import Timestamp
-from typing import Callable, Optional
+from typing import Callable
 from capture_pb2 import *
 from capture_state import CaptureMessage
 from capture_type import (
@@ -90,12 +89,13 @@ class CaptureSingleScenario:
                 ImageBytes(
                     image=x,
                     topic=self.messageDef.MultiChannel_Right.messages[idx].topic,
-                    bayerInterpolation="bayer" in x.header.frame_id,
                 )
                 for idx, x in enumerate(
                     self.capture_msg.get_message(self.messageDef.MultiChannel_Right)
                 )
-                if isinstance(x, Image) or isinstance(x, CompressedImage)
+                if isinstance(x, Image)
+                or isinstance(x, CompressedImage)
+                or (isinstance(x, list) and isinstance(x[0], CompressedImage))
             ]
 
     def run_single_capture(self):
@@ -234,7 +234,13 @@ class CaptureSingleScenario:
             capture_msg = self.capture_msg
             if not capture_msg.messages_received_second:
                 raise NoImageSignal()
-            print(time() - capture_msg.timestamp_second)
+            self.capture_msg.timestamp_log.logs.append(
+                CaptureTopicTimestampLog.TimestampLog(
+                    topic=f"Polarized Capture {deg} degrees",
+                    timestamp=capture_msg.timestamp_second,
+                    delay_to_system=time() - capture_msg.timestamp_second,
+                )
+            )
 
             for topic in self.messageDef.MultiChannel_Left.messages:
                 image_list.append(

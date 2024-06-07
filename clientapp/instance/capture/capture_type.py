@@ -19,7 +19,7 @@ class ImageBytes:
 
     def __init__(
         self,
-        image: Union[Image, CompressedImage, MatLike],
+        image: Union[Image, CompressedImage, MatLike, List[CompressedImage]],
         topic: str = "/oakd/rgb/preview/image_raw",
         bayerInterpolation: bool = False,
     ):
@@ -49,6 +49,15 @@ class ImageBytes:
             self.height = image.height
             # self.data = image.data.tolist()
             self.image = CvBridge().imgmsg_to_cv2(image, desired_encoding="passthrough")
+
+        elif type(image) == list:
+            images = [decode_jai_compressedImage(x).astype(np.uint32) for x in image]
+
+            # self.image = np.sum(images, axis=0) / len(images)
+            self.image = np.median(images, axis=0)
+            self.image = self.image.astype(np.uint16)
+            self.width = self.image.shape[1]
+            self.height = self.image.shape[0]
 
     def to_dict(self):
         return {

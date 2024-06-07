@@ -368,6 +368,12 @@ class CaptureNode(Node):
         if not self.space_id:
             return
 
+        for topic in (
+            self.messageDef.MultiChannel_Left.messages[:]
+            + self.messageDef.MultiChannel_Right.messages[:]
+        ):
+            topic.interpolation = int(self.scenario_hyper.JaiInterpolationNumber.value)
+
         self.capture_msg = CaptureMessage(self.messageDef)
         scene = CaptureSingleScenario(
             self.open_jai_stream,
