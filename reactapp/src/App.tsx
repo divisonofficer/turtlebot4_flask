@@ -65,15 +65,18 @@ function App() {
                 height: "100vh",
                 overflowX: "hidden",
                 left: 0,
-                position: "absolute",
+                position: "relative",
               }}
             >
               <Menus />
               <AlertView />
               <VStack
                 style={{
-                  width: "100%",
+                  display: "block",
+
+                  flexGrow: 1,
                   height: "100vh",
+                  overflowX: "hidden",
                 }}
               >
                 <Appbar />
