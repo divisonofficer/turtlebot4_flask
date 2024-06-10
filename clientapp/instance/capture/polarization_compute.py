@@ -46,7 +46,7 @@ class PolarizationCompute:
     image_np_dict: dict[str, IMAGE_SHAPE] = {}
     image_np_gt_dict: dict[str, IMAGE_SHAPE] = {}
     image_list: list[tuple[IMAGE_SHAPE, IMAGE_SHAPE]] = []
-    image_scale = 0.8
+    image_scale = 0.65
 
     loss_values: dict[str, Any] = {}
 
@@ -144,23 +144,23 @@ class PolarizationCompute:
 
         image = self.cut_image(image, self.image_scale)
 
-        bitwise_mask = (
-            self.image_jai_mask_gray
-            if len(image.shape) == 2 or image.shape[2] == 1
-            else self.image_jai_mask
-        )
-        bitwise_mask = cv2.resize(
-            bitwise_mask,
-            (image.shape[1], image.shape[0]),
-            interpolation=cv2.INTER_NEAREST,
-        )
+        # bitwise_mask = (
+        #     self.image_jai_mask_gray
+        #     if len(image.shape) == 2 or image.shape[2] == 1
+        #     else self.image_jai_mask
+        # )
+        # bitwise_mask = cv2.resize(
+        #     bitwise_mask,
+        #     (image.shape[1], image.shape[0]),
+        #     interpolation=cv2.INTER_NEAREST,
+        # )
 
-        if image.dtype == np.uint16:
-            bitwise_mask = bitwise_mask.astype(np.uint16)
-            bitwise_mask[bitwise_mask == 0] = 0
-            bitwise_mask[bitwise_mask > 0] = 65535
+        # if image.dtype == np.uint16:
+        #     bitwise_mask = bitwise_mask.astype(np.uint16)
+        #     bitwise_mask[bitwise_mask == 0] = 0
+        #     bitwise_mask[bitwise_mask > 0] = 65535
 
-        image = cv2.bitwise_and(image, bitwise_mask)
+        # image = cv2.bitwise_and(image, bitwise_mask)
 
         # image = self.denoise_16bit_image(image)
 
@@ -197,7 +197,20 @@ class PolarizationCompute:
         ----------
         property : str - property name, ex) s0_rgb_positive, r_aolp, nir_dolp
         """
-        return self.image_np_dict[property] if property in self.image_np_dict else None
+
+        if not property in self.image_np_dict:
+            return None
+        image = self.image_np_dict[property]
+        mask = cv2.resize(
+            (
+                self.image_jai_mask_gray
+                if len(image.shape) < 3 or image.shape[2] == 1
+                else self.image_jai_mask
+            ),
+            (image.shape[1], image.shape[0]),
+        )
+        image = cv2.bitwise_and(image.astype(np.uint8), mask)
+        return image
 
     def get_color_by_property(self, property: str, x: float, y: float):
         """
@@ -390,7 +403,7 @@ class PolarizationCompute:
             self.image_jai_mask, (stokes_matrix.shape[2], stokes_matrix.shape[1])
         )
         for key, value in stokes_images_p.items():
-            self.image_np_dict[f"{channel}_{key}"] = cv2.bitwise_and(value, mask)  # type: ignore
+            self.image_np_dict[f"{channel}_{key}"] = value
         for key, value in stokes_images_gt.items():
             self.image_np_gt_dict[f"{channel}_{key}"] = value
 

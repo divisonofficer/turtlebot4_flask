@@ -25,7 +25,7 @@ def set_device_angle():
 def initiate_angle_home():
     elliptecMount.home()
     sleep(1)
-    elliptecMount.move_by(12.25)
+    elliptecMount.move_by(13.75)
     return Response(status=200)
 
 
