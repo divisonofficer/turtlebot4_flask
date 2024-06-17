@@ -1,5 +1,7 @@
 import gc
+import math
 from time import time, sleep
+import rclpy.action
 from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
@@ -21,6 +23,7 @@ import requests
 from slam_source import SlamSource
 from capture_scenario import PolarizerError, CaptureSingleScenario
 from socket_progress import SocketProgress
+from irobot_create_msgs.action import RotateAngle
 
 
 class Ell14:
@@ -179,25 +182,27 @@ class CaptureNode(Node):
         }
 
     def run_capture_thread(self, capture_mod: str = "single", capture_id: int = -1):
-        #### Pre Capture Task
-        self.ell.polarizer_turn(home=True)
-        self.set_capture_flag(True)
+        try:
+            #### Pre Capture Task
+            self.ell.polarizer_turn(home=True)
+            self.set_capture_flag(True)
 
-        if capture_mod == "single":
-            self.capture_single_job(capture_id)
+            if capture_mod == "single":
+                self.capture_single_job(capture_id)
 
-        if capture_mod == "queue":
-            self.run_capture_queue(capture_id)
+            if capture_mod == "queue":
+                self.run_capture_queue(capture_id)
 
-        ### Post Capture Task
+            ### Post Capture Task
 
-        self.ell.polarizer_turn(home=True)
-        self.set_capture_flag(False)
-        if (
-            self.messageDef.MultiChannel_Left.enabled
-            or self.messageDef.MultiChannel_Right.enabled
-        ):
-            self.hold_jai_autoExposure(False)
+            self.ell.polarizer_turn(home=True)
+            self.set_capture_flag(False)
+            if self.scenario_hyper.JaiAutoExpose.value == 1:
+                self.hold_jai_autoExposure(False)
+        except Exception as e:
+
+            self.ell.polarizer_turn(home=True)
+            self.set_capture_flag(False)
 
     def check_capture_call_available(self):
         """
@@ -247,6 +252,9 @@ class CaptureNode(Node):
                 )
 
         self.publisher_cmd_vel = self.create_publisher(Twist, "/cmd_vel", 10)
+        self.client_create3_rotate = rclpy.action.client.ActionClient(
+            self, RotateAngle, "/rotate_angle"
+        )
         self.publisher_jai_trigger = self.create_publisher(
             Bool, "/jai_1600/stream_trigger", 1
         )
@@ -312,12 +320,19 @@ class CaptureNode(Node):
                 capture_id=capture_id,
             )
 
-            if (
-                self.messageDef.MultiChannel_Left.enabled
-                or self.messageDef.MultiChannel_Right.enabled
-            ):
+            if self.scenario_hyper.JaiAutoExpose.value == 1:
                 params = self.hold_jai_autoExposure(True)
-                print(params)
+                if isinstance(params, dict):
+                    if "jai_1600_left" in params:
+                        print(
+                            "Jai 1600 Left Auto Exposure: ",
+                            params["jai_1600_left"]["ExposureTime"],
+                        )
+                    if "jai_1600_right" in params:
+                        print(
+                            "Jai 1600 Right Auto Exposure: ",
+                            params["jai_1600_right"]["ExposureTime"],
+                        )
 
             self.capture_msg = CaptureMessage(self.messageDef)
             scene = CaptureSingleScenario(
@@ -343,10 +358,7 @@ class CaptureNode(Node):
 
             if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
                 self.turn_right()
-                if (
-                    self.messageDef.MultiChannel_Left.enabled
-                    or self.messageDef.MultiChannel_Right.enabled
-                ):
+                if self.scenario_hyper.JaiAutoExpose.value == 1:
                     self.hold_jai_autoExposure(False)
 
             self.ell.polarizer_turn(home=True)
@@ -408,6 +420,15 @@ class CaptureNode(Node):
 
     def turn_right(self):
         twist = Twist()
+
+        action = RotateAngle.Goal()
+        action.angle = 2 * math.pi / self.scenario_hyper.RotationQueueCount.value
+        action.max_rotation_speed = self.scenario_hyper.RotationSpeed.value
+
+        self.client_create3_rotate.send_goal(action)
+
+        return
+
         twist.angular.z = self.scenario_hyper.RotationSpeed.value
         time_begin = time()
         while rclpy.ok():

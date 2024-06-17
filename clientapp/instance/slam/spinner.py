@@ -18,7 +18,7 @@ class Spinner:
         self.future_flag_map = {}
         self.nodes: List[Node] = []
         self.thread = None
-        rclpy.init()
+
         self.executor = MultiThreadedExecutor()
         self.lock = threading.Lock()
 
