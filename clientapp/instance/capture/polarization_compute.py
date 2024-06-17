@@ -1,6 +1,8 @@
 from re import M
 import sys
-from typing import Annotated, Any, Union, TypeVar
+from typing import Annotated, Any, Optional, Union, TypeVar
+
+import tqdm
 
 sys.path.append("../../../public/proto/python")
 
@@ -166,8 +168,8 @@ class PolarizationCompute:
 
         if format == "nir" and len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        image = cv2.medianBlur(image, 3)
+        # # image = cv2.medianBlur(image, 5)
+        image = cv2.GaussianBlur(image, (3, 3), 0)
 
         if image.dtype == np.uint16:
             image = image.astype(np.float32) / 256.0
@@ -175,6 +177,47 @@ class PolarizationCompute:
             image = image.astype(np.float32)
 
         return image
+
+    def zero_base_blur(self, image: np.ndarray):
+        WS = 3
+        if len(image.shape) == 2:
+            image = np.expand_dims(image, -1)
+        neighborhood = np.zeros(
+            (WS * 2 + 1, WS * 2 + 1, image.shape[0], image.shape[1], image.shape[2]),
+            dtype=np.uint16,
+        )
+
+        for i in range(WS * 2 + 1):
+            for j in range(WS * 2 + 1):
+                image_partial = image[i:, j:]
+                neighborhood[i, j] = np.pad(
+                    image_partial,
+                    ((0, i), (0, j), (0, 0)),
+                    mode="constant",
+                    constant_values=0,
+                )
+        neighborhood_mean = neighborhood.mean(axis=(0, 1))
+
+        neighborhood_std = neighborhood.std(axis=(0, 1)) / neighborhood_mean
+        neighborhood_std_mono = neighborhood.std(axis=(0, 1, 4))
+        neighborhood_std_mono_stacked = (
+            np.stack([neighborhood_std_mono] * image.shape[2], axis=2)
+            / neighborhood_mean
+        )
+        max_bit = 65535
+        image_mask = np.zeros_like(image)
+        image_mask_color = np.zeros_like(image)
+        image_mask[neighborhood_std < 0.05] = max_bit
+        image_mask_color[neighborhood_std_mono_stacked > 0.02] = max_bit
+        image_mask = cv2.bitwise_and(image_mask, image_mask_color)
+
+        mean_mask = cv2.bitwise_and(image_mask, neighborhood_mean.astype(image.dtype))
+
+        image_noisy_filter = cv2.bitwise_or(
+            cv2.bitwise_and(image, cv2.bitwise_not(image_mask)), mean_mask
+        )
+        print(image_noisy_filter.shape)
+        return image_noisy_filter
 
     def update_qwp_angles(self, angles: list[float]):
         """
@@ -293,7 +336,9 @@ class PolarizationCompute:
 
         for image_rgb, image_nir in image_list:
             image_rgb_np = image_rgb
-            image_nir_np = np.expand_dims(image_nir, -1)
+            image_nir_np = (
+                np.expand_dims(image_nir, -1) if len(image_nir.shape) < 3 else image_nir
+            )
             image = np.concatenate(
                 [
                     image_rgb_np,
@@ -422,8 +467,10 @@ class PolarizationCompute:
         img_docp = pa.cvtStokesToDoCP(img_stokes)
         img_diffuse = pa.cvtStokesToDiffuse(img_stokes)
         img_ell_angle = pa.cvtStokesToEllipticityAngle(img_stokes)
+        img_top_vis = self.applyColorToToP(img_ell_angle, img_dop)
 
         img_dolp_vis = pa.applyColorMap(img_dolp, "gist_heat", 0, 1)
+        img_cop_vis = self.applyColorToCoP(img_ell_angle, img_docp)
 
         return {
             "dolp": img_dolp_vis,
@@ -432,7 +479,8 @@ class PolarizationCompute:
             "dop": pa.applyColorMap(img_dop, "gist_heat", 0, 1),
             "docp": pa.applyColorMap(img_docp, "gist_heat", 0, 1),
             "diffuse": pa.applyColorMap(img_diffuse, "bwr", -128, 128),
-            "ell_angle": pa.applyColorMap(img_ell_angle, "bwr", -np.pi / 4, np.pi / 4),
+            "top": img_top_vis,
+            "cop": img_cop_vis,
         }, {
             "dolp": img_dolp,
             "aolp": img_aolp,
@@ -440,8 +488,76 @@ class PolarizationCompute:
             "dop": img_dop,
             "docp": img_docp,
             "diffuse": img_diffuse,
-            "ell_angle": img_ell_angle,
+            "top": img_ell_angle,
         }
+
+    def applyColorToToP(
+        self,
+        ellipticity_angle: np.ndarray,
+        dop: Optional[np.ndarray] = None,
+        c_l: np.ndarray = np.asarray([255, 255, 0]),
+        c_c: np.ndarray = np.asarray([0, 255, 255]),
+    ) -> np.ndarray:
+        """
+        From Ryota's Library
+        Apply color to ToP (Type of Polarization)
+
+        Parameters
+        ----------
+        ellipticity_angle : np.ndarray
+            Ellipticity angle, its shape is (height, width). The range is from -pi/4 to pi/4
+        dop : Optional[np.ndarray], optional
+            Degree of Polarization, its shape is (height, width), by default None
+
+        Returns
+        -------
+        top_colored : np.ndarray
+            An applied color to ToP, its shape is (height, width, 3) and dtype is `np.uint8`
+        """
+        colormap = (
+            np.linspace(1, 0, 256)[..., None] * c_l
+            + np.linspace(0, 1, 256)[..., None] * c_c
+        ).astype(np.uint8)
+
+        if dop is None:
+            dop = np.ones_like(ellipticity_angle)
+
+        top = pa.applyColorMap(np.abs(ellipticity_angle), colormap, 0, np.pi / 4)
+        top = np.clip(top * dop[..., None], 0, 255).astype(np.uint8)
+
+        return top
+
+    def applyColorToCoP(
+        self, ellipticity_angle: np.ndarray, docp: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        """Apply color to CoP (Chirality of Polarization)
+
+        Parameters
+        ----------
+        ellipticity_angle : np.ndarray
+            Ellipticity angle, its shape is (height, width). The range is from -pi/4 to pi/4
+        docp : Optional[np.ndarray], optional
+            Degree of Circular Polarization, its shape is (height, width), by default None
+
+        Returns
+        -------
+        cop_colored : np.ndarray
+            An applied color to CoP, its shape is (height, width, 3) and dtype is `np.uint8`
+        """
+        colormap = np.zeros((256, 3), dtype=np.uint8)
+        colormap[:128] = np.linspace(1, 0, 128)[..., None] * np.array([255, 0, 0])
+        colormap[128:] = np.linspace(0, 1, 128)[..., None] * np.array([0, 255, 255])
+        if docp is None:
+            docp = np.ones_like(ellipticity_angle)
+
+        ellipticity_angle_vis = pa.applyColorMap(
+            ellipticity_angle, colormap, -np.pi / 4, np.pi / 4
+        )
+        ellipticity_angle_vis = np.clip(
+            ellipticity_angle_vis * docp[..., None], 0, 255
+        ).astype(np.uint8)
+
+        return ellipticity_angle_vis
 
     def cvtStokesToDoLP(self, stokes: np.ndarray) -> np.ndarray:
         s0 = stokes[..., 0]

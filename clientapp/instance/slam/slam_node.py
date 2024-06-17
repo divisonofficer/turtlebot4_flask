@@ -331,7 +331,7 @@ class SlamApp(Node):
         Emits the slam status.
         """
         message = self.get_slam_status()
-        if self.launch.process:
+        if self.launch.isSlamUsingMode:
             if self.state.position:
                 # self.get_logger().info(f"Robot Pose: {self.state.position}")
                 pass

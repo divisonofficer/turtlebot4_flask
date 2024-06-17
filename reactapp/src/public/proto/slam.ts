@@ -135,6 +135,10 @@ export interface SavedMapMeta {
   occupiedThresh: number;
 }
 
+export interface Pose3DArray {
+  poses: Pose3D[];
+}
+
 function createBaseRobotEuilerOrientation(): RobotEuilerOrientation {
   return { roll: 0, pitch: 0, yaw: 0 };
 }
@@ -1485,6 +1489,63 @@ export const SavedMapMeta = {
     message.resolution = object.resolution ?? 0;
     message.negate = object.negate ?? 0;
     message.occupiedThresh = object.occupiedThresh ?? 0;
+    return message;
+  },
+};
+
+function createBasePose3DArray(): Pose3DArray {
+  return { poses: [] };
+}
+
+export const Pose3DArray = {
+  encode(message: Pose3DArray, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.poses) {
+      Pose3D.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Pose3DArray {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePose3DArray();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.poses.push(Pose3D.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Pose3DArray {
+    return { poses: globalThis.Array.isArray(object?.poses) ? object.poses.map((e: any) => Pose3D.fromJSON(e)) : [] };
+  },
+
+  toJSON(message: Pose3DArray): unknown {
+    const obj: any = {};
+    if (message.poses?.length) {
+      obj.poses = message.poses.map((e) => Pose3D.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Pose3DArray>, I>>(base?: I): Pose3DArray {
+    return Pose3DArray.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Pose3DArray>, I>>(object: I): Pose3DArray {
+    const message = createBasePose3DArray();
+    message.poses = object.poses?.map((e) => Pose3D.fromPartial(e)) || [];
     return message;
   },
 };
