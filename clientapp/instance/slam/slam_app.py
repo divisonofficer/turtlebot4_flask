@@ -1,3 +1,4 @@
+from crypt import methods
 from flask import Flask, Response, request, send_file
 from flask_socketio import SocketIO
 
@@ -5,9 +6,14 @@ import sys
 
 sys.path.append("../../../public/proto/python")
 sys.path.append("../public/proto/python")
+from slam_create3 import SlamCreate3
+from slam_pb2 import Point3D
+
+
 import os
 import subprocess
 import threading
+import rclpy
 
 from slam_opencv import stream
 from spinner import Spinner
@@ -28,6 +34,9 @@ class SlamLaunch:
         self.process = None
         self.thread = None
         self.sockets = sockets
+
+        self.isCreate3UsingMode = False
+        self.isSlamUsingMode = False
 
     def std_callback(self, msg):
         print(msg)
@@ -58,6 +67,7 @@ class SlamLaunch:
         self.thread = threading.Thread(
             target=run_subprocess_async, args=(self.command,)
         )
+        self.isSlamUsingMode = True
         self.thread.start()
 
     def cancel_subprocess(self):
@@ -71,13 +81,15 @@ class SlamLaunch:
             if self.process:
                 self.process.terminate()
                 self.process = None
+        if not self.process:
+            self.isSlamUsingMode = False
 
     def __del__(self):
         self.cancel_subprocess()
 
 
 app = Flask(__name__)
-
+rclpy.init()
 sockets = SocketIO(
     app,
     cors_allowed_origins="*",
@@ -86,14 +98,16 @@ sockets = SocketIO(
     # engineio_logger=True,
 )
 spinner = Spinner()
+spinner_create3 = Spinner()
 launch = SlamLaunch(sockets)
 node = SlamApp(sockets, launch, spinner)
+node_create3 = SlamCreate3(sockets, spinner_create3)
 repo = SlamRepo()
 
 
 @app.route("/launch", methods=["GET"])
 def launch_slam():
-    if not launch.process:
+    if not launch.isSlamUsingMode and not launch.isCreate3UsingMode:
         launch.launch()
         return {
             "status": "success",
@@ -107,7 +121,7 @@ def launch_slam():
 
 @app.route("/launch/<map_name>", methods=["GET"])
 def launch_slam_open_map(map_name):
-    if not launch.process:
+    if not launch.process and not launch.isCreate3UsingMode:
         launch.launch(map_name)
         return {
             "status": "success",
@@ -196,7 +210,7 @@ def save_map():
 
     filename = repo.save_map_available(str(file))
 
-    if not filename and not overlap_possible:
+    if not filename or not overlap_possible:
         return Response(
             status=400,
             response="Filename unavailable",
@@ -265,6 +279,79 @@ def get_map_image(map_name):
     )
 
 
+@app.route("/create3", methods=["GET"])
+def get_create3_data():
+    status = node_create3.get_current_pose_dict()
+    if not status:
+        return {
+            "status": "error",
+            "message": "Create3 not running",
+        }
+    return status
+
+
+@app.route("/create3/launch", methods=["POST"])
+def launch_create3():
+    if not launch.process and not launch.isSlamUsingMode:
+        launch.isCreate3UsingMode = True
+        # todo : prepare create3 launch command
+        return {
+            "status": "success",
+            "message": "Create3 launched successfully",
+        }
+    return {
+        "status": "error",
+        "message": "Create3 already running",
+    }
+
+
+@app.route("/create3/action/navigate_to_position", methods=["POST"])
+def create3_action_navigate_to_position():
+    x = float(request.json["x"]) if request.json else None
+    y = float(request.json["y"]) if request.json else None
+
+    if x is None or y is None:
+        return {"status": "error", "message": "Invalid x or y"}
+
+    node_create3.navigate_robot(Point3D(x=x, y=y, z=0))
+
+    return {"status": "success", "message": "Robot navigated to position"}
+
+
+@app.route("/create3/action/rotate", methods=["POST"])
+def create3_action_rotate():
+    angle = float(request.json["angle"]) if request.json else None
+    if angle is None:
+        return {"status": "error", "message": "Invalid angle"}
+
+    node_create3.rotate_robot(angle)
+    return {"status": "success", "message": "Robot rotated"}
+
+
+@app.route("/create3/action/drive", methods=["POST"])
+def create3_action_drive():
+    distance = float(request.json["distance"]) if request.json else None
+    if distance is None:
+        return {"status": "error", "message": "Invalid distance"}
+
+    node_create3.drive_robot(distance)
+    return {"status": "success", "message": "Robot drove"}
+
+
+@app.route("/create3/action/estop", methods=["POST"])
+def create3_action_estop():
+    node_create3.estop()
+    return {"status": "success", "message": "Robot estopped"}
+
+
+@app.route("/create3/action/estop/release", methods=["POST"])
+def create3_action_estop_release():
+    node_create3.estop_release()
+    return {"status": "success", "message": "Robot estop released"}
+
+
 if __name__ == "__main__":
+
     spinner.spin_async()
-    sockets.run(app, port=5010, host="0.0.0.0", allow_unsafe_werkzeug=True)
+    spinner_create3.spin_async()
+    sockets.run(app, port=5010, host="0.0.0.0", allow_unsafe_werkzeug=True)  # type: ignore

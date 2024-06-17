@@ -169,6 +169,13 @@ class ScenarioHyperParameter:
         range=[1, 10],
     )
 
+    JaiAutoExpose = CaptureScenarioHyperparameter.HyperParameter(
+        name="JaiAutoExpose",
+        value=1,
+        gap=1,
+        range=[0, 1],
+    )
+
     def __init__(self):
         for entry in self.entries():
             setattr(self, "_" + entry.name, entry.value)
@@ -179,6 +186,7 @@ class ScenarioHyperParameter:
             self.RotationSpeed,
             self.RotationInterval,
             self.JaiInterpolationNumber,
+            self.JaiAutoExpose,
         ]
 
     def update(self, name, value):

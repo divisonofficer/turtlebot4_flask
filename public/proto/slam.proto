@@ -94,3 +94,7 @@ message SavedMapMeta{
     int32 negate = 7;
     double occupied_thresh = 8;
 }
+
+message Pose3DArray{
+    repeated Pose3D poses = 1;
+}

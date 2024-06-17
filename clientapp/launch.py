@@ -86,6 +86,8 @@ import sys
 if __name__ == "__main__":
     if "jai" in sys.argv:
         process_map["jai"] = "instance/jai/JAI_ROS_bridge/jai_node"
+    if "nocapture" in sys.argv:
+        process_map.pop("capture")
     process_manager = ProcessManager()
 
     def signal_handler(sig, frame):

@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Optional, Union
 from PIL import Image
 import yaml
 from slam_pb2 import *
@@ -37,7 +38,7 @@ class SlamRepo:
 
         return map_values
 
-    def save_map_available(self, map_name):
+    def save_map_available(self, map_name) -> Optional[str]:
         """
         check map_name.yaml is exists in the folder
         """
