@@ -98,3 +98,7 @@ message SavedMapMeta{
 message Pose3DArray{
     repeated Pose3D poses = 1;
 }
+
+message Point3DArray{
+    repeated Point3D points = 1;
+}
