@@ -106,6 +106,11 @@ class CaptureMessageDefinition:
         enabled=False,
     )
 
+    Ellipsis = CaptureMessageDefGroup(
+        name="Ellipsis",
+        enabled=False,
+    )
+
     topic_map: dict[str, CaptureMessageDef]
 
     def __init__(self):
@@ -115,7 +120,13 @@ class CaptureMessageDefinition:
                 self.topic_map[msg.topic] = msg
 
     def entries(self):
-        return [self.oakd, self.MultiChannel_Left, self.MultiChannel_Right, self.slam]
+        return [
+            self.oakd,
+            self.MultiChannel_Left,
+            self.MultiChannel_Right,
+            self.slam,
+            self.Ellipsis,
+        ]
 
     def to_dict(self):
         def_dict = {}
@@ -160,6 +171,13 @@ class ScenarioHyperParameter:
         value=0.6,
         gap=0.05,
         range=[0.1, 1.0],
+    )
+
+    DriveDistance = CaptureScenarioHyperparameter.HyperParameter(
+        name="DriveDistance",
+        value=1,
+        gap=0.1,
+        range=[0.1, 2],
     )
 
     JaiInterpolationNumber = CaptureScenarioHyperparameter.HyperParameter(

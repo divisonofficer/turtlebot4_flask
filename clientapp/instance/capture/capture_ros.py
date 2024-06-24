@@ -184,7 +184,8 @@ class CaptureNode(Node):
     def run_capture_thread(self, capture_mod: str = "single", capture_id: int = -1):
         try:
             #### Pre Capture Task
-            self.ell.polarizer_turn(home=True)
+            if self.messageDef.Ellipsis.enabled:
+                self.ell.polarizer_turn(home=True)
             self.set_capture_flag(True)
 
             if capture_mod == "single":
@@ -194,14 +195,14 @@ class CaptureNode(Node):
                 self.run_capture_queue(capture_id)
 
             ### Post Capture Task
-
-            self.ell.polarizer_turn(home=True)
+            if self.messageDef.Ellipsis.enabled:
+                self.ell.polarizer_turn(home=True)
             self.set_capture_flag(False)
             if self.scenario_hyper.JaiAutoExpose.value == 1:
                 self.hold_jai_autoExposure(False)
         except Exception as e:
-
-            self.ell.polarizer_turn(home=True)
+            if self.messageDef.Ellipsis.enabled:
+                self.ell.polarizer_turn(home=True)
             self.set_capture_flag(False)
 
     def check_capture_call_available(self):
@@ -360,8 +361,8 @@ class CaptureNode(Node):
                 self.turn_right()
                 if self.scenario_hyper.JaiAutoExpose.value == 1:
                     self.hold_jai_autoExposure(False)
-
-            self.ell.polarizer_turn(home=True)
+            if self.messageDef.Ellipsis.enabled:
+                self.ell.polarizer_turn(home=True)
             self.storage.store_captured_scene(
                 space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
             )
@@ -419,31 +420,19 @@ class CaptureNode(Node):
             return request.json()
 
     def turn_right(self):
-        twist = Twist()
-
         action = RotateAngle.Goal()
         action.angle = 2 * math.pi / self.scenario_hyper.RotationQueueCount.value
-        action.max_rotation_speed = self.scenario_hyper.RotationSpeed.value
+        requests.post(
+            "http://localhost/slam/create3/action/rotate",
+            json={
+                "angle": action.angle,
+            },
+        )
 
-        self.client_create3_rotate.send_goal(action)
-
-        return
-
-        twist.angular.z = self.scenario_hyper.RotationSpeed.value
-        time_begin = time()
-        while rclpy.ok():
-
-            # Turn right the robot
-            time_passed = time() - time_begin
-            twist.angular.z = (
-                self.scenario_hyper.RotationSpeed.value * 0.5
-                if time_passed / self.scenario_hyper.RotationInterval.value > 0.5
-                else self.scenario_hyper.RotationSpeed.value
-            )
-            self.publisher_cmd_vel.publish(twist)
-            sleep(0.10)
-            if time_passed > self.scenario_hyper.RotationInterval.value:
-                break
+    def drive_forward(self):
+        requests.post(
+            "http://localhost/slam/create3/action/drive", json={"distance": 0.1}
+        )
 
     def oakd_camera_command(self, start: Optional[bool] = None):
         if start == True:

@@ -83,7 +83,22 @@ class CaptureSingleScenario:
                 )
                 if isinstance(x, Image) or isinstance(x, CompressedImage)
             ]
-
+        if (
+            self.messageDef.MultiChannel_Left.enabled
+            and not self.messageDef.Ellipsis.enabled
+        ):
+            scene.picture_list += [
+                ImageBytes(
+                    image=x,
+                    topic=self.messageDef.MultiChannel_Left.messages[idx].topic,
+                )
+                for idx, x in enumerate(
+                    self.capture_msg.get_message(self.messageDef.MultiChannel_Left)
+                )
+                if isinstance(x, Image)
+                or isinstance(x, CompressedImage)
+                or (isinstance(x, list) and isinstance(x[0], CompressedImage))
+            ]
         if self.messageDef.MultiChannel_Right.enabled:
             scene.picture_list += [
                 ImageBytes(
@@ -135,7 +150,8 @@ class CaptureSingleScenario:
             # 필요한 모든 메시지가 도착할 때까지 기다림
 
             # Capture polarized images
-            scene.picture_list += self.run_polarized_capture()
+            if self.messageDef.Ellipsis.enabled:
+                scene.picture_list += self.run_polarized_capture()
 
             self.get_basic_msgs(scene)
             self.socket_progress(
@@ -195,7 +211,8 @@ class CaptureSingleScenario:
                 capture_id=self.capture_id,
                 action=CaptureTaskProgress.Action.ERROR,
             )
-        self.ell.polarizer_turn(home=True)
+        if self.messageDef.Ellipsis.enabled:
+            self.ell.polarizer_turn(home=True)
         self.open_jai_stream(False)
         return None
 
