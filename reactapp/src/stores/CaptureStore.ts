@@ -379,6 +379,11 @@ class CaptureStore {
   };
 
   @action
+  fetchMultiSpectralOpen = () => {
+    httpPost("/jai/device/open/all").fetch();
+  };
+
+  @action
   fetchAbortCapture = () => {
     httpPost("/capture/capture/abort")
       .onSuccess(() => {})

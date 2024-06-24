@@ -30,6 +30,7 @@ import { MapSaveBtn } from "./MapSaveBtn";
 import { slamStore } from "../../stores/SlamStore";
 import { observer } from "mobx-react";
 import { Pose3D, SlamState, SlamState_Status } from "../../public/proto/slam";
+import { Create3SlamView } from "./Create3Slam";
 
 const SlamPostionInfo = ({
   slamStatus,
@@ -444,10 +445,18 @@ const SlamMapJsonFetch = () => {
   );
 };
 
-export const SlamPage = () => {
+export const SlamPage = observer(() => {
   return (
     <PageRoot title={"SLAM"}>
-      <SlamView />
+      <Btn
+        size="sm"
+        onClick={() => {
+          slamStore.slamMode = "create3";
+        }}
+      >
+        Create3
+      </Btn>
+      {slamStore.slamMode === "create3" ? <Create3SlamView /> : <SlamView />}
     </PageRoot>
   );
-};
+});
