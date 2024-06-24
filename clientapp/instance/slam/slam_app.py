@@ -6,6 +6,7 @@ import sys
 
 sys.path.append("../../../public/proto/python")
 sys.path.append("../public/proto/python")
+sys.path.append("./instance/slam/depthai_slam")
 from slam_create3 import SlamCreate3
 from slam_pb2 import Point3D
 
@@ -348,6 +349,28 @@ def create3_action_estop():
 def create3_action_estop_release():
     node_create3.estop_release()
     return {"status": "success", "message": "Robot estop released"}
+
+
+@app.route("/create3/depth/<timestamp>")
+def depth_preview_image(timestamp):
+    return Response(
+        node_create3.depthStream.depth_stream.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.route("/create3/pointcloud/<timestamp>")
+def pointcloud_preview_image(timestamp):
+    return Response(
+        node_create3.depthStream.videostream.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.route("/create3/action/reset_pose", methods=["POST"])
+def create3_pose_reset_from_odometry():
+    node_create3.reset_pose()
+    return {"status": "success", "message": "Pose reset"}
 
 
 if __name__ == "__main__":
