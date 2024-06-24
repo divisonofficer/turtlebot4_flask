@@ -19,6 +19,13 @@ export interface CalibrationMeta {
   month: number;
   day: number;
   hour: number;
+  shape: number[];
+}
+
+export interface ChessboardShape {
+  rows: number;
+  cols: number;
+  length: number;
 }
 
 class JaiStore {
@@ -31,6 +38,11 @@ class JaiStore {
   stereoMatrix: StereoMatrix | undefined = undefined;
 
   calibrationList: CalibrationMeta[] = [];
+  chessboardShape: ChessboardShape = {
+    rows: 0,
+    cols: 0,
+    length: 0,
+  };
 
   constructor() {
     makeAutoObservable(this);
@@ -141,6 +153,7 @@ class JaiStore {
 
   fetchSubscribeJaiCalibration = () => {
     httpPost(`/jai/calibrate/start`).fetch();
+    httpGet(`/jai/calibrate/refresh`).fetch();
   };
   fetchUnsubscribeJaiCalibration = () => {
     httpPost(`/jai/calibrate/stop`).fetch();
@@ -153,7 +166,27 @@ class JaiStore {
   };
 
   fetchCalibrationLoad = (idx: number) => {
-    httpPost(`/jai/calibrate/storage/load/${idx}`, { idx: idx }).fetch();
+    httpPost(`/jai/calibrate/storage/load/${idx}`, { idx: idx })
+      .onSuccess(
+        (data: {
+          shape: {
+            rows: number;
+            cols: number;
+            length: number;
+          };
+        }) => {
+          this.chessboardShape = data.shape;
+        }
+      )
+      .fetch();
+  };
+
+  fetchUpdateCalibrationChessboard = (shape: ChessboardShape) => {
+    httpPost(`/jai/calibrate/chessboard/shape`, shape)
+      .onSuccess((data) => {
+        this.chessboardShape = data;
+      })
+      .fetch();
   };
 
   fetchGetCalibrationList = () => {

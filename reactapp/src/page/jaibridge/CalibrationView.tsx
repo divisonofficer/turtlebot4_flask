@@ -4,6 +4,7 @@ import {
   HStack,
   IconButton,
   Img,
+  Input,
   Menu,
   MenuButton,
   MenuItem,
@@ -75,7 +76,7 @@ const CalibrationLoadBtn = observer(() => {
                   jaiStore.fetchCalibrationLoad(meta.id);
                 }}
               >
-                {meta.month}/{meta.day} {meta.hour}
+                {meta.id} : {meta.month}/{meta.day} {meta.hour}
               </MenuItem>
             );
           })}
@@ -85,13 +86,62 @@ const CalibrationLoadBtn = observer(() => {
   );
 });
 
+const CalibrationChessboardShapeView = observer(() => {
+  const [rows, setRows] = useState(jaiStore.chessboardShape.rows);
+  const [cols, setCols] = useState(jaiStore.chessboardShape.cols);
+  const [length, setLength] = useState(jaiStore.chessboardShape.length);
+
+  return (
+    <HStack>
+      <Body3>Rows</Body3>
+      <Input
+        defaultValue={rows}
+        onChange={(e) => setRows(parseInt(e.target.value))}
+        style={{
+          width: "3rem",
+        }}
+      />
+      <Body3>Cols</Body3>
+      <Input
+        defaultValue={cols}
+        onChange={(e) => setCols(parseInt(e.target.value))}
+        style={{
+          width: "3rem",
+        }}
+      />
+      <Body3>Length</Body3>
+      <Input
+        defaultValue={length}
+        onChange={(e) => setLength(parseInt(e.target.value))}
+        style={{
+          width: "3rem",
+        }}
+      />
+      <Btn
+        onClick={() =>
+          jaiStore.fetchUpdateCalibrationChessboard({
+            rows,
+            cols,
+            length,
+          })
+        }
+        size="sm"
+      >
+        Set
+      </Btn>
+    </HStack>
+  );
+});
+
 const CalibrationResultView = observer(() => {
+  const [timestamp, setTimestamp] = useState(Date.now());
+
   const ImagePairListView = (props: { imageCount: number }) => {
     return (
       <VStack
         style={{
           width: "24rem",
-          maxHeight: "96rem",
+          maxHeight: "48rem",
           overflowY: "auto",
         }}
       >
@@ -129,7 +179,7 @@ const CalibrationResultView = observer(() => {
     const errorMin = 0;
     const length = props.errorLeft.length;
 
-    const graphVGap = errorMax > 1 ? 1 : 0.1;
+    const graphVGap = errorMax > 1 ? 1 : errorMax > 0.1 ? 0.1 : 0.01;
     const graphVGapCount = Math.floor(errorMax / graphVGap) + 1;
 
     return (
@@ -157,7 +207,7 @@ const CalibrationResultView = observer(() => {
                 }}
               >
                 <Body3>
-                  {(graphVGap * (graphVGapCount - 1 - i)).toFixed(1)}
+                  {(graphVGap * (graphVGapCount - 1 - i)).toFixed(2)}
                 </Body3>
                 <div
                   style={{
@@ -203,7 +253,7 @@ const CalibrationResultView = observer(() => {
                   style={{
                     width: "0.5rem",
                     height: `${
-                      ((props.errorLeft[i] - errorMin) /
+                      ((props.errorRight[i] - errorMin) /
                         (errorMax - errorMin)) *
                       100
                     }%`,
@@ -252,6 +302,15 @@ const CalibrationResultView = observer(() => {
               src={`/jai/calibrate/chessboard/${vIdx}/1?timestamp=${Date.now()}`}
               style={{ width: "50%" }}
             />
+          </HStack>
+          <HStack>
+            <Body3>Reprojection Error</Body3>
+            <Body3>
+              {jaiStore.stereoMatrix!.left!.reprojectError[vIdx].toFixed(4)}
+            </Body3>
+            <Body3>
+              {jaiStore.stereoMatrix!.right!.reprojectError[vIdx].toFixed(4)}
+            </Body3>
           </HStack>
           <ReprojectionErrorGraph
             vIdx={vIdx}
@@ -334,6 +393,7 @@ export const CalibrateView = observer(() => {
           Save
         </Btn>
         <CalibrationLoadBtn />
+        <CalibrationChessboardShapeView />
       </HStack>
       <HStack>
         <VideoStream

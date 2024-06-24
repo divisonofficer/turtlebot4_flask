@@ -143,6 +143,13 @@ class CaptureStore {
   }
 
   @action
+  fetchPostCompressSpace() {
+    if (this.space_id) {
+      httpPost(`/capture/result/${this.space_id}/gzipped`).fetch();
+    }
+  }
+
+  @action
   processCaptureProgress(progress: CaptureTaskProgress) {
     console.log(this.progress, progress);
     if (

@@ -1,8 +1,10 @@
 import {
+  Button,
   Checkbox,
   CircularProgress,
   Flex,
   HStack,
+  Switch,
   VStack,
 } from "@chakra-ui/react";
 import { observer } from "mobx-react";
@@ -10,8 +12,43 @@ import { captureStore } from "../../stores/CaptureStore";
 import { Body2, Body3 } from "../../design/text/textsystem";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import { CaptureAppCapture, CaptureAppScene } from "../../public/proto/capture";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
 
 export const CaptureImageStorage = observer(() => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <HStack>
+        <Switch
+          defaultChecked={open}
+          onChange={(e) => {
+            setOpen(e.target.checked);
+          }}
+        >
+          Storage
+        </Switch>
+        {captureStore.space_id && (
+          <>
+            <Button
+              onClick={() => {
+                captureStore.fetchPostCompressSpace();
+              }}
+            >
+              Compress
+            </Button>
+            <NavLink to={`/capture/result/${captureStore.space_id}/gzipped`}>
+              <Button>Download</Button>
+            </NavLink>
+          </>
+        )}
+      </HStack>
+      {open && <CaptureImageStorageView />}
+    </>
+  );
+});
+
+export const CaptureImageStorageView = observer(() => {
   return (
     <VStack>
       <Flex wrap="wrap" style={{ width: "100%" }}>
