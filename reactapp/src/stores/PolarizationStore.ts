@@ -8,15 +8,17 @@ import { httpGet } from "../connect/http/request";
 
 export const PROPERTIES = [
   "s0_combined",
+  "dop",
+  "top",
+  "cop",
+  "aolp",
+  "dolp",
+
+  "docp",
   "s1_combined",
   "s2_combined",
   "s3_combined",
-  "aolp",
-  "dolp",
-  "dop",
-  "docp",
   "diffuse",
-  "ell_angle",
   "specular",
 ];
 
@@ -60,7 +62,7 @@ class PolarizationStore {
     const qwpPlateAngle = props.qwpAngle || this.mmQwpAngle;
 
     httpGet(`
-      /capture/polarization/linear/${spaceId}/${captureId}/${sceneId}/${linearAngle}/${qwpPlateAngle}
+      /polarization/linear/${spaceId}/${captureId}/${sceneId}/${linearAngle}/${qwpPlateAngle}
     `)
       .onSuccess((data) => {
         props.doOnSuccess && props.doOnSuccess();
@@ -71,7 +73,7 @@ class PolarizationStore {
 
   @action
   fetchColorDeepView(y: number, x: number) {
-    httpGet(`/capture/polarization/view/${this.viewFocusProperty}/${y}/${x}`)
+    httpGet(`/polarization/view/${this.viewFocusProperty}/${y}/${x}`)
       .onSuccess((data) => {
         this.colorDeepView = {
           x,
