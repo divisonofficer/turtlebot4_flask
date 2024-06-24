@@ -30,6 +30,14 @@ import { Color } from "../../design/color";
 import { useEffect, useState } from "react";
 import { httpGet, httpPost } from "../../connect/http/request";
 import { jaiStore } from "../../stores/JaiStore";
+import { ParameterEnum } from "../../public/proto/jai";
+import {
+  Newspaper,
+  Parallelogram,
+  RocketLaunch,
+  SunDim,
+} from "@phosphor-icons/react";
+import { CloseIcon } from "@chakra-ui/icons";
 
 const CaptureSourceSwitch = observer(() => {
   return (
@@ -168,29 +176,46 @@ export const CaptureSpaceControl = observer(() => {
 
 export const MultiSpectralCameraControl = observer(() => {
   return (
-    <HStack>
+    <VStack
+      style={{
+        alignItems: "flex-start",
+      }}
+    >
+      <H4>JAI Master Control</H4>
       <Btn
         onClick={() => captureStore.fetchMultiSpectralInit()}
         color={Color.Cyan}
         size="sm"
+        icon={<Newspaper />}
       >
-        MultiSpectralInit
+        CameraInit
+      </Btn>
+      <Btn
+        onClick={() => captureStore.fetchMultiSpectralOpen()}
+        color={Color.Cyan}
+        size="sm"
+        icon={<RocketLaunch />}
+      >
+        StreamOpen
       </Btn>
       <Btn
         onClick={() => captureStore.fetchMultiSpectralClose()}
         size="sm"
         color={Color.Orange}
+        icon={<CloseIcon />}
       >
-        MultiSpectralClose
+        StreamClose
       </Btn>{" "}
       <Btn
+        size="sm"
+        icon={<SunDim />}
         onClick={() => {
           jaiStore.fetchJaiCameraHoldAutoExposureAll(false);
         }}
       >
         AutoExposureOn
       </Btn>
-    </HStack>
+    </VStack>
   );
 });
 
@@ -237,27 +262,47 @@ export const CaptureScenarioHyperparameterControl = observer(() => {
           }}
         >
           <Body3>{param.name}</Body3>
-          <Slider
-            min={param.range[0]}
-            max={param.range[1]}
-            size={"md"}
-            style={{
-              width: "100%",
+          {(param.range[1] - param.range[0]) / param.gap <= 1 ? (
+            <>
+              <div style={{ width: "100%" }} />
+              <Switch
+                isChecked={param.value === 1}
+                onChange={(e) => {
+                  captureStore.fetchScenarioHyperparameterUpdate(
+                    param.name,
+                    e.target.checked ? 1 : 0
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <Slider
+                min={param.range[0]}
+                max={param.range[1]}
+                size={"md"}
+                style={{
+                  width: "100%",
 
-              height: "1rem",
-            }}
-            step={param.gap}
-            value={param.value}
-            onChange={(value) => {
-              captureStore.fetchScenarioHyperparameterUpdate(param.name, value);
-            }}
-          >
-            <SliderTrack>
-              <SliderFilledTrack />
-            </SliderTrack>
-            <SliderThumb />
-          </Slider>
-          <H4>{param.value}</H4>
+                  height: "1rem",
+                }}
+                step={param.gap}
+                value={param.value}
+                onChange={(value) => {
+                  captureStore.fetchScenarioHyperparameterUpdate(
+                    param.name,
+                    value
+                  );
+                }}
+              >
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+              <H4>{param.value}</H4>
+            </>
+          )}
         </HStack>
       ))}
     </VStack>

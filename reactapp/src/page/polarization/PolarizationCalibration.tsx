@@ -45,7 +45,7 @@ export const PolarizationView = observer((props: { randomTime: number }) => {
               }}
             >
               <img
-                src={`/capture/polarization/view/${channel}_${property}?timestamp=${
+                src={`/polarization/view/${channel}_${property}?timestamp=${
                   new Date().getTime() + props.randomTime
                 }`}
                 style={{ minWidth: "30rem", flexGrow: "1", height: "auto" }}
@@ -318,7 +318,7 @@ export const PolarizationDeepView = observer(() => {
     >
       <img
         ref={imageRef}
-        src={`/capture/polarization/view/${
+        src={`/polarization/view/${
           polarizationStore.viewFocusProperty
         }?timestamp=${new Date().getTime() + polarizationStore.randomTime}`}
         style={{ width: "80%", height: "auto" }}
