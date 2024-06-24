@@ -15,7 +15,7 @@ def quaternion_to_euler(q: Union[QuaternionAngle, Quaternion]) -> EulerAngle:
     if isinstance(q, Quaternion):
         q = QuaternionAngle.from_msg(q)
 
-    w, x, y, z = q.w, q.x, q.y, q.z  # Fix: Assign values from q to variables w, x, y, z
+    w, x, y, z = q.w, 0, q.y, 0  # Fix: Assign values from q to variables w, x, y, z
     t0 = +2.0 * (w * x + y * z)
     t1 = +1.0 - 2.0 * (x * x + y * y)
     roll_x = math.atan2(t0, t1)

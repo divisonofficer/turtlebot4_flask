@@ -139,6 +139,10 @@ export interface Pose3DArray {
   poses: Pose3D[];
 }
 
+export interface Point3DArray {
+  points: Point3D[];
+}
+
 function createBaseRobotEuilerOrientation(): RobotEuilerOrientation {
   return { roll: 0, pitch: 0, yaw: 0 };
 }
@@ -1546,6 +1550,65 @@ export const Pose3DArray = {
   fromPartial<I extends Exact<DeepPartial<Pose3DArray>, I>>(object: I): Pose3DArray {
     const message = createBasePose3DArray();
     message.poses = object.poses?.map((e) => Pose3D.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBasePoint3DArray(): Point3DArray {
+  return { points: [] };
+}
+
+export const Point3DArray = {
+  encode(message: Point3DArray, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.points) {
+      Point3D.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Point3DArray {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePoint3DArray();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.points.push(Point3D.decode(reader, reader.uint32()));
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Point3DArray {
+    return {
+      points: globalThis.Array.isArray(object?.points) ? object.points.map((e: any) => Point3D.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: Point3DArray): unknown {
+    const obj: any = {};
+    if (message.points?.length) {
+      obj.points = message.points.map((e) => Point3D.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Point3DArray>, I>>(base?: I): Point3DArray {
+    return Point3DArray.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Point3DArray>, I>>(object: I): Point3DArray {
+    const message = createBasePoint3DArray();
+    message.points = object.points?.map((e) => Point3D.fromPartial(e)) || [];
     return message;
   },
 };
