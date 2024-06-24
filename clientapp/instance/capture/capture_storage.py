@@ -208,10 +208,10 @@ class CaptureStorage:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (128, 128))
 
-        if "jai_1600_left" in filename:
-            img = cv2.bitwise_and(img, self.image_jai_mask_128)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
-            img[:, :, 3] = self.image_jai_mask_128[:, :, 0]
+        # if "jai_1600_left" in filename:
+        #     img = cv2.bitwise_and(img, self.image_jai_mask_128)
+        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+        #     img[:, :, 3] = self.image_jai_mask_128[:, :, 0]
         img_encoded = cv2.imencode(".png", img)[1]
 
         if not os.path.exists(thumb):
