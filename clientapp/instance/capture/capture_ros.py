@@ -335,7 +335,7 @@ class CaptureNode(Node):
                             params["jai_1600_right"]["ExposureTime"],
                         )
 
-            self.capture_msg = CaptureMessage(self.messageDef)
+            self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
             scene = CaptureSingleScenario(
                 self.open_jai_stream,
                 self.socket_progress,
@@ -387,7 +387,7 @@ class CaptureNode(Node):
         ):
             topic.interpolation = int(self.scenario_hyper.JaiInterpolationNumber.value)
 
-        self.capture_msg = CaptureMessage(self.messageDef)
+        self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
         scene = CaptureSingleScenario(
             self.open_jai_stream,
             self.socket_progress,

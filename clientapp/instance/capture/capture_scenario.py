@@ -57,7 +57,7 @@ class CaptureSingleScenario:
         self.socketIO = socketIO
         self.ell = ell
         self.storage = storage
-        self.ANGLES = capture_msg.definition.ANGLES
+        self.ANGLES = capture_msg.hyperparamter.EllRotationDegree.value_array[:]
 
     def get_basic_msgs(self, scene: CaptureSingleScene):
         while True:
@@ -229,7 +229,7 @@ class CaptureSingleScenario:
         image_list: list[ImageBytes] = []
         for idx, deg in enumerate(self.ANGLES):
             self.socket_progress(
-                deg * 15 // 45 + 30,
+                int(deg) * 15 // 45 + 30,
                 scene_id=self.scene_id,
                 space_id=self.space_id,
                 msg=f"Capturing {deg} degrees",
@@ -263,7 +263,7 @@ class CaptureSingleScenario:
                 image_list.append(
                     ImageBytes(
                         capture_msg.msg_dict[topic.topic],
-                        topic.topic + "/" + str(deg),
+                        topic.topic + "/" + str(int(deg)),
                         bayerInterpolation="bayer" in topic.format,
                     )
                 )

@@ -12,7 +12,6 @@ MsgType = TypeVar("MsgType")
 
 
 class CaptureMessageDefinition:
-    ANGLES = [30, 60, 270, 315]
     MultiChannel_Left = CaptureMessageDefGroup(
         name="MultiChannel_Left",
         messages=[
@@ -159,18 +158,21 @@ class ScenarioHyperParameter:
         value=30,
         gap=1,
         range=[1, 50],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
     RotationSpeed = CaptureScenarioHyperparameter.HyperParameter(
         name="RotationSpeed",
         value=0.25,
         gap=0.025,
         range=[0.1, 0.5],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
     RotationInterval = CaptureScenarioHyperparameter.HyperParameter(
         name="RotationInterval",
         value=0.6,
         gap=0.05,
         range=[0.1, 1.0],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
 
     DriveDistance = CaptureScenarioHyperparameter.HyperParameter(
@@ -178,6 +180,7 @@ class ScenarioHyperParameter:
         value=1,
         gap=0.1,
         range=[0.1, 2],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
 
     JaiInterpolationNumber = CaptureScenarioHyperparameter.HyperParameter(
@@ -185,6 +188,7 @@ class ScenarioHyperParameter:
         value=3,
         gap=1,
         range=[1, 10],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
 
     JaiAutoExpose = CaptureScenarioHyperparameter.HyperParameter(
@@ -192,6 +196,34 @@ class ScenarioHyperParameter:
         value=1,
         gap=1,
         range=[0, 1],
+        type=CaptureScenarioHyperparameter.ParameterType.BOOLEAN,
+    )
+
+    CaptureQueueMode = CaptureScenarioHyperparameter.HyperParameter(
+        name="CaptureQueueMode",
+        value=0,
+        enum_values=[
+            "Single",
+            "Rotating Capture",
+            "Driving Capture",
+        ],
+        type=CaptureScenarioHyperparameter.ParameterType.ENUM,
+    )
+    EllRotationDegree = CaptureScenarioHyperparameter.HyperParameter(
+        name="EllRotationDegree",
+        value_array=[30, 60, 270, 315],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE_ARRAY,
+    )
+
+    HdrExposureTime = CaptureScenarioHyperparameter.HyperParameter(
+        name="HdrExposureTimeViz",
+        value_array=[1000, 4000, 16000, 64000],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE_ARRAY,
+    )
+    HdrExposureTimeNir = CaptureScenarioHyperparameter.HyperParameter(
+        name="HdrExposureTimeViz",
+        value_array=[3000, 12000, 48000, 192000],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE_ARRAY,
     )
 
     def __init__(self):

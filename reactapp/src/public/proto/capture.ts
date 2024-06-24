@@ -171,12 +171,64 @@ export interface CaptureScenarioHyperparameter {
   hyperparameters: CaptureScenarioHyperparameter_HyperParameter[];
 }
 
+export enum CaptureScenarioHyperparameter_ParameterType {
+  DOUBLE = 0,
+  DOUBLE_ARRAY = 1,
+  BOOLEAN = 2,
+  ENUM = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function captureScenarioHyperparameter_ParameterTypeFromJSON(
+  object: any,
+): CaptureScenarioHyperparameter_ParameterType {
+  switch (object) {
+    case 0:
+    case "DOUBLE":
+      return CaptureScenarioHyperparameter_ParameterType.DOUBLE;
+    case 1:
+    case "DOUBLE_ARRAY":
+      return CaptureScenarioHyperparameter_ParameterType.DOUBLE_ARRAY;
+    case 2:
+    case "BOOLEAN":
+      return CaptureScenarioHyperparameter_ParameterType.BOOLEAN;
+    case 3:
+    case "ENUM":
+      return CaptureScenarioHyperparameter_ParameterType.ENUM;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return CaptureScenarioHyperparameter_ParameterType.UNRECOGNIZED;
+  }
+}
+
+export function captureScenarioHyperparameter_ParameterTypeToJSON(
+  object: CaptureScenarioHyperparameter_ParameterType,
+): string {
+  switch (object) {
+    case CaptureScenarioHyperparameter_ParameterType.DOUBLE:
+      return "DOUBLE";
+    case CaptureScenarioHyperparameter_ParameterType.DOUBLE_ARRAY:
+      return "DOUBLE_ARRAY";
+    case CaptureScenarioHyperparameter_ParameterType.BOOLEAN:
+      return "BOOLEAN";
+    case CaptureScenarioHyperparameter_ParameterType.ENUM:
+      return "ENUM";
+    case CaptureScenarioHyperparameter_ParameterType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface CaptureScenarioHyperparameter_HyperParameter {
   name: string;
   value: number;
   gap: number;
   range: number[];
   info: string;
+  type: CaptureScenarioHyperparameter_ParameterType;
+  enumValues: string[];
+  valueArray: number[];
 }
 
 function createBaseCaptureAppCapture(): CaptureAppCapture {
@@ -1175,7 +1227,7 @@ export const CaptureScenarioHyperparameter = {
 };
 
 function createBaseCaptureScenarioHyperparameter_HyperParameter(): CaptureScenarioHyperparameter_HyperParameter {
-  return { name: "", value: 0, gap: 0, range: [], info: "" };
+  return { name: "", value: 0, gap: 0, range: [], info: "", type: 0, enumValues: [], valueArray: [] };
 }
 
 export const CaptureScenarioHyperparameter_HyperParameter = {
@@ -1197,6 +1249,17 @@ export const CaptureScenarioHyperparameter_HyperParameter = {
     if (message.info !== "") {
       writer.uint32(42).string(message.info);
     }
+    if (message.type !== 0) {
+      writer.uint32(48).int32(message.type);
+    }
+    for (const v of message.enumValues) {
+      writer.uint32(58).string(v!);
+    }
+    writer.uint32(66).fork();
+    for (const v of message.valueArray) {
+      writer.double(v);
+    }
+    writer.ldelim();
     return writer;
   },
 
@@ -1252,6 +1315,37 @@ export const CaptureScenarioHyperparameter_HyperParameter = {
 
           message.info = reader.string();
           continue;
+        case 6:
+          if (tag !== 48) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        case 7:
+          if (tag !== 58) {
+            break;
+          }
+
+          message.enumValues.push(reader.string());
+          continue;
+        case 8:
+          if (tag === 65) {
+            message.valueArray.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 66) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.valueArray.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1268,6 +1362,13 @@ export const CaptureScenarioHyperparameter_HyperParameter = {
       gap: isSet(object.gap) ? globalThis.Number(object.gap) : 0,
       range: globalThis.Array.isArray(object?.range) ? object.range.map((e: any) => globalThis.Number(e)) : [],
       info: isSet(object.info) ? globalThis.String(object.info) : "",
+      type: isSet(object.type) ? captureScenarioHyperparameter_ParameterTypeFromJSON(object.type) : 0,
+      enumValues: globalThis.Array.isArray(object?.enumValues)
+        ? object.enumValues.map((e: any) => globalThis.String(e))
+        : [],
+      valueArray: globalThis.Array.isArray(object?.valueArray)
+        ? object.valueArray.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -1288,6 +1389,15 @@ export const CaptureScenarioHyperparameter_HyperParameter = {
     if (message.info !== "") {
       obj.info = message.info;
     }
+    if (message.type !== 0) {
+      obj.type = captureScenarioHyperparameter_ParameterTypeToJSON(message.type);
+    }
+    if (message.enumValues?.length) {
+      obj.enumValues = message.enumValues;
+    }
+    if (message.valueArray?.length) {
+      obj.valueArray = message.valueArray;
+    }
     return obj;
   },
 
@@ -1305,6 +1415,9 @@ export const CaptureScenarioHyperparameter_HyperParameter = {
     message.gap = object.gap ?? 0;
     message.range = object.range?.map((e) => e) || [];
     message.info = object.info ?? "";
+    message.type = object.type ?? 0;
+    message.enumValues = object.enumValues?.map((e) => e) || [];
+    message.valueArray = object.valueArray?.map((e) => e) || [];
     return message;
   },
 };
