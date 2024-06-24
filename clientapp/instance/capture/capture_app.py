@@ -211,20 +211,6 @@ def set_scenario_hyperparameters():
     return MessageToDict(capture_node.scenario_hyper.to_msg())
 
 
-@app.route("/polarization/qwpangle", methods=["POST"])
-def update_qwp_angles():
-    angles = request.json.get("angles") if request.json else None
-    if angles and type(angles) == list:
-        capture_node.messageDef.ANGLES = angles
-
-    return {"angles": capture_node.messageDef.ANGLES}
-
-
-@app.route("/polarization/qwpangle", methods=["GET"])
-def get_current_qwp_angles_preset():
-    return {"angles": capture_node.messageDef.ANGLES}
-
-
 if __name__ == "__main__":
     socketIO.run(
         app,

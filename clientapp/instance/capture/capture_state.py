@@ -1,6 +1,6 @@
 from time import time
 from typing import List, Any
-from capture_msg_def import CaptureMessageDefinition
+from capture_msg_def import CaptureMessageDefinition, ScenarioHyperParameter
 from capture_pb2 import CaptureMessageDefGroup, CaptureTopicTimestampLog
 
 
@@ -16,7 +16,11 @@ class CaptureMessage:
 
     msg_dict: dict[str, Any] = {}
 
-    def __init__(self, definition: CaptureMessageDefinition):
+    def __init__(
+        self,
+        definition: CaptureMessageDefinition,
+        hyperparameter: ScenarioHyperParameter,
+    ):
         self.msg_dict = {}
         self.messages_received = False
         self.messages_received_second = False
@@ -25,6 +29,7 @@ class CaptureMessage:
         self.use_second_timestamp = {}
         self.definition = definition
         self.timestamp_log = CaptureTopicTimestampLog()
+        self.hyperparamter = hyperparameter
 
     def get_message(self, group: CaptureMessageDefGroup):
         return [

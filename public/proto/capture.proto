@@ -85,12 +85,22 @@ message CaptureTopicTimestampLog{
 }
 
 message CaptureScenarioHyperparameter{
+    enum ParameterType{
+        DOUBLE = 0;
+        DOUBLE_ARRAY = 1;
+        BOOLEAN = 2;
+        ENUM = 3;
+    }
+
     message HyperParameter{
         string name = 1;
         double value = 2;
         double gap = 3;
         repeated double range = 4;
         string info = 5;
+        ParameterType type = 6;
+        repeated string enum_values = 7;
+        repeated double value_array = 8;
     }
     repeated HyperParameter hyperparameters = 1;
 
