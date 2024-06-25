@@ -26,7 +26,9 @@ export enum ParameterInfo_Source {
   UNRECOGNIZED = -1,
 }
 
-export function parameterInfo_SourceFromJSON(object: any): ParameterInfo_Source {
+export function parameterInfo_SourceFromJSON(
+  object: any
+): ParameterInfo_Source {
   switch (object) {
     case 0:
     case "DEVICE":
@@ -47,7 +49,9 @@ export function parameterInfo_SourceFromJSON(object: any): ParameterInfo_Source 
   }
 }
 
-export function parameterInfo_SourceToJSON(object: ParameterInfo_Source): string {
+export function parameterInfo_SourceToJSON(
+  object: ParameterInfo_Source
+): string {
   switch (object) {
     case ParameterInfo_Source.DEVICE:
       return "DEVICE";
@@ -112,7 +116,10 @@ function createBaseParameterInfo(): ParameterInfo {
 }
 
 export const ParameterInfo = {
-  encode(message: ParameterInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ParameterInfo,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
@@ -135,7 +142,8 @@ export const ParameterInfo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ParameterInfo {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseParameterInfo();
     while (reader.pos < end) {
@@ -198,7 +206,9 @@ export const ParameterInfo = {
       type: isSet(object.type) ? globalThis.String(object.type) : "",
       min: isSet(object.min) ? globalThis.Number(object.min) : 0,
       max: isSet(object.max) ? globalThis.Number(object.max) : 0,
-      source: isSet(object.source) ? parameterInfo_SourceFromJSON(object.source) : 0,
+      source: isSet(object.source)
+        ? parameterInfo_SourceFromJSON(object.source)
+        : 0,
       enumDefs: globalThis.Array.isArray(object?.enumDefs)
         ? object.enumDefs.map((e: any) => ParameterEnum.fromJSON(e))
         : [],
@@ -228,17 +238,22 @@ export const ParameterInfo = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ParameterInfo>, I>>(base?: I): ParameterInfo {
+  create<I extends Exact<DeepPartial<ParameterInfo>, I>>(
+    base?: I
+  ): ParameterInfo {
     return ParameterInfo.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ParameterInfo>, I>>(object: I): ParameterInfo {
+  fromPartial<I extends Exact<DeepPartial<ParameterInfo>, I>>(
+    object: I
+  ): ParameterInfo {
     const message = createBaseParameterInfo();
     message.name = object.name ?? "";
     message.type = object.type ?? "";
     message.min = object.min ?? 0;
     message.max = object.max ?? 0;
     message.source = object.source ?? 0;
-    message.enumDefs = object.enumDefs?.map((e) => ParameterEnum.fromPartial(e)) || [];
+    message.enumDefs =
+      object.enumDefs?.map((e) => ParameterEnum.fromPartial(e)) || [];
     return message;
   },
 };
@@ -248,7 +263,10 @@ function createBaseParameterEnum(): ParameterEnum {
 }
 
 export const ParameterEnum = {
-  encode(message: ParameterEnum, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ParameterEnum,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.index !== 0) {
       writer.uint32(8).int32(message.index);
     }
@@ -259,7 +277,8 @@ export const ParameterEnum = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ParameterEnum {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseParameterEnum();
     while (reader.pos < end) {
@@ -306,10 +325,14 @@ export const ParameterEnum = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ParameterEnum>, I>>(base?: I): ParameterEnum {
+  create<I extends Exact<DeepPartial<ParameterEnum>, I>>(
+    base?: I
+  ): ParameterEnum {
     return ParameterEnum.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ParameterEnum>, I>>(object: I): ParameterEnum {
+  fromPartial<I extends Exact<DeepPartial<ParameterEnum>, I>>(
+    object: I
+  ): ParameterEnum {
     const message = createBaseParameterEnum();
     message.index = object.index ?? 0;
     message.value = object.value ?? "";
@@ -322,7 +345,10 @@ function createBaseParameterValue(): ParameterValue {
 }
 
 export const ParameterValue = {
-  encode(message: ParameterValue, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ParameterValue,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
@@ -336,7 +362,8 @@ export const ParameterValue = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ParameterValue {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseParameterValue();
     while (reader.pos < end) {
@@ -394,10 +421,14 @@ export const ParameterValue = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ParameterValue>, I>>(base?: I): ParameterValue {
+  create<I extends Exact<DeepPartial<ParameterValue>, I>>(
+    base?: I
+  ): ParameterValue {
     return ParameterValue.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ParameterValue>, I>>(object: I): ParameterValue {
+  fromPartial<I extends Exact<DeepPartial<ParameterValue>, I>>(
+    object: I
+  ): ParameterValue {
     const message = createBaseParameterValue();
     message.name = object.name ?? "";
     message.type = object.type ?? "";
@@ -411,7 +442,10 @@ function createBaseParameterUpdate(): ParameterUpdate {
 }
 
 export const ParameterUpdate = {
-  encode(message: ParameterUpdate, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ParameterUpdate,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.parameters) {
       ParameterValue.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -419,7 +453,8 @@ export const ParameterUpdate = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): ParameterUpdate {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseParameterUpdate();
     while (reader.pos < end) {
@@ -430,7 +465,9 @@ export const ParameterUpdate = {
             break;
           }
 
-          message.parameters.push(ParameterValue.decode(reader, reader.uint32()));
+          message.parameters.push(
+            ParameterValue.decode(reader, reader.uint32())
+          );
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -457,12 +494,17 @@ export const ParameterUpdate = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ParameterUpdate>, I>>(base?: I): ParameterUpdate {
+  create<I extends Exact<DeepPartial<ParameterUpdate>, I>>(
+    base?: I
+  ): ParameterUpdate {
     return ParameterUpdate.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ParameterUpdate>, I>>(object: I): ParameterUpdate {
+  fromPartial<I extends Exact<DeepPartial<ParameterUpdate>, I>>(
+    object: I
+  ): ParameterUpdate {
     const message = createBaseParameterUpdate();
-    message.parameters = object.parameters?.map((e) => ParameterValue.fromPartial(e)) || [];
+    message.parameters =
+      object.parameters?.map((e) => ParameterValue.fromPartial(e)) || [];
     return message;
   },
 };
@@ -472,7 +514,10 @@ function createBaseSourceInfo(): SourceInfo {
 }
 
 export const SourceInfo = {
-  encode(message: SourceInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: SourceInfo,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
@@ -480,13 +525,17 @@ export const SourceInfo = {
       writer.uint32(18).string(message.type);
     }
     if (message.parameters !== undefined) {
-      ParameterUpdate.encode(message.parameters, writer.uint32(26).fork()).ldelim();
+      ParameterUpdate.encode(
+        message.parameters,
+        writer.uint32(26).fork()
+      ).ldelim();
     }
     return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): SourceInfo {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseSourceInfo();
     while (reader.pos < end) {
@@ -526,7 +575,9 @@ export const SourceInfo = {
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       type: isSet(object.type) ? globalThis.String(object.type) : "",
-      parameters: isSet(object.parameters) ? ParameterUpdate.fromJSON(object.parameters) : undefined,
+      parameters: isSet(object.parameters)
+        ? ParameterUpdate.fromJSON(object.parameters)
+        : undefined,
     };
   },
 
@@ -547,23 +598,35 @@ export const SourceInfo = {
   create<I extends Exact<DeepPartial<SourceInfo>, I>>(base?: I): SourceInfo {
     return SourceInfo.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SourceInfo>, I>>(object: I): SourceInfo {
+  fromPartial<I extends Exact<DeepPartial<SourceInfo>, I>>(
+    object: I
+  ): SourceInfo {
     const message = createBaseSourceInfo();
     message.name = object.name ?? "";
     message.type = object.type ?? "";
-    message.parameters = (object.parameters !== undefined && object.parameters !== null)
-      ? ParameterUpdate.fromPartial(object.parameters)
-      : undefined;
+    message.parameters =
+      object.parameters !== undefined && object.parameters !== null
+        ? ParameterUpdate.fromPartial(object.parameters)
+        : undefined;
     return message;
   },
 };
 
 function createBaseDeviceInfo(): DeviceInfo {
-  return { name: "", sourceCount: 0, sourceTypes: [], fps: 0, configurable: [] };
+  return {
+    name: "",
+    sourceCount: 0,
+    sourceTypes: [],
+    fps: 0,
+    configurable: [],
+  };
 }
 
 export const DeviceInfo = {
-  encode(message: DeviceInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: DeviceInfo,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
@@ -583,7 +646,8 @@ export const DeviceInfo = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): DeviceInfo {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseDeviceInfo();
     while (reader.pos < end) {
@@ -622,7 +686,9 @@ export const DeviceInfo = {
             break;
           }
 
-          message.configurable.push(ParameterInfo.decode(reader, reader.uint32()));
+          message.configurable.push(
+            ParameterInfo.decode(reader, reader.uint32())
+          );
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -636,7 +702,9 @@ export const DeviceInfo = {
   fromJSON(object: any): DeviceInfo {
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
-      sourceCount: isSet(object.sourceCount) ? globalThis.Number(object.sourceCount) : 0,
+      sourceCount: isSet(object.sourceCount)
+        ? globalThis.Number(object.sourceCount)
+        : 0,
       sourceTypes: globalThis.Array.isArray(object?.sourceTypes)
         ? object.sourceTypes.map((e: any) => SourceInfo.fromJSON(e))
         : [],
@@ -662,7 +730,9 @@ export const DeviceInfo = {
       obj.fps = Math.round(message.fps);
     }
     if (message.configurable?.length) {
-      obj.configurable = message.configurable.map((e) => ParameterInfo.toJSON(e));
+      obj.configurable = message.configurable.map((e) =>
+        ParameterInfo.toJSON(e)
+      );
     }
     return obj;
   },
@@ -670,13 +740,17 @@ export const DeviceInfo = {
   create<I extends Exact<DeepPartial<DeviceInfo>, I>>(base?: I): DeviceInfo {
     return DeviceInfo.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeviceInfo>, I>>(object: I): DeviceInfo {
+  fromPartial<I extends Exact<DeepPartial<DeviceInfo>, I>>(
+    object: I
+  ): DeviceInfo {
     const message = createBaseDeviceInfo();
     message.name = object.name ?? "";
     message.sourceCount = object.sourceCount ?? 0;
-    message.sourceTypes = object.sourceTypes?.map((e) => SourceInfo.fromPartial(e)) || [];
+    message.sourceTypes =
+      object.sourceTypes?.map((e) => SourceInfo.fromPartial(e)) || [];
     message.fps = object.fps ?? 0;
-    message.configurable = object.configurable?.map((e) => ParameterInfo.fromPartial(e)) || [];
+    message.configurable =
+      object.configurable?.map((e) => ParameterInfo.fromPartial(e)) || [];
     return message;
   },
 };
@@ -686,7 +760,10 @@ function createBaseCameraMatrix(): CameraMatrix {
 }
 
 export const CameraMatrix = {
-  encode(message: CameraMatrix, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: CameraMatrix,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.mtx) {
       writer.double(v);
@@ -706,7 +783,8 @@ export const CameraMatrix = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): CameraMatrix {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseCameraMatrix();
     while (reader.pos < end) {
@@ -774,8 +852,12 @@ export const CameraMatrix = {
 
   fromJSON(object: any): CameraMatrix {
     return {
-      mtx: globalThis.Array.isArray(object?.mtx) ? object.mtx.map((e: any) => globalThis.Number(e)) : [],
-      dist: globalThis.Array.isArray(object?.dist) ? object.dist.map((e: any) => globalThis.Number(e)) : [],
+      mtx: globalThis.Array.isArray(object?.mtx)
+        ? object.mtx.map((e: any) => globalThis.Number(e))
+        : [],
+      dist: globalThis.Array.isArray(object?.dist)
+        ? object.dist.map((e: any) => globalThis.Number(e))
+        : [],
       reprojectError: globalThis.Array.isArray(object?.reprojectError)
         ? object.reprojectError.map((e: any) => globalThis.Number(e))
         : [],
@@ -796,10 +878,14 @@ export const CameraMatrix = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CameraMatrix>, I>>(base?: I): CameraMatrix {
+  create<I extends Exact<DeepPartial<CameraMatrix>, I>>(
+    base?: I
+  ): CameraMatrix {
     return CameraMatrix.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CameraMatrix>, I>>(object: I): CameraMatrix {
+  fromPartial<I extends Exact<DeepPartial<CameraMatrix>, I>>(
+    object: I
+  ): CameraMatrix {
     const message = createBaseCameraMatrix();
     message.mtx = object.mtx?.map((e) => e) || [];
     message.dist = object.dist?.map((e) => e) || [];
@@ -813,7 +899,10 @@ function createBaseStereoMatrix(): StereoMatrix {
 }
 
 export const StereoMatrix = {
-  encode(message: StereoMatrix, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: StereoMatrix,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.R) {
       writer.double(v);
@@ -844,7 +933,8 @@ export const StereoMatrix = {
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): StereoMatrix {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    const reader =
+      input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseStereoMatrix();
     while (reader.pos < end) {
@@ -943,12 +1033,22 @@ export const StereoMatrix = {
 
   fromJSON(object: any): StereoMatrix {
     return {
-      R: globalThis.Array.isArray(object?.R) ? object.R.map((e: any) => globalThis.Number(e)) : [],
-      T: globalThis.Array.isArray(object?.T) ? object.T.map((e: any) => globalThis.Number(e)) : [],
-      E: globalThis.Array.isArray(object?.E) ? object.E.map((e: any) => globalThis.Number(e)) : [],
-      F: globalThis.Array.isArray(object?.F) ? object.F.map((e: any) => globalThis.Number(e)) : [],
+      R: globalThis.Array.isArray(object?.R)
+        ? object.R.map((e: any) => globalThis.Number(e))
+        : [],
+      T: globalThis.Array.isArray(object?.T)
+        ? object.T.map((e: any) => globalThis.Number(e))
+        : [],
+      E: globalThis.Array.isArray(object?.E)
+        ? object.E.map((e: any) => globalThis.Number(e))
+        : [],
+      F: globalThis.Array.isArray(object?.F)
+        ? object.F.map((e: any) => globalThis.Number(e))
+        : [],
       left: isSet(object.left) ? CameraMatrix.fromJSON(object.left) : undefined,
-      right: isSet(object.right) ? CameraMatrix.fromJSON(object.right) : undefined,
+      right: isSet(object.right)
+        ? CameraMatrix.fromJSON(object.right)
+        : undefined,
     };
   },
 
@@ -975,36 +1075,56 @@ export const StereoMatrix = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<StereoMatrix>, I>>(base?: I): StereoMatrix {
+  create<I extends Exact<DeepPartial<StereoMatrix>, I>>(
+    base?: I
+  ): StereoMatrix {
     return StereoMatrix.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<StereoMatrix>, I>>(object: I): StereoMatrix {
+  fromPartial<I extends Exact<DeepPartial<StereoMatrix>, I>>(
+    object: I
+  ): StereoMatrix {
     const message = createBaseStereoMatrix();
     message.R = object.R?.map((e) => e) || [];
     message.T = object.T?.map((e) => e) || [];
     message.E = object.E?.map((e) => e) || [];
     message.F = object.F?.map((e) => e) || [];
-    message.left = (object.left !== undefined && object.left !== null)
-      ? CameraMatrix.fromPartial(object.left)
-      : undefined;
-    message.right = (object.right !== undefined && object.right !== null)
-      ? CameraMatrix.fromPartial(object.right)
-      : undefined;
+    message.left =
+      object.left !== undefined && object.left !== null
+        ? CameraMatrix.fromPartial(object.left)
+        : undefined;
+    message.right =
+      object.right !== undefined && object.right !== null
+        ? CameraMatrix.fromPartial(object.right)
+        : undefined;
     return message;
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never;
+    };
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
