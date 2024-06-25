@@ -50,3 +50,17 @@ message DeviceInfo{
     int32 fps = 4;
     repeated ParameterInfo configurable = 5;
 }
+
+message CameraMatrix{
+    repeated double mtx = 1;
+    repeated double dist = 2;
+}
+
+message StereoMatrix{
+    repeated double R = 1;
+    repeated double T = 2;
+    repeated double E = 3;
+    repeated double F = 4;
+    CameraMatrix left = 5;
+    CameraMatrix right = 6;
+}

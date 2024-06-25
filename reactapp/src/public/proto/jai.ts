@@ -92,6 +92,20 @@ export interface DeviceInfo {
   configurable: ParameterInfo[];
 }
 
+export interface CameraMatrix {
+  mtx: number[];
+  dist: number[];
+}
+
+export interface StereoMatrix {
+  R: number[];
+  T: number[];
+  E: number[];
+  F: number[];
+  left: CameraMatrix | undefined;
+  right: CameraMatrix | undefined;
+}
+
 function createBaseParameterInfo(): ParameterInfo {
   return { name: "", type: "", min: 0, max: 0, source: 0, enumDefs: [] };
 }
@@ -662,6 +676,290 @@ export const DeviceInfo = {
     message.sourceTypes = object.sourceTypes?.map((e) => SourceInfo.fromPartial(e)) || [];
     message.fps = object.fps ?? 0;
     message.configurable = object.configurable?.map((e) => ParameterInfo.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCameraMatrix(): CameraMatrix {
+  return { mtx: [], dist: [] };
+}
+
+export const CameraMatrix = {
+  encode(message: CameraMatrix, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    writer.uint32(10).fork();
+    for (const v of message.mtx) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    writer.uint32(18).fork();
+    for (const v of message.dist) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): CameraMatrix {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCameraMatrix();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag === 9) {
+            message.mtx.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.mtx.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 2:
+          if (tag === 17) {
+            message.dist.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 18) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.dist.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CameraMatrix {
+    return {
+      mtx: globalThis.Array.isArray(object?.mtx) ? object.mtx.map((e: any) => globalThis.Number(e)) : [],
+      dist: globalThis.Array.isArray(object?.dist) ? object.dist.map((e: any) => globalThis.Number(e)) : [],
+    };
+  },
+
+  toJSON(message: CameraMatrix): unknown {
+    const obj: any = {};
+    if (message.mtx?.length) {
+      obj.mtx = message.mtx;
+    }
+    if (message.dist?.length) {
+      obj.dist = message.dist;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CameraMatrix>, I>>(base?: I): CameraMatrix {
+    return CameraMatrix.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CameraMatrix>, I>>(object: I): CameraMatrix {
+    const message = createBaseCameraMatrix();
+    message.mtx = object.mtx?.map((e) => e) || [];
+    message.dist = object.dist?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseStereoMatrix(): StereoMatrix {
+  return { R: [], T: [], E: [], F: [], left: undefined, right: undefined };
+}
+
+export const StereoMatrix = {
+  encode(message: StereoMatrix, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    writer.uint32(10).fork();
+    for (const v of message.R) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    writer.uint32(18).fork();
+    for (const v of message.T) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    writer.uint32(26).fork();
+    for (const v of message.E) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    writer.uint32(34).fork();
+    for (const v of message.F) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    if (message.left !== undefined) {
+      CameraMatrix.encode(message.left, writer.uint32(42).fork()).ldelim();
+    }
+    if (message.right !== undefined) {
+      CameraMatrix.encode(message.right, writer.uint32(50).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): StereoMatrix {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStereoMatrix();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag === 9) {
+            message.R.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.R.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 2:
+          if (tag === 17) {
+            message.T.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 18) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.T.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 3:
+          if (tag === 25) {
+            message.E.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 26) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.E.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 4:
+          if (tag === 33) {
+            message.F.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.F.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.left = CameraMatrix.decode(reader, reader.uint32());
+          continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.right = CameraMatrix.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StereoMatrix {
+    return {
+      R: globalThis.Array.isArray(object?.R) ? object.R.map((e: any) => globalThis.Number(e)) : [],
+      T: globalThis.Array.isArray(object?.T) ? object.T.map((e: any) => globalThis.Number(e)) : [],
+      E: globalThis.Array.isArray(object?.E) ? object.E.map((e: any) => globalThis.Number(e)) : [],
+      F: globalThis.Array.isArray(object?.F) ? object.F.map((e: any) => globalThis.Number(e)) : [],
+      left: isSet(object.left) ? CameraMatrix.fromJSON(object.left) : undefined,
+      right: isSet(object.right) ? CameraMatrix.fromJSON(object.right) : undefined,
+    };
+  },
+
+  toJSON(message: StereoMatrix): unknown {
+    const obj: any = {};
+    if (message.R?.length) {
+      obj.R = message.R;
+    }
+    if (message.T?.length) {
+      obj.T = message.T;
+    }
+    if (message.E?.length) {
+      obj.E = message.E;
+    }
+    if (message.F?.length) {
+      obj.F = message.F;
+    }
+    if (message.left !== undefined) {
+      obj.left = CameraMatrix.toJSON(message.left);
+    }
+    if (message.right !== undefined) {
+      obj.right = CameraMatrix.toJSON(message.right);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<StereoMatrix>, I>>(base?: I): StereoMatrix {
+    return StereoMatrix.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<StereoMatrix>, I>>(object: I): StereoMatrix {
+    const message = createBaseStereoMatrix();
+    message.R = object.R?.map((e) => e) || [];
+    message.T = object.T?.map((e) => e) || [];
+    message.E = object.E?.map((e) => e) || [];
+    message.F = object.F?.map((e) => e) || [];
+    message.left = (object.left !== undefined && object.left !== null)
+      ? CameraMatrix.fromPartial(object.left)
+      : undefined;
+    message.right = (object.right !== undefined && object.right !== null)
+      ? CameraMatrix.fromPartial(object.right)
+      : undefined;
     return message;
   },
 };
