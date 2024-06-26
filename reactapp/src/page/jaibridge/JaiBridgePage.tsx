@@ -37,6 +37,8 @@ import { ChevronDownIcon, CloseIcon, ViewIcon } from "@chakra-ui/icons";
 import { Btn } from "../../design/button/button";
 import { Color } from "../../design/color";
 import { captureStore } from "../../stores/CaptureStore";
+import { useEffect } from "react";
+import { CalibrateView } from "./CalibrationView";
 
 export const SourceDeviceParamSlide = observer(
   (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
@@ -400,10 +402,21 @@ export const JAiBridgeControl = observer(() => {
 });
 
 export const JaiBridgePage = () => {
+  useEffect(() => {
+    jaiStore.fetchSubscribeJaiCalibration();
+    jaiStore.fetchSubscribeJaiStream();
+
+    return () => {
+      jaiStore.fetchUnsubscribeJaiCalibration();
+      jaiStore.fetchUnsubscribeJaiStream();
+    };
+  }, []);
+
   return (
     <PageRoot title="Jai Bridge">
       <PolarizerControl />
       <JAiBridgeControl />
+      <CalibrateView />
     </PageRoot>
   );
 };

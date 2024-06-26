@@ -1,6 +1,7 @@
 import { action, makeAutoObservable } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
-import { DeviceInfo, ParameterValue } from "../public/proto/jai";
+import { DeviceInfo, ParameterValue, StereoMatrix } from "../public/proto/jai";
+import { jaiSocket } from "../connect/socket/subscribe";
 
 export interface JAIParamValue {
   type: string;
@@ -19,11 +20,17 @@ class JaiStore {
     }[];
   } = {};
   jaiDeviceInfo: DeviceInfo[] = [];
+  stereoMatrix: StereoMatrix | undefined = undefined;
 
   constructor() {
     makeAutoObservable(this);
     this.fetchJaiDeviceInfo();
     this.fetchJaiDeviceParam();
+
+    jaiSocket.subscribeBuffer("calibration", StereoMatrix, (data) => {
+      console.log(data);
+      this.stereoMatrix = data;
+    });
   }
   @action
   fetchJaiDeviceInfo = () => {
@@ -92,6 +99,33 @@ class JaiStore {
         }, 500);
       })
       .fetch();
+  };
+
+  downloadCalibrationJson = () => {
+    console.log(this.stereoMatrix);
+    const jsonFile = JSON.stringify(this.stereoMatrix);
+    const element = document.createElement("a");
+    const file = new Blob([jsonFile], { type: "application/json" });
+    element.href = URL.createObjectURL(file);
+    element.download = "calibration.json";
+    console.log(element);
+    element.click();
+    element.remove();
+  };
+
+  fetchSubscribeJaiStream = () => {
+    httpPost(`/jai/subscription/video_stream/start`).fetch();
+  };
+
+  fetchUnsubscribeJaiStream = () => {
+    httpPost(`/jai/subscription/video_stream/stop`).fetch();
+  };
+
+  fetchSubscribeJaiCalibration = () => {
+    httpPost(`/jai/calibrate/start`).fetch();
+  };
+  fetchUnsubscribeJaiCalibration = () => {
+    httpPost(`/jai/calibrate/stop`).fetch();
   };
 }
 

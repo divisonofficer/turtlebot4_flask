@@ -27,7 +27,7 @@ const SizeLg = {
 
 const Btn = (props: {
   icon?: ReactNode | string;
-  children: string | ReactNode;
+  children?: string | ReactNode;
   color?: string;
   onClick?: () => void;
   varient?: "borderless" | "gray" | "outline" | "filled";

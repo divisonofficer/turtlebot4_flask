@@ -58,3 +58,4 @@ const slamSocket = new SocketWrapper("/slam", "/slam/socket.io");
 const laptopSocket = new SocketWrapper("/socket/battery", "/laptop/socket.io");
 export const captureSocket = new SocketWrapper("/socket", "/capture/socket.io");
 export { rosSocket, slamSocket, laptopSocket };
+export const jaiSocket = new SocketWrapper("", "/jai/socket.io");
