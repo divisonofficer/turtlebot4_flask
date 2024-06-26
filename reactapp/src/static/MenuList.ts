@@ -8,6 +8,7 @@ import {
   Angle,
   ArrowBendDoubleUpLeft,
   Camera,
+  CameraRotate,
   CameraSlash,
   MapPin,
   Notification,
@@ -84,6 +85,13 @@ export const menuList: MenuItem[] = [
     icon: CameraSlash,
     name: "JaiBridge",
     destination: "/jaibridge",
+    subMenu: [
+      {
+        icon: CameraRotate,
+        name: "Calibration",
+        destination: "/jaibridge/calibration",
+      },
+    ],
   },
   {
     icon: Angle,

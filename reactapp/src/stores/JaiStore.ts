@@ -1,5 +1,5 @@
 import { action, makeAutoObservable } from "mobx";
-import { httpGet, httpPost } from "../connect/http/request";
+import { httpDel, httpGet, httpPost } from "../connect/http/request";
 import { DeviceInfo, ParameterValue, StereoMatrix } from "../public/proto/jai";
 import { jaiSocket } from "../connect/socket/subscribe";
 
@@ -13,6 +13,14 @@ export interface JAIParam {
   Gain: JAIParamValue;
 }
 
+export interface CalibrationMeta {
+  idx: number;
+  timestamp: number;
+  month: number;
+  day: number;
+  hour: number;
+}
+
 class JaiStore {
   jaiCameraParams: {
     [key: string]: {
@@ -21,6 +29,8 @@ class JaiStore {
   } = {};
   jaiDeviceInfo: DeviceInfo[] = [];
   stereoMatrix: StereoMatrix | undefined = undefined;
+
+  calibrationList: CalibrationMeta[] = [];
 
   constructor() {
     makeAutoObservable(this);
@@ -113,6 +123,14 @@ class JaiStore {
     element.remove();
   };
 
+  deleteCalibrationImage = (idx: number) => {
+    httpDel(`/jai/calibrate/chessboard/${idx}`).fetch();
+  };
+
+  calibrationCapture = () => {
+    httpPost(`/jai/calibrate/capture`).fetch();
+  };
+
   fetchSubscribeJaiStream = () => {
     httpPost(`/jai/subscription/video_stream/start`).fetch();
   };
@@ -126,6 +144,24 @@ class JaiStore {
   };
   fetchUnsubscribeJaiCalibration = () => {
     httpPost(`/jai/calibrate/stop`).fetch();
+  };
+
+  fetchCalibrationSave = () => {
+    httpPost(`/jai/calibrate/storage/save`)
+      .onSuccess((data: { idx: number }) => {})
+      .fetch();
+  };
+
+  fetchCalibrationLoad = (idx: number) => {
+    httpPost(`/jai/calibrate/storage/load/${idx}`, { idx: idx }).fetch();
+  };
+
+  fetchGetCalibrationList = () => {
+    httpGet(`/jai/calibrate/storage/list`)
+      .onSuccess((data: CalibrationMeta[]) => {
+        this.calibrationList = data;
+      })
+      .fetch();
   };
 }
 
