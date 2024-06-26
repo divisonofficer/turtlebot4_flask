@@ -3,6 +3,10 @@ import {
   Flex,
   HStack,
   Input,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Popover,
   PopoverArrow,
   PopoverBody,
@@ -32,12 +36,17 @@ import { httpGet, httpPost } from "../../connect/http/request";
 import { jaiStore } from "../../stores/JaiStore";
 import { ParameterEnum } from "../../public/proto/jai";
 import {
+  FloppyDisk,
   Newspaper,
   Parallelogram,
   RocketLaunch,
   SunDim,
 } from "@phosphor-icons/react";
-import { CloseIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, CloseIcon } from "@chakra-ui/icons";
+import {
+  CaptureScenarioHyperparameter_HyperParameter,
+  CaptureScenarioHyperparameter_ParameterType,
+} from "../../public/proto/capture";
 
 const CaptureSourceSwitch = observer(() => {
   return (
@@ -221,40 +230,9 @@ export const MultiSpectralCameraControl = observer(() => {
 
 export const CaptureScenarioHyperparameterControl = observer(() => {
   const parameter = captureStore.scenario_hyperparameters;
-  const [qwpAngles, setQwpAngles] = useState([30, 60, 90, 135]);
-
-  useEffect(() => {
-    httpGet("/capture/polarization/qwpangle")
-      .onSuccess((data: { angles: number[] }) => {
-        setQwpAngles(data.angles);
-      })
-      .fetch();
-  }, []);
 
   return parameter ? (
     <VStack>
-      <HStack>
-        <H4>QWP Angles</H4>
-        <Input
-          value={qwpAngles.join(",")}
-          onChange={(e) => {
-            setQwpAngles(
-              e.target.value.split(",").map((angle) => parseInt(angle))
-            );
-          }}
-        />
-        <Btn
-          size="sm"
-          onClick={() => {
-            httpPost("/capture/polarization/qwpangle", {
-              angles: qwpAngles,
-            }).fetch();
-          }}
-        >
-          update
-        </Btn>
-      </HStack>
-
       {parameter.hyperparameters.map((param, index) => (
         <HStack
           style={{
@@ -262,7 +240,8 @@ export const CaptureScenarioHyperparameterControl = observer(() => {
           }}
         >
           <Body3>{param.name}</Body3>
-          {(param.range[1] - param.range[0]) / param.gap <= 1 ? (
+          {param.type ===
+          CaptureScenarioHyperparameter_ParameterType.BOOLEAN ? (
             <>
               <div style={{ width: "100%" }} />
               <Switch
@@ -275,7 +254,8 @@ export const CaptureScenarioHyperparameterControl = observer(() => {
                 }}
               />
             </>
-          ) : (
+          ) : param.type ===
+            CaptureScenarioHyperparameter_ParameterType.DOUBLE ? (
             <>
               <Slider
                 min={param.range[0]}
@@ -302,6 +282,35 @@ export const CaptureScenarioHyperparameterControl = observer(() => {
               </Slider>
               <H4>{param.value}</H4>
             </>
+          ) : param.type ===
+            CaptureScenarioHyperparameter_ParameterType.DOUBLE_ARRAY ? (
+            <HyperParameterDoubleArray paramter={param} />
+          ) : (
+            <>
+              <Menu placement="bottom-end">
+                <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
+                  {param.enumValues[param.value]}
+                </MenuButton>
+                <MenuList>
+                  {param.enumValues.map((def, index) => {
+                    return (
+                      <MenuItem
+                        key={index}
+                        fontSize="small"
+                        onClick={() => {
+                          captureStore.fetchScenarioHyperparameterUpdate(
+                            param.name,
+                            index
+                          );
+                        }}
+                      >
+                        {def}
+                      </MenuItem>
+                    );
+                  })}
+                </MenuList>
+              </Menu>
+            </>
           )}
         </HStack>
       ))}
@@ -310,6 +319,35 @@ export const CaptureScenarioHyperparameterControl = observer(() => {
     <></>
   );
 });
+
+const HyperParameterDoubleArray = (props: {
+  paramter: CaptureScenarioHyperparameter_HyperParameter;
+}) => {
+  const [valueArray, setValueArray] = useState(props.paramter.valueArray);
+  return (
+    <HStack>
+      <Input
+        value={valueArray.join(",")}
+        onChange={(e) => {
+          setValueArray(
+            e.target.value.split(",").map((angle) => parseInt(angle))
+          );
+        }}
+      />
+      <Btn
+        size="sm"
+        onClick={() => {
+          captureStore.fetchScenarioHyperparameterUpdate(
+            props.paramter.name,
+            undefined,
+            valueArray
+          );
+        }}
+        icon={<FloppyDisk style={{ width: "1rem", height: "1rem" }} />}
+      ></Btn>
+    </HStack>
+  );
+};
 
 export const CaptureControl = observer(() => {
   return (
@@ -362,11 +400,8 @@ export const CaptureControl = observer(() => {
           {captureStore.progress.length < 1 && (
             <>
               <HStack>
-                <Btn onClick={() => captureStore.fetchPostCaptureSingle()}>
-                  Single
-                </Btn>
                 <Btn onClick={() => captureStore.fetchPostCaptureQueue()}>
-                  Queue
+                  BeginCapture
                 </Btn>{" "}
               </HStack>
 
