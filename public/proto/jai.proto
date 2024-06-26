@@ -54,6 +54,7 @@ message DeviceInfo{
 message CameraMatrix{
     repeated double mtx = 1;
     repeated double dist = 2;
+    repeated double reproject_error = 3;
 }
 
 message StereoMatrix{

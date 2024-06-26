@@ -403,11 +403,9 @@ export const JAiBridgeControl = observer(() => {
 
 export const JaiBridgePage = () => {
   useEffect(() => {
-    jaiStore.fetchSubscribeJaiCalibration();
     jaiStore.fetchSubscribeJaiStream();
 
     return () => {
-      jaiStore.fetchUnsubscribeJaiCalibration();
       jaiStore.fetchUnsubscribeJaiStream();
     };
   }, []);
@@ -416,7 +414,6 @@ export const JaiBridgePage = () => {
     <PageRoot title="Jai Bridge">
       <PolarizerControl />
       <JAiBridgeControl />
-      <CalibrateView />
     </PageRoot>
   );
 };

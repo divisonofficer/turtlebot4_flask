@@ -95,6 +95,7 @@ export interface DeviceInfo {
 export interface CameraMatrix {
   mtx: number[];
   dist: number[];
+  reprojectError: number[];
 }
 
 export interface StereoMatrix {
@@ -681,7 +682,7 @@ export const DeviceInfo = {
 };
 
 function createBaseCameraMatrix(): CameraMatrix {
-  return { mtx: [], dist: [] };
+  return { mtx: [], dist: [], reprojectError: [] };
 }
 
 export const CameraMatrix = {
@@ -693,6 +694,11 @@ export const CameraMatrix = {
     writer.ldelim();
     writer.uint32(18).fork();
     for (const v of message.dist) {
+      writer.double(v);
+    }
+    writer.ldelim();
+    writer.uint32(26).fork();
+    for (const v of message.reprojectError) {
       writer.double(v);
     }
     writer.ldelim();
@@ -740,6 +746,23 @@ export const CameraMatrix = {
           }
 
           break;
+        case 3:
+          if (tag === 25) {
+            message.reprojectError.push(reader.double());
+
+            continue;
+          }
+
+          if (tag === 26) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.reprojectError.push(reader.double());
+            }
+
+            continue;
+          }
+
+          break;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -753,6 +776,9 @@ export const CameraMatrix = {
     return {
       mtx: globalThis.Array.isArray(object?.mtx) ? object.mtx.map((e: any) => globalThis.Number(e)) : [],
       dist: globalThis.Array.isArray(object?.dist) ? object.dist.map((e: any) => globalThis.Number(e)) : [],
+      reprojectError: globalThis.Array.isArray(object?.reprojectError)
+        ? object.reprojectError.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -764,6 +790,9 @@ export const CameraMatrix = {
     if (message.dist?.length) {
       obj.dist = message.dist;
     }
+    if (message.reprojectError?.length) {
+      obj.reprojectError = message.reprojectError;
+    }
     return obj;
   },
 
@@ -774,6 +803,7 @@ export const CameraMatrix = {
     const message = createBaseCameraMatrix();
     message.mtx = object.mtx?.map((e) => e) || [];
     message.dist = object.dist?.map((e) => e) || [];
+    message.reprojectError = object.reprojectError?.map((e) => e) || [];
     return message;
   },
 };
