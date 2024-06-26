@@ -102,19 +102,26 @@ class CaptureStore {
   fetchCaptureHyperparameters() {
     httpGet("/capture/hyperparameters")
       .onSuccess((data: CaptureScenarioHyperparameter) => {
-        this.scenario_hyperparameters = data;
+        this.scenario_hyperparameters =
+          CaptureScenarioHyperparameter.fromJSON(data);
       })
       .fetch();
   }
 
   @action
-  fetchScenarioHyperparameterUpdate(name: string, value: number) {
+  fetchScenarioHyperparameterUpdate(
+    name: string,
+    value: number | undefined = undefined,
+    value_array: number[] | undefined = undefined
+  ) {
     httpPost("/capture/hyperparameters", {
       name: name,
       value: value,
+      value_array: value_array,
     })
       .onSuccess((data: CaptureScenarioHyperparameter) => {
-        this.scenario_hyperparameters = data;
+        this.scenario_hyperparameters =
+          CaptureScenarioHyperparameter.fromJSON(data);
       })
       .fetch();
   }
