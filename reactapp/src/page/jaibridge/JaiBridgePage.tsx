@@ -414,6 +414,7 @@ export const JaiBridgePage = () => {
     <PageRoot title="Jai Bridge">
       <PolarizerControl />
       <JAiBridgeControl />
+      <CalibrateView />
     </PageRoot>
   );
 };
