@@ -1,4 +1,5 @@
 import json
+from operator import is_
 from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -26,6 +27,10 @@ from sensor_msgs.msg import Image, CompressedImage
 from std_msgs.msg import String, Bool
 from typing import List, Dict, Any, Optional
 import cv2
+from stereo_calibration import JaiStereoCalibration
+
+from rclpy.executors import SingleThreadedExecutor
+
 
 from jai_pb2 import (
     DeviceInfo,
@@ -294,7 +299,13 @@ class JaiBridgeNode(Node):
     def __init__(self):
         super().__init__("jai_bridge_node")  # type: ignore
         self.register_clients()
-        # self.create_timer(30, self.get_camera_params)
+        self.stop_signal = threading.Event()
+        self.start_signal = threading.Event()
+        self.create_timer(3, self.timer_signal_callback)
+
+    def timer_signal_callback(self):
+        self.init_videostream_subscriptions()
+        self.deinit_videostream_subscriptions()
 
     def configure_callback_gen(self, device_name: str, channel_id: int):
         def configure_callback(msg: String):
@@ -337,7 +348,6 @@ class JaiBridgeNode(Node):
             device_name = device.name
             self.service_clients[device_name] = []
             self.videoStreams[device_name] = []
-            self.videoStreamSubscriptions[device_name] = []
             self.configureSubscriptions[device_name] = []
             for i in range(int(device.source_count)):
                 self.service_clients[device_name].append(
@@ -360,14 +370,6 @@ class JaiBridgeNode(Node):
                 self.videoStreams[device_name].append(
                     VideoStream(timestampWatermark=True)
                 )
-                self.videoStreamSubscriptions[device_name].append(
-                    self.create_subscription(
-                        CompressedImage,
-                        f"/{device_name}/channel_{i}",
-                        self.videoStreams[device_name][i].cv_raw_callback,
-                        1,
-                    )
-                )
 
                 self.configureSubscriptions[device_name].append(
                     self.create_subscription(
@@ -389,6 +391,39 @@ class JaiBridgeNode(Node):
                 1,
             )
         ]
+
+    def init_videostream_subscriptions(self):
+        if not self.start_signal.is_set():
+            return
+        self.start_signal.clear()
+        for device_name, video_stream in self.videoStreams.items():
+            if (
+                device_name in self.videoStreams
+                and len(self.videoStreams[device_name]) < 1
+            ):
+                continue
+            self.videoStreamSubscriptions[device_name] = []
+            for i in range(len(video_stream)):
+                self.videoStreamSubscriptions[device_name].append(
+                    self.create_subscription(
+                        CompressedImage,
+                        f"/{device_name}/channel_{i}",
+                        self.videoStreams[device_name][i].cv_raw_callback,
+                        1,
+                    )
+                )
+
+    def deinit_videostream_subscriptions(self):
+        if not self.stop_signal.is_set():
+            return
+        self.stop_signal.clear()
+
+        for device_name, video_stream in self.videoStreams.items():
+            for i in range(len(video_stream)):
+                self.videoStreamSubscriptions[device_name][i].destroy()
+            self.videoStreamSubscriptions[device_name] = []
+
+        sleep(3)
 
     def publish_configure(
         self,
@@ -499,12 +534,24 @@ class JaiBridgeNode(Node):
 
 
 node: JaiBridgeNode
+calibration_node: JaiStereoCalibration
 
 import threading
 
 
 def spin_node():
-    threading.Thread(target=rclpy.spin, args=(node,), daemon=True).start()
+
+    def spin_nodes(nodes: List[Node]):
+        executor = SingleThreadedExecutor()
+        for node in nodes:
+            executor.add_node(node)
+        executor.spin()
+
+    thread = threading.Thread(
+        target=spin_nodes, args=([node, calibration_node],), daemon=True
+    )
+    thread.start()
+    return thread
 
 
 @app.route("/snapshot/<device_name>/<channel_id>")
@@ -612,10 +659,57 @@ def auto_exposure_hold_all():
     return node.get_camera_params()
 
 
+spin_thread: threading.Thread
+
+
+@app.route("/subscription/video_stream/start", methods=["POST"])
+def start_video_stream():
+    global spin_thread
+    if not spin_thread.is_alive():
+        spin_thread = spin_node()
+    node.start_signal.set()
+    return {"status": "success"}
+
+
+@app.route("/subscription/video_stream/stop", methods=["POST"])
+def stop_video_stream():
+    # node.stop_signal.set()
+    return {"status": "success"}
+
+
+@app.route("/calibrate/start", methods=["POST"])
+def start_calibration():
+    calibration_node.start_signal.set()
+    return {"status": "success"}
+
+
+@app.route("/calibrate/stop", methods=["POST"])
+def stop_calibration():
+    # calibration_node.stop_signal.set()
+    return {"status": "success"}
+
+
+@app.route("/calibrate/videostream/<timestamp>")
+def calibrate_videostream(timestamp):
+    return Response(
+        calibration_node.video_stream_raw.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.route("/calibrate/depth/videostream/<timestamp>")
+def calibrate_depth_videostream(timestamp):
+    return Response(
+        calibration_node.video_stream_depth.generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
-    spin_node()
+    calibration_node = JaiStereoCalibration(socketio)
+    spin_thread = spin_node()
 
     node.initialize_camera_config()
 
