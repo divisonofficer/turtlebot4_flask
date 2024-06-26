@@ -100,7 +100,7 @@ def message_group_cmd(group, cmd):
 
 @app.route("/capture", methods=["POST"])
 def capture_at():
-    result = capture_node.init_capture_thread("queue")
+    result = capture_node.init_capture_thread()
     if not result:
         return Response(status=500)
     if result["status"] == "error":
@@ -206,7 +206,8 @@ def get_scenario_hyperparameters():
 def set_scenario_hyperparameters():
     name = request.json.get("name") if request.json else None
     value = request.json.get("value") if request.json else None
-    capture_node.scenario_hyper.update(name, value)
+    value_array = request.json.get("value_array") if request.json else None
+    capture_node.scenario_hyper.update(name, value, value_array)
 
     return MessageToDict(capture_node.scenario_hyper.to_msg())
 
