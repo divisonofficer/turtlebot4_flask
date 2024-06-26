@@ -11,7 +11,7 @@ from typing import Optional, Dict
 import threading
 import rclpy
 from capture_type import CaptureSingleScene
-from capture_pb2 import CaptureTaskProgress, CaptureMessageDef
+from capture_pb2 import CaptureTaskProgress, CaptureMessageDef, CaptureTopicTimestampLog
 from capture_storage import CaptureStorage
 from flask_socketio import SocketIO
 from capture_msg_def import CaptureMessageDefinition, ScenarioHyperParameter
@@ -135,7 +135,7 @@ class CaptureNode(Node):
             if self.use_slam:
                 self.slam_source.request_map_load(str(space_id))
 
-        requests.post("http://localhost/jai/device/init/all")
+        # requests.post("http://localhost/jai/device/init/all")
 
         self.space_id = space_id
         self.space_name = space_name
@@ -159,12 +159,17 @@ class CaptureNode(Node):
         self.space_id = None
         return True
 
-    def init_capture_thread(self, capture_mode: str = "single"):
+    def init_capture_thread(self, capture_mode: Optional[str] = None):
         """
         Request Capture Rotation Queue
         Robot begins to rotate and capture images, asynchronously
         This function will trigger sub thread that runs capture queue for 20 times
         """
+
+        if capture_mode is None:
+            capture_mode_idx = int(self.scenario_hyper.CaptureQueueMode.value)
+            capture_mode = ["single", "queue", "drive"][capture_mode_idx]
+
         error = self.check_capture_call_available()
         if error:
             return error
@@ -191,8 +196,8 @@ class CaptureNode(Node):
             if capture_mod == "single":
                 self.capture_single_job(capture_id)
 
-            if capture_mod == "queue":
-                self.run_capture_queue(capture_id)
+            if capture_mod in ["queue", "drive"]:
+                self.run_capture_queue(capture_id, capture_mod)
 
             ### Post Capture Task
             if self.messageDef.Ellipsis.enabled:
@@ -282,7 +287,7 @@ class CaptureNode(Node):
     ### Image Capture Tasks
     #######################################################
 
-    def run_capture_queue(self, capture_id: int):
+    def run_capture_queue(self, capture_id: int, capture_mod: str):
         if not self.space_id:
             return
         """
@@ -356,17 +361,34 @@ class CaptureNode(Node):
                 msg=f"{scene_id}th take done. Turn right",
                 capture_id=capture_id,
             )
+            timenow = time()
+            if capture_mod == "queue":
+                if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
+                    self.turn_right()
+            elif capture_mod == "drive":
+                if scene_id < self.scenario_hyper.DriveDistance.value * 10:
+                    self.drive_forward()
 
-            if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
-                self.turn_right()
-                if self.scenario_hyper.JaiAutoExpose.value == 1:
-                    self.hold_jai_autoExposure(False)
+            if self.scenario_hyper.JaiAutoExpose.value == 1:
+                self.hold_jai_autoExposure(False)
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
+            self.capture_msg.timestamp_log.logs.append(
+                CaptureTopicTimestampLog.TimestampLog(
+                    topic="Moving", timestamp=timenow, delay_to_system=time() - timenow
+                )
+            )
+
+            timenow = time()
             self.storage.store_captured_scene(
                 space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
             )
             scene.picture_list = []
+            self.capture_msg.timestamp_log.logs.append(
+                CaptureTopicTimestampLog.TimestampLog(
+                    topic="Storage", timestamp=timenow, delay_to_system=time() - timenow
+                )
+            )
 
         self.socket_progress(
             100,

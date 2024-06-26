@@ -1,6 +1,6 @@
 from sensor_msgs.msg import Image, LaserScan, CompressedImage
 from geometry_msgs.msg import PoseWithCovarianceStamped
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar
 from capture_pb2 import (
     CaptureMessageDef,
     CaptureMessageDefGroup,
@@ -237,14 +237,24 @@ class ScenarioHyperParameter:
             self.RotationInterval,
             self.JaiInterpolationNumber,
             self.JaiAutoExpose,
+            self.CaptureQueueMode,
+            self.EllRotationDegree,
+            self.HdrExposureTime,
+            self.HdrExposureTimeNir,
         ]
 
-    def update(self, name, value):
+    def update(self, name, value=None, value_array: Optional[list[float]] = None):
         entry: CaptureScenarioHyperparameter.HyperParameter = self.__getattribute__(
             name
         )
-        if entry.range[0] <= value <= entry.range[1]:
-            entry.value = value
+        if value is not None:
+            if entry.type == CaptureScenarioHyperparameter.ParameterType.DOUBLE:
+                if entry.range[0] <= value <= entry.range[1]:
+                    entry.value = value
+            else:
+                entry.value = value
+        if value_array is not None:
+            entry.value_array[:] = value_array
 
     def to_msg(self):
         msg = CaptureScenarioHyperparameter()
