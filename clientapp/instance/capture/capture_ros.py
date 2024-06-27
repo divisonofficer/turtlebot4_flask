@@ -1,6 +1,7 @@
 import gc
 import math
 from time import time, sleep
+
 import rclpy.action
 from rclpy.node import Node, Subscription
 from sensor_msgs.msg import Joy
@@ -10,6 +11,7 @@ from geometry_msgs.msg import Twist
 from typing import Optional, Dict
 import threading
 import rclpy
+from capture_jai_controller import CaptureJaiController
 from capture_type import CaptureSingleScene
 from capture_pb2 import CaptureTaskProgress, CaptureMessageDef, CaptureTopicTimestampLog
 from capture_storage import CaptureStorage
@@ -61,6 +63,7 @@ class CaptureNode(Node):
 
     subscriptions_image: Dict[str, Subscription]
     socketIO: SocketIO
+    jai_controller = CaptureJaiController()
 
     def __init__(self, storage: CaptureStorage, socketIO: SocketIO):
         super().__init__(node_name="client_capture_node")  # type: ignore
@@ -204,7 +207,7 @@ class CaptureNode(Node):
                 self.ell.polarizer_turn(home=True)
             self.set_capture_flag(False)
             if self.scenario_hyper.JaiAutoExpose.value == 1:
-                self.hold_jai_autoExposure(False)
+                self.jai_controller.unfreeze_auto_exposure()
         except Exception as e:
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
@@ -257,11 +260,10 @@ class CaptureNode(Node):
                     ),
                 )
 
-        self.publisher_cmd_vel = self.create_publisher(Twist, "/cmd_vel", 10)
         self.client_create3_rotate = rclpy.action.client.ActionClient(
             self, RotateAngle, "/rotate_angle"
         )
-        self.publisher_jai_trigger = self.create_publisher(
+        self.jai_controller.publisher_jai_trigger = self.create_publisher(
             Bool, "/jai_1600/stream_trigger", 1
         )
         self.client_oakd_start = self.create_client(Trigger, "/oakd/start_camera")
@@ -327,7 +329,7 @@ class CaptureNode(Node):
             )
 
             if self.scenario_hyper.JaiAutoExpose.value == 1:
-                params = self.hold_jai_autoExposure(True)
+                params = self.jai_controller.freeze_auto_exposure()
                 if isinstance(params, dict):
                     if "jai_1600_left" in params:
                         print(
@@ -341,16 +343,7 @@ class CaptureNode(Node):
                         )
 
             self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
-            scene = CaptureSingleScenario(
-                self.open_jai_stream,
-                self.socket_progress,
-                [space_id, capture_id, scene_id],
-                self.capture_msg,
-                self.lock,
-                self.socketIO,
-                self.ell,
-                self.storage,
-            ).run_single_capture()
+            scene = self.run_single_capture_scene(capture_id, scene_id)
             if not scene:
                 continue
 
@@ -370,7 +363,7 @@ class CaptureNode(Node):
                     self.drive_forward()
 
             if self.scenario_hyper.JaiAutoExpose.value == 1:
-                self.hold_jai_autoExposure(False)
+                self.jai_controller.unfreeze_auto_exposure()
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
             self.capture_msg.timestamp_log.logs.append(
@@ -399,6 +392,22 @@ class CaptureNode(Node):
         )
         gc.collect()
 
+    def run_single_capture_scene(self, capture_id: int, scene_id):
+        if not self.space_id:
+            raise Exception("Space ID is not initialized")
+        if not self.capture_msg:
+            raise Exception("Capture is not running")
+        return CaptureSingleScenario(
+            self.jai_controller,
+            self.socket_progress,
+            [self.space_id, capture_id, scene_id],
+            self.capture_msg,
+            self.lock,
+            self.socketIO,
+            self.ell,
+            self.storage,
+        ).run_single_capture()
+
     def capture_single_job(self, capture_id: int):
         if not self.space_id:
             return
@@ -410,36 +419,12 @@ class CaptureNode(Node):
             topic.interpolation = int(self.scenario_hyper.JaiInterpolationNumber.value)
 
         self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
-        scene = CaptureSingleScenario(
-            self.open_jai_stream,
-            self.socket_progress,
-            [self.space_id, capture_id, 0],
-            self.capture_msg,
-            self.lock,
-            self.socketIO,
-            self.ell,
-            self.storage,
-        ).run_single_capture()
+        scene = self.run_single_capture_scene(capture_id, 0)
         if not scene:
             return None
         self.storage.store_captured_scene(
             space_id=self.space_id, capture_id=capture_id, scene_id=0, scene=scene
         )
-
-    def open_jai_stream(self, open: bool):
-        self.publisher_jai_trigger.publish(Bool(data=open))
-
-    def hold_jai_autoExposure(self, hold: bool):
-        request = requests.post(
-            f"http://localhost/jai/device/all/auto_exposure_hold",
-            json={"hold": hold},
-        )
-
-        if not request.ok:
-            raise Exception("Failed to hold auto exposure")
-
-        if hold:
-            return request.json()
 
     def turn_right(self):
         action = RotateAngle.Goal()
