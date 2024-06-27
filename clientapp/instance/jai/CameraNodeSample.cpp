@@ -52,7 +52,7 @@ void print_help() {
 
 int main() {
   MultiSpectralCamera* camera = new MultiSpectralCamera();
-  std::thread t([&camera]() { camera->runUntilInterrupted(); });
+  std::thread t([&camera]() { camera->runUntilInterrupted(0); });
   camera->addStreamCallback(0, [](PvBuffer* buffer) { callback(0, buffer); });
   camera->addStreamCallback(1, [](PvBuffer* buffer) { callback(1, buffer); });
 

@@ -41,9 +41,13 @@ void JAINode::createPublishers() {
   this->timestamp_begin_ros = this->systemTimeNano();
 
   subscription_thread.push_back(
-      std::thread([this]() { this->cameras[0]->runUntilInterrupted(); }));
+      std::thread([this]() { this->cameras[0]->runUntilInterrupted(0); }));
   subscription_thread.push_back(
-      std::thread([this]() { this->cameras.back()->runUntilInterrupted(); }));
+      std::thread([this]() { this->cameras.back()->runUntilInterrupted(0); }));
+  subscription_thread.push_back(
+      std::thread([this]() { this->cameras[0]->runUntilInterrupted(1); }));
+  subscription_thread.push_back(
+      std::thread([this]() { this->cameras.back()->runUntilInterrupted(1); }));
 }
 
 void JAINode::enlistJAIDevice(int device_num, std::string device_name,
