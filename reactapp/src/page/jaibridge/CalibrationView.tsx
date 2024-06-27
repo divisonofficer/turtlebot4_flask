@@ -1,13 +1,19 @@
 import {
+  Button,
   Flex,
   HStack,
   IconButton,
   Img,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Table,
   Tbody,
   Td,
   Tr,
   VStack,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { observer } from "mobx-react";
 import { VideoStream } from "../../design/other/video";
@@ -17,6 +23,7 @@ import { Btn } from "../../design/button/button";
 import { PageRoot } from "../../design/other/flexs";
 import { useEffect, useState } from "react";
 import { Trash } from "@phosphor-icons/react";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 
 const MatrixView = ({
   matrix,
@@ -43,6 +50,40 @@ const MatrixView = ({
     </>
   );
 };
+
+const CalibrationLoadBtn = observer(() => {
+  useEffect(() => {
+    jaiStore.fetchGetCalibrationList();
+  }, []);
+  return (
+    <Flex
+      style={{
+        position: "relative",
+      }}
+    >
+      <Menu placement="bottom-end">
+        <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
+          LoadProfile
+        </MenuButton>
+        <MenuList>
+          {jaiStore.calibrationList.map((meta, index) => {
+            return (
+              <MenuItem
+                key={index}
+                fontSize="small"
+                onClick={() => {
+                  jaiStore.fetchCalibrationLoad(meta.id);
+                }}
+              >
+                {meta.month}/{meta.day} {meta.hour}
+              </MenuItem>
+            );
+          })}
+        </MenuList>
+      </Menu>
+    </Flex>
+  );
+});
 
 const CalibrationResultView = observer(() => {
   const ImagePairListView = (props: { imageCount: number }) => {
@@ -204,11 +245,11 @@ const CalibrationResultView = observer(() => {
           </HStack>
           <HStack>
             <Img
-              src={`/jai/calibrate/chessboard/${vIdx}/0`}
+              src={`/jai/calibrate/chessboard/${vIdx}/0?timestamp=${Date.now()}`}
               style={{ width: "50%" }}
             />
             <Img
-              src={`/jai/calibrate/chessboard/${vIdx}/1`}
+              src={`/jai/calibrate/chessboard/${vIdx}/1?timestamp=${Date.now()}`}
               style={{ width: "50%" }}
             />
           </HStack>
@@ -292,6 +333,7 @@ export const CalibrateView = observer(() => {
         <Btn size="sm" onClick={() => jaiStore.fetchCalibrationSave()}>
           Save
         </Btn>
+        <CalibrationLoadBtn />
       </HStack>
       <HStack>
         <VideoStream

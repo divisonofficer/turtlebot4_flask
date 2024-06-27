@@ -14,7 +14,7 @@ export interface JAIParam {
 }
 
 export interface CalibrationMeta {
-  idx: number;
+  id: number;
   timestamp: number;
   month: number;
   day: number;
@@ -157,7 +157,7 @@ class JaiStore {
   };
 
   fetchGetCalibrationList = () => {
-    httpGet(`/jai/calibrate/storage/list`)
+    httpGet(`/jai/calibrate/storage/all`)
       .onSuccess((data: CalibrationMeta[]) => {
         this.calibrationList = data;
       })
