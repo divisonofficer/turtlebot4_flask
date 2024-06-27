@@ -16,7 +16,11 @@ from capture_type import CaptureSingleScene
 from capture_pb2 import CaptureTaskProgress, CaptureMessageDef, CaptureTopicTimestampLog
 from capture_storage import CaptureStorage
 from flask_socketio import SocketIO
-from capture_msg_def import CaptureMessageDefinition, ScenarioHyperParameter
+from capture_msg_def import (
+    CaptureMessageDefinition,
+    CaptureMode,
+    ScenarioHyperParameter,
+)
 
 from capture_state import CaptureMessage
 import requests
@@ -62,11 +66,17 @@ class CaptureNode(Node):
     scenario_hyper = ScenarioHyperParameter()
 
     subscriptions_image: Dict[str, Subscription]
-    socketIO: SocketIO
+    socketIO: Optional[SocketIO]
     jai_controller = CaptureJaiController()
 
-    def __init__(self, storage: CaptureStorage, socketIO: SocketIO):
-        super().__init__(node_name="client_capture_node")  # type: ignore
+    def __init__(
+        self, storage: CaptureStorage, socketIO: Optional[SocketIO], isSubNode=False
+    ):
+        if isSubNode:
+            node_name = "client_capture_node" + str(time())
+        else:
+            node_name = "client_capture_node"
+        super().__init__(node_name=node_name)  # type: ignore
         self.storage = storage
         self.socketIO = socketIO
         self.socket_progress = SocketProgress(socketIO, self.get_logger())
@@ -143,7 +153,7 @@ class CaptureNode(Node):
         self.space_id = space_id
         self.space_name = space_name
         self.messageDef.slam.enabled = self.use_slam
-        self.oakd_camera_command(start=True)
+
         return {
             "status": "success",
             "space_id": self.space_id,
@@ -171,7 +181,7 @@ class CaptureNode(Node):
 
         if capture_mode is None:
             capture_mode_idx = int(self.scenario_hyper.CaptureQueueMode.value)
-            capture_mode = ["single", "queue", "drive"][capture_mode_idx]
+            capture_mode = CaptureMode[:][capture_mode_idx]
 
         error = self.check_capture_call_available()
         if error:
@@ -189,18 +199,16 @@ class CaptureNode(Node):
             "capture_id": self.capture_id,
         }
 
-    def run_capture_thread(self, capture_mod: str = "single", capture_id: int = -1):
+    def run_capture_thread(
+        self, capture_mod: str = CaptureMode.Single, capture_id: int = -1
+    ):
         try:
             #### Pre Capture Task
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
             self.set_capture_flag(True)
 
-            if capture_mod == "single":
-                self.capture_single_job(capture_id)
-
-            if capture_mod in ["queue", "drive"]:
-                self.run_capture_queue(capture_id, capture_mod)
+            self.run_capture_queue(capture_id, capture_mod)
 
             ### Post Capture Task
             if self.messageDef.Ellipsis.enabled:
@@ -309,7 +317,21 @@ class CaptureNode(Node):
             msg="Begin Rotating Capture",
             capture_id=capture_id,
         )
-        for scene_id in range(round(self.scenario_hyper.RotationQueueCount.value)):
+        capture_count = round(self.scenario_hyper.RotationQueueCount.value)
+        if capture_mod == CaptureMode.Single:
+            capture_count = 1
+
+        if capture_mod == CaptureMode.DrivingCapture:
+            capture_count = round(
+                self.scenario_hyper.DriveDistance.value
+                / self.scenario_hyper.DriveMargin.value
+            )
+
+        if capture_mod == CaptureMode.DrivingSideScanning:
+            capture_count *= int(self.scenario_hyper.SideAngleCount.value)
+            self.turn_right(-self.scenario_hyper.SideAngleRange.value / 2 + 90)
+
+        for scene_id in range(capture_count):
             if self.flag_abort:
                 self.get_logger().info("Capture aborted")
                 self.socket_progress(
@@ -344,6 +366,8 @@ class CaptureNode(Node):
 
             self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
             scene = self.run_single_capture_scene(capture_id, scene_id)
+            timestamp_log = self.capture_msg.timestamp_log
+            del self.capture_msg
             if not scene:
                 continue
 
@@ -354,34 +378,59 @@ class CaptureNode(Node):
                 msg=f"{scene_id}th take done. Turn right",
                 capture_id=capture_id,
             )
-            timenow = time()
-            if capture_mod == "queue":
+            time_begin_turn = time()
+            if capture_mod == CaptureMode.RotatingCapture:
                 if scene_id != self.scenario_hyper.RotationQueueCount.value - 1:
                     self.turn_right()
-            elif capture_mod == "drive":
-                if scene_id < self.scenario_hyper.DriveDistance.value * 10:
+            elif capture_mod == CaptureMode.DrivingCapture:
+                if (
+                    scene_id
+                    < self.scenario_hyper.DriveDistance.value
+                    / self.scenario_hyper.DriveMargin.value
+                    - 1
+                ):
                     self.drive_forward()
+            elif capture_mod == CaptureMode.DrivingSideScanning:
+                if (scene_id + 1) % int(self.scenario_hyper.SideAngleCount.value) == 0:
+                    self.turn_right(-self.scenario_hyper.SideAngleRange.value / 2 - 90)
+                    self.drive_forward()
+                    self.turn_right(-self.scenario_hyper.SideAngleRange.value / 2 + 90)
+                else:
+                    self.turn_right(
+                        self.scenario_hyper.SideAngleRange.value
+                        / (self.scenario_hyper.SideAngleCount.value - 1)
+                    )
 
             if self.scenario_hyper.JaiAutoExpose.value == 1:
                 self.jai_controller.unfreeze_auto_exposure()
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
-            self.capture_msg.timestamp_log.logs.append(
+            timestamp_log.logs.append(
                 CaptureTopicTimestampLog.TimestampLog(
-                    topic="Moving", timestamp=timenow, delay_to_system=time() - timenow
+                    topic="Moving",
+                    timestamp=time_begin_turn,
+                    delay_to_system=time() - time_begin_turn,
                 )
             )
 
-            timenow = time()
+            time_begin_store = time()
             self.storage.store_captured_scene(
                 space_id=space_id, capture_id=capture_id, scene_id=scene_id, scene=scene
             )
-            scene.picture_list = []
-            self.capture_msg.timestamp_log.logs.append(
+            timestamp_log.logs.append(
                 CaptureTopicTimestampLog.TimestampLog(
-                    topic="Storage", timestamp=timenow, delay_to_system=time() - timenow
+                    topic="Storage",
+                    timestamp=time_begin_store,
+                    delay_to_system=time() - time_begin_store,
                 )
             )
+            if self.socketIO:
+                self.socketIO.emit(
+                    "/timestamp_logs",
+                    timestamp_log.SerializeToString(),
+                    namespace="/socket",
+                )
+            del timestamp_log
 
         self.socket_progress(
             100,
@@ -390,14 +439,13 @@ class CaptureNode(Node):
             msg="Rotating Capture Done",
             capture_id=capture_id,
         )
-        gc.collect()
 
     def run_single_capture_scene(self, capture_id: int, scene_id):
         if not self.space_id:
             raise Exception("Space ID is not initialized")
         if not self.capture_msg:
             raise Exception("Capture is not running")
-        return CaptureSingleScenario(
+        scene = CaptureSingleScenario(
             self.jai_controller,
             self.socket_progress,
             [self.space_id, capture_id, scene_id],
@@ -407,28 +455,15 @@ class CaptureNode(Node):
             self.ell,
             self.storage,
         ).run_single_capture()
+        gc.collect()
+        return scene
 
-    def capture_single_job(self, capture_id: int):
-        if not self.space_id:
-            return
-
-        for topic in (
-            self.messageDef.MultiChannel_Left.messages[:]
-            + self.messageDef.MultiChannel_Right.messages[:]
-        ):
-            topic.interpolation = int(self.scenario_hyper.JaiInterpolationNumber.value)
-
-        self.capture_msg = CaptureMessage(self.messageDef, self.scenario_hyper)
-        scene = self.run_single_capture_scene(capture_id, 0)
-        if not scene:
-            return None
-        self.storage.store_captured_scene(
-            space_id=self.space_id, capture_id=capture_id, scene_id=0, scene=scene
-        )
-
-    def turn_right(self):
+    def turn_right(self, angle=None):
         action = RotateAngle.Goal()
-        action.angle = 2 * math.pi / self.scenario_hyper.RotationQueueCount.value
+        if angle is not None:
+            action.angle = math.radians(angle)
+        else:
+            action.angle = 2 * math.pi / self.scenario_hyper.RotationQueueCount.value
         requests.post(
             "http://localhost/slam/create3/action/rotate",
             json={
@@ -438,7 +473,8 @@ class CaptureNode(Node):
 
     def drive_forward(self):
         requests.post(
-            "http://localhost/slam/create3/action/drive", json={"distance": 0.1}
+            "http://localhost/slam/create3/action/drive",
+            json={"distance": self.scenario_hyper.DriveMargin.value},
         )
 
     def oakd_camera_command(self, start: Optional[bool] = None):
@@ -446,3 +482,31 @@ class CaptureNode(Node):
             self.client_oakd_start.call(Trigger.Request())
         if start == False:
             self.client_oakd_stop.call(Trigger.Request())
+
+
+import argparse
+import json
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--space_id", type=int, required=True)
+    parser.add_argument("--capture_id", type=int, required=True)
+    parser.add_argument("--topic_option_dict", type=str, required=True)
+
+    args = parser.parse_args()
+
+    rclpy.init()
+    node = CaptureNode(CaptureStorage(), None, isSubNode=True)
+    node.space_id = args.space_id
+    node.capture_id = args.capture_id
+    topic_option_dict: dict[str, bool] = json.loads(args.topic_option_dict)
+    for topic, status in topic_option_dict.items():
+        node.update_capture_topic(topic, status)
+
+    def spin():
+        rclpy.spin(node)
+
+    thread = threading.Thread(target=spin)
+    thread.start()
+
+    thread.join()

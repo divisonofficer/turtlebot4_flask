@@ -9,7 +9,7 @@ from capture_type import ImageBytes
 
 class SocketProgress:
 
-    def __init__(self, socketIO: SocketIO, logger):
+    def __init__(self, socketIO: Optional[SocketIO], logger):
         self.socketIO = socketIO
         self.logger = logger
 

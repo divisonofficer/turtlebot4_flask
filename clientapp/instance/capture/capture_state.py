@@ -37,7 +37,21 @@ class CaptureMessage:
             for x in group.messages
         ]
 
+    def __del__(self):
+        del_cnt = 0
+        key_remove = [key for key in self.msg_dict.keys()]
+        for k in key_remove:
+            if isinstance(self.msg_dict[k], list):
+                for m in self.msg_dict[k]:
+                    del m
+                    del_cnt += 1
+            else:
+                del_cnt += 1
+            del self.msg_dict[k]
+        print(f"MessageDef Delete : Deleted {del_cnt} messages")
+
     def check_messages_received(self):
+        interpolation = int(self.hyperparamter.JaiInterpolationNumber.value)
         keys = [
             [
                 msg.topic
@@ -55,10 +69,7 @@ class CaptureMessage:
                 if topic_def is None:
                     return
                 if k in self.msg_dict and self.msg_dict[k]:
-                    if (
-                        topic_def.interpolation < 1
-                        or len(self.msg_dict[k]) >= topic_def.interpolation
-                    ):
+                    if interpolation < 1 or len(self.msg_dict[k]) >= interpolation:
                         continue
                 msg_flag[i] = False
                 break
@@ -67,10 +78,21 @@ class CaptureMessage:
     def update_msg(self, topic: str, msg):
         # if "jai" in topic:
         #      print(topic, " behind :", time() - msg.header.stamp.sec, msg.header.stamp)
+        interpolation = int(self.hyperparamter.JaiInterpolationNumber.value)
         topic_def = self.definition.resolve_topic(topic)
         if not topic_def:
+            del msg
             return
-        if topic in self.msg_dict and topic_def.interpolation < 1:
+        if topic in self.msg_dict and interpolation < 1:
+            del msg
+            return
+
+        if (
+            topic in self.msg_dict
+            and interpolation > 0
+            and len(self.msg_dict[topic]) >= interpolation
+        ):
+            del msg
             return
 
         topic_delay = topic_def.delay
@@ -82,14 +104,23 @@ class CaptureMessage:
                 else self.timestamp
             )
         ):
-            if topic in self.msg_dict and topic_def.interpolation > 0:
-                self.msg_dict[topic].append(msg)
+            if interpolation > 0:
+                if topic in self.msg_dict:
+                    self.msg_dict[topic].append(msg)
+                else:
+                    self.msg_dict[topic] = [msg]
             else:
-                self.msg_dict[topic] = msg if topic_def.interpolation < 1 else [msg]
+                if topic in self.msg_dict:
+                    del self.msg_dict[topic]
+                self.msg_dict[topic] = msg
 
             self.timestamp_log.logs.append(
                 CaptureTopicTimestampLog.TimestampLog(
-                    topic=topic,
+                    topic=(
+                        f"{topic} [{str(len(self.msg_dict[topic]))}]"
+                        if interpolation > 0
+                        else topic
+                    ),
                     timestamp=msg.header.stamp.sec
                     + msg.header.stamp.nanosec / 1000000000,
                     delay_to_system=time()
@@ -104,7 +135,10 @@ class CaptureMessage:
         self.messages_received_second = False
         self.use_second_timestamp = {}
         for msg in group.messages:
-            if msg.topic in self.msg_dict:
+            if msg.topic in self.msg_dict.keys():
+                if isinstance(self.msg_dict[msg.topic], list):
+                    for m in self.msg_dict[msg.topic]:
+                        del m
                 del self.msg_dict[msg.topic]
             self.use_second_timestamp[msg.topic] = True
         self.timestamp_second = time()

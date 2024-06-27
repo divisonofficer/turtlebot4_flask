@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 from capture_pb2 import *
 from capture_state import CaptureMessage
 from capture_type import (
@@ -45,7 +45,7 @@ class CaptureSingleScenario:
         id: list[int],
         capture_msg: CaptureMessage,
         lock: threading.Lock,
-        socketIO: SocketIO,
+        socketIO: Optional[SocketIO],
         ell,
         storage: CaptureStorage,
     ):
@@ -181,11 +181,7 @@ class CaptureSingleScenario:
                         delay_to_system=time() - capture_begin_time,
                     )
                 )
-                self.socketIO.emit(
-                    "/timestamp_logs",
-                    self.capture_msg.timestamp_log.SerializeToString(),
-                    namespace="/socket",
-                )
+
             self.jai_controller.close_stream()
             return scene
         except NoImageSignal:
@@ -226,14 +222,25 @@ class CaptureSingleScenario:
 
         if len(exposure_viz) != len(exposure_nir):
             raise ValueError("Exposure time array length mismatch")
+        self.socket_progress(
+            10,
+            scene_id=self.scene_id,
+            msg="HDR Capture started",
+            action=CaptureTaskProgress.Action.ACTIVE,
+        )
         self.jai_controller.freeze_auto_exposure()
         image_list: list[ImageBytes] = []
         for idx, (viz, nir) in enumerate(zip(exposure_viz, exposure_nir)):
 
             self.jai_controller.close_stream()
             self.jai_controller.set_exposure(viz, nir)
-
-            sleep(1)
+            self.socket_progress(
+                int(10 + 80 * idx / len(exposure_viz)),
+                scene_id=self.scene_id,
+                msg=f"Capturing {idx} of {len(exposure_viz)}",
+                action=CaptureTaskProgress.Action.ACTIVE,
+            )
+            sleep(0.5)
             self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Left)
             self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Right)
             while True:
@@ -258,7 +265,12 @@ class CaptureSingleScenario:
                         bayerInterpolation="bayer" in topic.format,
                     )
                 )
-
+        self.socket_progress(
+            100,
+            scene_id=self.scene_id,
+            msg=f"HDR Capturing Queue Done",
+            action=CaptureTaskProgress.Action.DONE,
+        )
         return image_list
 
     def run_polarized_capture(self):
@@ -316,12 +328,11 @@ class CaptureSingleScenario:
             if idx < len(self.ANGLES) - 1:
                 self.ell.polarizer_turn(angle=self.ANGLES[idx + 1] - self.ANGLES[idx])
 
-            for image in image_list:
-                self.storage.store_captured_scene_image(
-                    image,
-                    self.space_id,
-                    self.capture_id,
-                    self.scene_id,
-                )
+            self.storage.store_captured_scene_image(
+                image_list,
+                self.space_id,
+                self.capture_id,
+                self.scene_id,
+            )
             image_list = []
         return image_list
