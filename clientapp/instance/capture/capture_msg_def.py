@@ -110,6 +110,11 @@ class CaptureMessageDefinition:
         enabled=False,
     )
 
+    HDR = CaptureMessageDefGroup(
+        name="HDR",
+        enabled=False,
+    )
+
     topic_map: dict[str, CaptureMessageDef]
 
     def __init__(self):
@@ -125,6 +130,7 @@ class CaptureMessageDefinition:
             self.MultiChannel_Right,
             self.slam,
             self.Ellipsis,
+            self.HDR,
         ]
 
     def to_dict(self):
@@ -216,13 +222,13 @@ class ScenarioHyperParameter:
     )
 
     HdrExposureTime = CaptureScenarioHyperparameter.HyperParameter(
-        name="HdrExposureTimeViz",
+        name="HdrExposureTime",
         value_array=[1000, 4000, 16000, 64000],
         type=CaptureScenarioHyperparameter.ParameterType.DOUBLE_ARRAY,
     )
     HdrExposureTimeNir = CaptureScenarioHyperparameter.HyperParameter(
-        name="HdrExposureTimeViz",
-        value_array=[3000, 12000, 48000, 192000],
+        name="HdrExposureTimeNIR",
+        value_array=[1000, 4000, 16000, 64000],
         type=CaptureScenarioHyperparameter.ParameterType.DOUBLE_ARRAY,
     )
 
@@ -241,6 +247,7 @@ class ScenarioHyperParameter:
             self.EllRotationDegree,
             self.HdrExposureTime,
             self.HdrExposureTimeNir,
+            self.DriveDistance,
         ]
 
     def update(self, name, value=None, value_array: Optional[list[float]] = None):

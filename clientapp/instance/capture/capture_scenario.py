@@ -14,6 +14,7 @@ from slam_types import RosProtoConverter
 from time import time, sleep
 from flask_socketio import SocketIO
 from socket_progress import SocketProgress
+from capture_jai_controller import CaptureJaiController
 
 
 class NoLidarSignal(Exception):
@@ -39,7 +40,7 @@ class CaptureSingleScenario:
 
     def __init__(
         self,
-        open_jai_stream: Callable[[bool], None],
+        jai_controller: CaptureJaiController,
         socket_progress: SocketProgress,
         id: list[int],
         capture_msg: CaptureMessage,
@@ -48,7 +49,7 @@ class CaptureSingleScenario:
         ell,
         storage: CaptureStorage,
     ):
-        self.open_jai_stream = open_jai_stream
+        self.jai_controller = jai_controller
         self.socket_progress = socket_progress
         self.space_id, self.capture_id, self.scene_id = id
         self.capture_msg = capture_msg
@@ -130,7 +131,7 @@ class CaptureSingleScenario:
         get polarized images if available
         emit the scene to the socket
         """
-        self.open_jai_stream(True)
+        self.jai_controller.open_stream()
         try:
             capture_begin_time = time()
             self.socket_progress(
@@ -152,6 +153,9 @@ class CaptureSingleScenario:
             # Capture polarized images
             if self.messageDef.Ellipsis.enabled:
                 scene.picture_list += self.run_polarized_capture()
+
+            if self.messageDef.HDR.enabled:
+                scene.picture_list += self.run_hdr_capture()
 
             self.get_basic_msgs(scene)
             self.socket_progress(
@@ -182,7 +186,7 @@ class CaptureSingleScenario:
                     self.capture_msg.timestamp_log.SerializeToString(),
                     namespace="/socket",
                 )
-            self.open_jai_stream(False)
+            self.jai_controller.close_stream()
             return scene
         except NoImageSignal:
             self.socket_progress(
@@ -213,8 +217,49 @@ class CaptureSingleScenario:
             )
         if self.messageDef.Ellipsis.enabled:
             self.ell.polarizer_turn(home=True)
-        self.open_jai_stream(False)
+        self.jai_controller.close_stream()
         return None
+
+    def run_hdr_capture(self):
+        exposure_viz = self.capture_msg.hyperparamter.HdrExposureTime.value_array
+        exposure_nir = self.capture_msg.hyperparamter.HdrExposureTimeNir.value_array
+
+        if len(exposure_viz) != len(exposure_nir):
+            raise ValueError("Exposure time array length mismatch")
+        self.jai_controller.freeze_auto_exposure()
+        image_list: list[ImageBytes] = []
+        for idx, (viz, nir) in enumerate(zip(exposure_viz, exposure_nir)):
+
+            self.jai_controller.close_stream()
+            self.jai_controller.set_exposure(viz, nir)
+
+            sleep(1)
+            self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Left)
+            self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Right)
+            while True:
+                if time() - self.capture_msg.timestamp_second > 10:
+                    break
+                with self.lock:
+                    if self.capture_msg.messages_received_second:
+                        break
+                sleep(0.1)
+            if not self.capture_msg.messages_received_second:
+                raise NoImageSignal()
+            for topic in (
+                self.messageDef.MultiChannel_Left.messages[:]
+                + self.messageDef.MultiChannel_Right.messages[:]
+            ):
+                image_list.append(
+                    ImageBytes(
+                        self.capture_msg.msg_dict[topic.topic],
+                        topic.topic
+                        + "/"
+                        + str(int(viz if "bayer" in topic.format else nir)),
+                        bayerInterpolation="bayer" in topic.format,
+                    )
+                )
+
+        return image_list
 
     def run_polarized_capture(self):
         if self.ANGLES[0] > 0:
