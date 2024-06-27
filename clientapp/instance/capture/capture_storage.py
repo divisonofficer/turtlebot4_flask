@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 import cv2
 import numpy as np
 from capture_type import CaptureSingleScene, ImageBytes
@@ -195,10 +196,6 @@ class CaptureStorage:
                 os.mkdir(f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/thumb")
             except FileExistsError:
                 pass
-        thumb = f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}/thumb/{filename}"
-        # if os.path.exists(thumb):
-        #     img = cv2.imread(thumb)
-
         img_path = self.get_capture_scene_filepath(
             space_id, capture_id, scene_id, filename
         )
@@ -214,9 +211,10 @@ class CaptureStorage:
         #     img[:, :, 3] = self.image_jai_mask_128[:, :, 0]
         img_encoded = cv2.imencode(".png", img)[1]
 
-        if not os.path.exists(thumb):
-            img_encoded.tofile(thumb)
-        return img_encoded
+        bytes = img_encoded.tobytes()
+        del img
+        del img_encoded
+        return bytes
 
     def get_capture_scene_images_paths(
         self, space_id: int, capture_id: int, scene_id: int
@@ -291,20 +289,42 @@ class CaptureStorage:
         for d in [space_dir, capture_dir, scene_dir]:
             if not os.path.exists(d):
                 os.mkdir(d)
+        time_begin = time()
 
+        threads: list[threading.Thread] = []
         for i, image in enumerate(scene.picture_list):
             filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
-            cv2.imwrite(filename, image.image)
+            threads.append(
+                threading.Thread(
+                    target=cv2.imwrite,
+                    args=(filename, image.image),
+                )
+            )
+            threads[-1].start()
 
+        for t in threads:
+            t.join()
+
+        print(f"Time to write images: {time() - time_begin}")
+        time_begin = time()
         scene_dict = scene.to_dict_light()
         scene_dict.images[:] = self.get_capture_scene_images_paths(
             space_id, capture_id, scene_id
         )
+
+        print(f"Time to get image paths: {time() - time_begin}")
         with open(f"{scene_dir}/meta.json", "w") as f:
             f.write(json_format.MessageToJson(scene_dict))
+        time_begin = time()
+        del scene
+        print(f"Time to delete scene: {time() - time_begin}")
 
     def store_captured_scene_image(
-        self, image: ImageBytes, space_id: int, capture_id: int, scene_id: int
+        self,
+        image_list: list[ImageBytes],
+        space_id: int,
+        capture_id: int,
+        scene_id: int,
     ):
         space_dir = f"{CAPTURE_TEMP}/{space_id}"
         capture_dir = f"{space_dir}/{capture_id}"
@@ -313,8 +333,22 @@ class CaptureStorage:
             os.mkdir(capture_dir)
         if not os.path.exists(scene_dir):
             os.makedirs(scene_dir)
-        filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
-        cv2.imwrite(filename, image.image)
+        threads: list[threading.Thread] = []
+        for image in image_list:
+            filename = f"{scene_dir}/{image.topic.replace('/','_')}.png"
+            cv2.imwrite(filename, image.image)
+            threads.append(
+                threading.Thread(
+                    target=cv2.imwrite,
+                    args=(filename, image.image),
+                )
+            )
+
+        for t in threads:
+            t.join()
+
+        for image in image_list:
+            del image
 
     def delete_scene(self, space_id: int, capture_id: int, scene_id: int):
         scene_dir = os.path.join(

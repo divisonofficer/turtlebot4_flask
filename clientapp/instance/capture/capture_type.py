@@ -66,6 +66,9 @@ class ImageBytes:
             "topic": self.topic,
         }
 
+    def __del__(self):
+        del self.image
+
 
 class CaptureLiDAR:
     angle_min: float
@@ -138,3 +141,7 @@ class CaptureSingleScene:
                 self.lidar_position.toProto() if self.lidar_position else None
             ),
         )
+
+    def __del__(self):
+        for img in self.picture_list:
+            del img

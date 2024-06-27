@@ -158,6 +158,29 @@ class CaptureMessageDefinition:
         return None
 
 
+class CaptureModeEnum:
+    Single = "Single"
+    RotatingCapture = "Rotating Capture"
+    DrivingCapture = "Driving Capture"
+    DrivingSideScanning = "Driving Side Scanning"
+    MemoryStressTest = "Memory Stress Test"
+
+    def as_list(self):
+        return [
+            self.Single,
+            self.RotatingCapture,
+            self.DrivingCapture,
+            self.DrivingSideScanning,
+            self.MemoryStressTest,
+        ]
+
+    def __getitem__(self, item):
+        return self.as_list()[item]
+
+
+CaptureMode = CaptureModeEnum()
+
+
 class ScenarioHyperParameter:
     RotationQueueCount = CaptureScenarioHyperparameter.HyperParameter(
         name="RotationQueueCount",
@@ -189,6 +212,30 @@ class ScenarioHyperParameter:
         type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
 
+    DriveMargin = CaptureScenarioHyperparameter.HyperParameter(
+        name="DriveMargin",
+        value=0.1,
+        gap=0.01,
+        range=[0.01, 1],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
+    )
+
+    SideAngleCount = CaptureScenarioHyperparameter.HyperParameter(
+        name="SideAngleCount",
+        value=5,
+        gap=1,
+        range=[1, 10],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
+    )
+
+    SideAngleRange = CaptureScenarioHyperparameter.HyperParameter(
+        name="SideAngleRange",
+        value=45,
+        gap=1,
+        range=[5, 90],
+        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
+    )
+
     JaiInterpolationNumber = CaptureScenarioHyperparameter.HyperParameter(
         name="JaiInterpolationNumber",
         value=3,
@@ -208,11 +255,7 @@ class ScenarioHyperParameter:
     CaptureQueueMode = CaptureScenarioHyperparameter.HyperParameter(
         name="CaptureQueueMode",
         value=0,
-        enum_values=[
-            "Single",
-            "Rotating Capture",
-            "Driving Capture",
-        ],
+        enum_values=CaptureMode.as_list(),
         type=CaptureScenarioHyperparameter.ParameterType.ENUM,
     )
     EllRotationDegree = CaptureScenarioHyperparameter.HyperParameter(
@@ -248,6 +291,9 @@ class ScenarioHyperParameter:
             self.HdrExposureTime,
             self.HdrExposureTimeNir,
             self.DriveDistance,
+            self.DriveMargin,
+            self.SideAngleCount,
+            self.SideAngleRange,
         ]
 
     def update(self, name, value=None, value_array: Optional[list[float]] = None):

@@ -192,7 +192,7 @@ def capture_result_image_thumb(space_id, capture_id, scene_id, filename):
         status=200,
         response=capture_storage.get_capture_scene_image_thumb(
             int(space_id), int(capture_id), int(scene_id), filename
-        ).tobytes(),  # type: ignore
+        ),  # type: ignore
         mimetype="image/jpeg",
     )
 
