@@ -25,7 +25,7 @@ class MultiSpectralCamera {
   double getExposure(int source);
   double getGain(int source);
 
-  void runUntilInterrupted();
+  void runUntilInterrupted(int streamIndex);
 
   void interrupt();
 

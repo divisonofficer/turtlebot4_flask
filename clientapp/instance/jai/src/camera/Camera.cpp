@@ -144,18 +144,16 @@ void MultiSpectralCamera::configureSourceRuntime(
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
 
-void MultiSpectralCamera::runUntilInterrupted() {
+void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
   while (!flagInterrupted) {
-    for (int i = 0; i < 2; i++) {
-      auto buffer = AcquireManager::getInstance()->AcquireBuffer(
-          dualDevice->getStream(i));
-      if (buffer) {
-        if (streamCallback[i]) {
-          (streamCallback[i])(buffer);
-        }
-        AcquireManager::getInstance()->queueBuffer(dualDevice->getStream(i),
-                                                   buffer);
+    auto buffer = AcquireManager::getInstance()->AcquireBuffer(
+        dualDevice->getStream(streamIndex));
+    if (buffer) {
+      if (streamCallback[streamIndex]) {
+        (streamCallback[streamIndex])(buffer);
       }
+      AcquireManager::getInstance()->queueBuffer(
+          dualDevice->getStream(streamIndex), buffer);
     }
   }
   flagInterrupted = false;
