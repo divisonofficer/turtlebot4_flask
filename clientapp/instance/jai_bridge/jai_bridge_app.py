@@ -705,6 +705,48 @@ def calibrate_depth_videostream(timestamp):
     )
 
 
+@app.route("/calibrate/capture", methods=["POST"])
+def capture_calibration():
+    calibration_node.calibrate_signal.set()
+    return {"status": "success"}
+
+
+@app.route("/calibrate/chessboard/<idx>/<side>", methods=["GET"])
+def get_chessboard_image(idx, side):
+    image = calibration_node.get_chessboard_image(int(idx), int(side))
+    if image is None:
+        return Response(status=404)
+    return Response(
+        image.tobytes(),
+        mimetype="image/jpeg",
+    )
+
+
+@app.route("/calibrate/chessboard/<idx>", methods=["DELETE"])
+def delete_chessboard_image(idx):
+    calibration_node.delete_chessboard_image(int(idx))
+    return {"status": "success"}
+
+
+@app.route("/calibrate/storage/all", methods=["GET"])
+def get_calibration_storage():
+    return calibration_node.calibration.storage.list_calibrations()
+
+
+@app.route("/calibrate/storage/save", methods=["POST"])
+def save_calibration_storage():
+    idx = calibration_node.calibration.save_calibration()
+    if idx < 0:
+        return Response(status=400, response="Error saving calibration")
+    return {"status": "success", "idx": idx}
+
+
+@app.route("/calibrate/storage/load/<idx>", methods=["POST"])
+def load_calibration_storage(idx):
+    calibration_node.calibration.load_calibration(int(idx))
+    return {"status": "success"}
+
+
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
