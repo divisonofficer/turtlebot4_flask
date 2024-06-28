@@ -189,18 +189,11 @@ class ScenarioHyperParameter:
         range=[1, 50],
         type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
-    RotationSpeed = CaptureScenarioHyperparameter.HyperParameter(
-        name="RotationSpeed",
-        value=0.25,
-        gap=0.025,
-        range=[0.1, 0.5],
-        type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
-    )
-    RotationInterval = CaptureScenarioHyperparameter.HyperParameter(
-        name="RotationInterval",
-        value=0.6,
-        gap=0.05,
-        range=[0.1, 1.0],
+    RotationAngleMargin = CaptureScenarioHyperparameter.HyperParameter(
+        name="RotationAngleMargin",
+        value=5,
+        gap=0.1,
+        range=[0, 90],
         type=CaptureScenarioHyperparameter.ParameterType.DOUBLE,
     )
 
@@ -282,8 +275,7 @@ class ScenarioHyperParameter:
     def entries(self):
         return [
             self.RotationQueueCount,
-            self.RotationSpeed,
-            self.RotationInterval,
+            self.RotationAngleMargin,
             self.JaiInterpolationNumber,
             self.JaiAutoExpose,
             self.CaptureQueueMode,

@@ -57,6 +57,18 @@ class CalibrationStorage:
     def __init__(self):
         self.ROOT_FOLDER = "tmp/calibration/"
 
+    def get_colmap_parameter(self, mtx, dist):
+        return [
+            mtx[0, 0],
+            mtx[1, 1],
+            mtx[0, 2],
+            mtx[1, 2],
+            dist[0],
+            dist[1],
+            dist[2],
+            dist[3],
+        ]
+
     def save_calibration(
         self,
         id: int,
@@ -74,6 +86,12 @@ class CalibrationStorage:
             "day": time.strftime("%d"),
             "hour": time.strftime("%H"),
             "image_count": len(image_points_left),
+            "colmap_left": self.get_colmap_parameter(
+                output.mtx_left, output.dist_left[0]
+            ),
+            "colmap_right": self.get_colmap_parameter(
+                output.mtx_right, output.dist_right[0]
+            ),
         }
         np.savez(
             f"{folder}calibration.npz",
@@ -128,8 +146,8 @@ class CalibrationStorage:
             tvect_right=data["right_tvecs"],
         )
 
-        image_points_left = data["image_points_left"]
-        image_points_right = data["image_points_right"]
+        image_points_left = [x for x in data["image_points_left"]]
+        image_points_right = [x for x in data["image_points_right"]]
         image_pairs = []
         for i in range(len(image_points_left)):
             img_left = cv2.imread(f"{folder}left_{id}.png")
@@ -194,6 +212,9 @@ class Calibration:
 
         if not self.output:
             return []
+
+        while len(self.objpoints) < len(self.output.rvecs_left):
+            self.objpoints.append(self.objp)
 
         for i in range(len(self.objpoints)):
             error_left = self.compute_reprojection_error(
@@ -363,6 +384,9 @@ class Calibration:
             self.chessboard_images,
         ) = output
         self.calibration_id = id
+        self.reprojection_errors_mean, self.reprojection_errors = (
+            self.compute_reprojection_errors()
+        )
         return True
 
 
