@@ -463,7 +463,14 @@ class CaptureNode(Node):
         if angle is not None:
             action.angle = math.radians(angle)
         else:
-            action.angle = 2 * math.pi / self.scenario_hyper.RotationQueueCount.value
+            if self.scenario_hyper.RotationAngleMargin.value == 0:
+                action.angle = (
+                    2 * math.pi / self.scenario_hyper.RotationQueueCount.value
+                )
+            else:
+                action.angle = math.radians(
+                    self.scenario_hyper.RotationAngleMargin.value
+                )
         requests.post(
             "http://localhost/slam/create3/action/rotate",
             json={
