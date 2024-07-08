@@ -24,7 +24,7 @@ from capture_msg_def import (
 
 from capture_state import CaptureMessage
 import requests
-
+import traceback
 
 from slam_source import SlamSource
 from capture_scenario import PolarizerError, CaptureSingleScenario
@@ -220,6 +220,12 @@ class CaptureNode(Node):
             if self.messageDef.Ellipsis.enabled:
                 self.ell.polarizer_turn(home=True)
             self.set_capture_flag(False)
+            self.socket_progress(
+                progress=100,
+                action=CaptureTaskProgress.Action.ERROR,
+                msg=f"Exception Occured : {e}"
+            )
+            traceback.print_exc()
 
     def check_capture_call_available(self):
         """

@@ -1,5 +1,6 @@
 import os
 import json
+import subprocess
 import threading
 import cv2
 import numpy as np
@@ -220,6 +221,8 @@ class CaptureStorage:
         self, space_id: int, capture_id: int, scene_id: int
     ):
         scene_dir = f"{CAPTURE_TEMP}/{space_id}/{capture_id}/{scene_id}"
+        if not os.path.exists(scene_dir):
+            return []
         files = os.listdir(scene_dir)
         image_files = [f for f in files if f.endswith(".png") or f.endswith(".jpg")]
 
@@ -364,29 +367,14 @@ class CaptureStorage:
             os.rmdir(scene_dir)
         return 200
 
-    def gen_strokes_image(self, scene: CaptureSingleScene):
-        images_nd: list[np.ndarray] = []
-        for i in range(2):
-            topic = f"/jai_1600/channel_{i}"
-            image_topics = [f"{topic}/{x * 45}" for x in range(4)]
-            images = [x for x in scene.picture_list if x.topic in image_topics]
-            if len(images) != 4:
-                return None
-            images = [x.image for x in images]
-            if i == 0:
-                images = [
-                    cv2.cvtColor(image, cv2.COLOR_BAYER_RG2RGB) for image in images
-                ]
-            images_nd.append(np.array(images))  # Convert images to NumPy array
-        MM: np.ndarray = np.array(
-            [
-                [1, 0, 0, 0],
-                [1, 0, 0, 0],
-                [1, 0, 0, 0],
-                [1, 0, 0, 0],
-            ]
-        )
-        stacked = np.stack(images_nd)
-        strokes = MM * stacked
+    def compress_space(self, space_id: int):
+        space_dir = os.path.join(CAPTURE_TEMP, str(space_id))
+        gz_file = f"{space_dir}.tar.gz"
+        if os.path.exists(gz_file):
+            os.remove(gz_file)
+        subprocess.run(["tar", "-czvf", gz_file, space_dir])
 
-        return strokes
+    def get_compressed_space(self, space_id: int):
+        space_dir = os.path.join(CAPTURE_TEMP, str(space_id))
+        gz_file = f"{space_dir}.tar.gz"
+        return f"/home/cglab/project/turtlebot4_flask/clientapp/{gz_file}"

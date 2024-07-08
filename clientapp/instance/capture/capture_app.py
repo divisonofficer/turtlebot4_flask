@@ -181,6 +181,17 @@ def capture_result_image(space_id, capture_id, scene_id, filename):
     )
 
 
+@app.route("/result/<space_id>/gzipped", methods=["GET"])
+def capture_result_space_gzipped(space_id):
+    return send_file(capture_storage.get_compressed_space(int(space_id)))
+
+
+@app.route("/result/<space_id>/gzipped", methods=["POST"])
+def compress_capture_result_space_gzipped(space_id):
+    capture_storage.compress_space(int(space_id))
+    return Response(status=200)
+
+
 @app.route(
     "/result/<space_id>/<capture_id>/<scene_id>/<filename>/thumb", methods=["GET"]
 )
