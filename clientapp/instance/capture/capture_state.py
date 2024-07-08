@@ -131,14 +131,20 @@ class CaptureMessage:
 
             self.check_messages_received()
 
-    def vacate_second_msg_dict(self, group: CaptureMessageDefGroup):
+    def vacate_second_msg_dict(self, group: List[CaptureMessageDefGroup]):
         self.messages_received_second = False
         self.use_second_timestamp = {}
-        for msg in group.messages:
+        messages = []
+        for g in group:
+            messages.extend(g.messages)
+        for msg in messages:
             if msg.topic in self.msg_dict.keys():
-                if isinstance(self.msg_dict[msg.topic], list):
-                    for m in self.msg_dict[msg.topic]:
-                        del m
-                del self.msg_dict[msg.topic]
+                try:
+                    if isinstance(self.msg_dict[msg.topic], list):
+                        for m in self.msg_dict[msg.topic]:
+                            del m
+                    del self.msg_dict[msg.topic]
+                except Exception as e:
+                    print(e)
             self.use_second_timestamp[msg.topic] = True
         self.timestamp_second = time()

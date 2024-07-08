@@ -241,10 +241,11 @@ class CaptureSingleScenario:
                 action=CaptureTaskProgress.Action.ACTIVE,
             )
             sleep(0.5)
-            self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Left)
-            self.capture_msg.vacate_second_msg_dict(self.messageDef.MultiChannel_Right)
+            self.capture_msg.vacate_second_msg_dict(
+                [self.messageDef.MultiChannel_Left, self.messageDef.MultiChannel_Right]
+            )
             while True:
-                if time() - self.capture_msg.timestamp_second > 10:
+                if time() - self.capture_msg.timestamp_second > 20:
                     break
                 with self.lock:
                     if self.capture_msg.messages_received_second:
@@ -252,6 +253,7 @@ class CaptureSingleScenario:
                 sleep(0.1)
             if not self.capture_msg.messages_received_second:
                 raise NoImageSignal()
+
             for topic in (
                 self.messageDef.MultiChannel_Left.messages[:]
                 + self.messageDef.MultiChannel_Right.messages[:]
@@ -265,6 +267,7 @@ class CaptureSingleScenario:
                         bayerInterpolation="bayer" in topic.format,
                     )
                 )
+
         self.socket_progress(
             100,
             scene_id=self.scene_id,
