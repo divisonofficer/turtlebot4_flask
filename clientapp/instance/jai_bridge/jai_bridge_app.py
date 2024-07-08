@@ -677,6 +677,12 @@ def stop_video_stream():
     return {"status": "success"}
 
 
+@app.route("/calibrate/refresh", methods=["GET"])
+def get_current_calibration():
+    calibration_node.emit_calibration_result(None, None, None)
+    return {"status": "success"}
+
+
 @app.route("/calibrate/start", methods=["POST"])
 def start_calibration():
     calibration_node.start_signal.set()
@@ -743,7 +749,33 @@ def save_calibration_storage():
 
 @app.route("/calibrate/storage/load/<idx>", methods=["POST"])
 def load_calibration_storage(idx):
-    calibration_node.calibration.load_calibration(int(idx))
+    calibration_node.init_calibration_by_loading(int(idx))
+    return {
+        "status": "success",
+        "shape": {
+            "cols": calibration_node.calibration.CHESS_SHAPE[0],
+            "rows": calibration_node.calibration.CHESS_SHAPE[1],
+            "length": calibration_node.calibration.CHESS_CELL_WIDTH,
+        },
+    }
+
+
+@app.route("/calibrate/chessboard/shape", methods=["GET"])
+def get_chessboard_shape():
+    return {
+        "shape": calibration_node.calibration.CHESS_SHAPE,
+        "size": calibration_node.calibration.CHESS_CELL_WIDTH,
+    }
+
+
+@app.route("/calibrate/chessboard/shape", methods=["POST"])
+def set_chessboard_shape():
+    cols = int(request.json.get("cols")) if request.json else None
+    rows = int(request.json.get("rows")) if request.json else None
+    length = float(request.json.get("length")) if request.json else None
+    calibration_node.update_chessboard_size(
+        length, (cols, rows) if cols and rows else None
+    )
     return {"status": "success"}
 
 
