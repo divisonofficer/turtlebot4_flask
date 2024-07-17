@@ -1,4 +1,5 @@
 #include <Camera.h>
+#include <HdrFusion.h>
 #include <PvBuffer.h>
 #include <cv_bridge/cv_bridge.h>
 
@@ -50,6 +51,13 @@ class JAINode : public rclcpp::Node {
       rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
       imagePublishers;
 
+  std::vector<std::vector<
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      imagePublishers_hdr;
+  std::vector<std::vector<
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      imagePublishers_fusion;
+
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr logPublisher;
 
   std::vector<
@@ -83,7 +91,19 @@ class JAINode : public rclcpp::Node {
 
   void emitRosDeviceParamMsg(int device_num, int source_num, std::string param);
 
+  bool hdr_capture_mode = false;
+  std::vector<std::vector<std::vector<std::pair<int, uint8_t*> > > >
+      hdr_exposure_image;
+
+  int hdr_exposure_idx[2][2] = {{-1, -1}, {-1, -1}};
+  int hdr_exposures[4] = {1000, 4000, 16000, 64000};
+
+  void processHdrImage(int device_num, int source_num, PvBuffer* buffer,
+                       unsigned long buffer_time);
+
   std::vector<std::thread> subscription_thread;
 
   int64_t timestamp_begin_ros;
+
+  HdrFusion hdr_fusion;
 };

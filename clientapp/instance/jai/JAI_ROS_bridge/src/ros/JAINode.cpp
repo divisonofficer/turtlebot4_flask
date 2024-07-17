@@ -4,6 +4,7 @@
 #include <omp.h>
 
 #include <opencv4/opencv2/opencv.hpp>
+
 std::vector<std::string> splitString(std::string str, std::string delimiter) {
   std::vector<std::string> parts;
   size_t pos = 0;
@@ -55,6 +56,8 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
   // Adjust size of Device Vectors
   if (imagePublishers.size() <= device_num) {
     imagePublishers.resize(device_num + 1);
+    imagePublishers_fusion.resize(device_num + 1);
+    imagePublishers_hdr.resize(device_num + 1);
     cameraDeviceParamPublishers.resize(device_num + 1);
     cameraDeviceParamSubscribers.resize(device_num + 1);
     cameraStreamTriggerSubscribers.resize(device_num + 1);
@@ -63,6 +66,8 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
   // Adjust size of Stream Channel Vectors
   if (imagePublishers[device_num].size() < channel_count) {
     imagePublishers[device_num].resize(channel_count);
+    imagePublishers_fusion[device_num].resize(channel_count);
+    imagePublishers_hdr[device_num].resize(channel_count);
     cameraDeviceParamPublishers[device_num].resize(channel_count);
     cameraDeviceParamSubscribers[device_num].resize(channel_count);
   }
@@ -92,6 +97,14 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
     imagePublishers[device_num][i] =
         this->create_publisher<sensor_msgs::msg::CompressedImage>(
             device_name + "/channel_" + std::to_string(i), 3);
+    imagePublishers_fusion[device_num][i] =
+        this->create_publisher<sensor_msgs::msg::CompressedImage>(
+            device_name + "/channel_" + std::to_string(i) + "/fusion", 3);
+
+    imagePublishers_hdr[device_num][i] =
+        this->create_publisher<sensor_msgs::msg::CompressedImage>(
+            device_name + "/channel_" + std::to_string(i) + "/hdr", 3);
+
     cameraDeviceParamPublishers[device_num][i] =
         this->create_publisher<std_msgs::msg::String>(
             device_name + "/channel_" + std::to_string(i) + "/device_param",
@@ -149,6 +162,47 @@ void JAINode::convertTo16Bit(const uint8_t* src, int width, int height,
   }
 }
 
+void JAINode::processHdrImage(int dn, int sn, PvBuffer* buffer,
+                              unsigned long buffer_time) {
+  if (hdr_exposure_image.size() <= dn) {
+    hdr_exposure_image.resize(dn + 1);
+  }
+  if (hdr_exposure_image[dn].size() <= sn) {
+    hdr_exposure_image[dn].resize(sn + 1);
+  }
+
+  if (hdr_exposure_idx[dn][sn] > -1) {
+    hdr_exposure_image[dn][sn].push_back(std::make_pair(
+        hdr_exposures[hdr_exposure_idx[dn][sn]], buffer->GetDataPointer()));
+  }
+
+  if (hdr_exposure_idx[dn][sn] < 3) {
+    hdr_exposure_idx[dn][sn]++;
+    cameras[dn]->configureExposure(sn, hdr_exposures[hdr_exposure_idx[dn][sn]]);
+  }
+
+  else {
+    hdr_exposure_idx[dn][sn] = -1;
+    cv::Mat hdr, fusion;
+    hdr_fusion.fusion_hdr(hdr_exposure_image[dn][sn], hdr, fusion, sn == 0);
+
+    auto hdrMsg = sensor_msgs::msg::CompressedImage();
+    hdrMsg.header.stamp = rclcpp::Time(buffer_time);
+    hdrMsg.header.frame_id = "jai_1600_";
+    hdrMsg.header.frame_id += sn == 0 ? "left" : "right";
+    hdrMsg.data.assign(hdr.data, hdr.data + hdr.total() * hdr.elemSize());
+    imagePublishers_hdr[dn][sn]->publish(hdrMsg);
+
+    auto fusionMsg = sensor_msgs::msg::CompressedImage();
+    fusionMsg.header.stamp = rclcpp::Time(buffer_time);
+    fusionMsg.header.frame_id = "jai_1600_";
+    fusionMsg.header.frame_id += sn == 0 ? "left" : "right";
+    fusionMsg.data.assign(fusion.data,
+                          fusion.data + fusion.total() * fusion.elemSize());
+    imagePublishers_fusion[dn][sn]->publish(fusionMsg);
+  }
+}
+
 void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
@@ -159,6 +213,11 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   if (!validateBufferTimestamp(device_num, source_num, buffer_time,
                                current_time))
     return;
+
+  if (hdr_capture_mode) {
+    processHdrImage(device_num, source_num, buffer, buffer_time);
+    return;
+  }
 
   auto imageRosMsg = sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
@@ -221,26 +280,6 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
       compressType = CV_8UC1;
       break;
   }
-
-  cv::Mat image;
-  // auto beginTime = this->systemTimeNano();
-
-  // if (compressType == CV_16UC1 || compressType == CV_16UC3) {
-  //   convertTo16Bit(buffer->GetDataPointer(), buffer->GetImage()->GetWidth(),
-  //                  buffer->GetImage()->GetHeight(), image, basePixelNumber,
-  //                  colorType == "rgb");
-  // } else {
-  //   image =
-  //       cv::Mat(buffer->GetImage()->GetHeight(),
-  //       buffer->GetImage()->GetWidth(),
-  //               compressType, buffer->GetDataPointer());
-  // }
-
-  // std::vector<uint8_t> compressed_data;
-  // std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
-  //                                        95};  // Adjust quality as needed
-  // cv::imencode("." + imageFormat, image, compressed_data,
-  // compression_params);
   imageRosMsg.format = imageFormat;
   imageRosMsg.header.frame_id =
       colorType + "_" + std::to_string(basePixelNumber) + "bit";
