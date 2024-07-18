@@ -26,5 +26,5 @@ class ParamManager {
 
   static std::string getParameterAsString(PvGenParameterArray* params,
                                           const char* paramName);
-  static void printPvResult(PvResult result);
+  static void printPvResult(PvResult result, const char* paramName);
 };

@@ -34,6 +34,3 @@ class StreamManager {
  private:
   static StreamManager staticInstance;
 };
-
-#define BUFFER_COUNT (32)
-#define BUFFER_SIZE (1440 * 1080 * 4)

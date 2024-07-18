@@ -1,3 +1,4 @@
+#include <AppConfig.h>
 #include <Logger.h>
 #include <ParamManager.h>
 #include <PvBuffer.h>
@@ -32,7 +33,6 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     return;
   }
   PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*>(aStream);
-  lDeviceGEV->NegotiatePacketSize(channel);
 
   Debug << "Setting Device Stream Destination" << "\n"
         << "IP: " << lStreamGEV->GetLocalIPAddress().GetAscii() << "\n"
@@ -53,41 +53,11 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     }
   }
 
-  // ParamManager::setParam(lDeviceGEV->GetParameters(), "AcquisitionFrameRate",
-  //                        2.0f);
-
-  // ParamManager::setParamEnum(lDeviceGEV->GetParameters(), "SourceSelector",
-  //                            channel);
-  // ParamManager::setParam(lDeviceGEV->GetParameters(), "ExposureTime",
-  // 30000.0f); ParamManager::setParam(lDeviceGEV->GetParameters(),
-  // "Gamma", 1.0f); ParamManager::setParam(lDeviceGEV->GetParameters(),
-  // "Gain", 8.0f); ParamManager::setParamEnum(lDeviceGEV->GetParameters(),
-  // "BalanceWhiteAuto", 2);
-
-  // ParamManager::setParamEnum(lDeviceGEV->GetParameters(),
-  // "AcquisitionSyncMode",
-  //                            1);
-
-  // /**
-  //  *
-  //  * Packet Dealy in Microseconds (not miliseconds!)
-  //  */
-
-  // ParamManager::setParam(lDeviceGEV->GetParameters(),
-  //                        "GevStreamChannelSelector", channel);
-  // if (channel) {
-  //   ParamManager::setParam(lDeviceGEV->GetParameters(), "GevSCPD", 20000);
-  // }
-
-  // ParamManager::setParam(lStreamGEV->GetParameters(),
-  // "MaximumPendingResends",
-  //                        1000);
-  // ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 5000);
-  // ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 5000);
   ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 1000);
 
-  lDeviceGEV->SetPacketSize(1476, channel);
-  //  if (channel == 0)
+  // lDeviceGEV->SetPacketSize(lStreamGEV->Packet, channel);
+  //   if (channel == 0)
+  lDeviceGEV->NegotiatePacketSize(channel);
   lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(),
                                    lStreamGEV->GetLocalPort(), channel);
 }

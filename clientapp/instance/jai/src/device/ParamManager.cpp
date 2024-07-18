@@ -3,61 +3,56 @@
 
 PvResult ParamManager::setParam(PvGenParameterArray* params,
                                 const char* paramName, const int64_t value) {
-  Debug << "Setting param " << paramName << " to " << value;
   PvResult lResult;
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
   lResult = params->SetIntegerValue(paramName, value);
-  printPvResult(lResult);
+  printPvResult(lResult, paramName);
   return lResult;
 }
 
 PvResult ParamManager::setParam(PvGenParameterArray* params,
                                 const char* paramName, const char* value) {
-  Debug << "Setting param " << paramName << " to " << value;
   PvResult lResult;
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
   lResult = params->SetStringValue(paramName, value);
-  printPvResult(lResult);
+  printPvResult(lResult, paramName);
   return lResult;
 }
 
 PvResult ParamManager::setParam(PvGenParameterArray* params,
                                 const char* paramName, const bool value) {
-  Debug << "Setting param " << paramName << " to " << value;
   PvResult lResult;
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
   lResult = params->SetBooleanValue(paramName, value);
-  printPvResult(lResult);
+  printPvResult(lResult, paramName);
   return lResult;
 }
 
 PvResult ParamManager::setParam(PvGenParameterArray* params,
                                 const char* paramName, const float value) {
-  Debug << "Setting param " << paramName << " to " << value;
   PvResult lResult;
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
   lResult = params->SetFloatValue(paramName, value);
-  printPvResult(lResult);
+  printPvResult(lResult, paramName);
   return lResult;
 }
 
 PvResult ParamManager::setParamEnum(PvGenParameterArray* params,
                                     const char* paramName, const int value) {
-  Debug << "Setting param " << paramName << " to " << value;
   PvResult lResult;
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
   lResult = params->SetEnumValue(paramName, value);
-  printPvResult(lResult);
+  printPvResult(lResult, paramName);
   return lResult;
 }
 
@@ -86,16 +81,15 @@ PvGenType ParamManager::getParamType(PvGenParameterArray* params,
   if (param) {
     PvGenType type;
     param->GetType(type);
-    Debug << "Parameter " << paramName << " found with type " << type;
     return type;
   }
   ErrorLog << "Parameter " << paramName << " not found";
   return PvGenType::PvGenTypeUndefined;
 }
 
-void ParamManager::printPvResult(PvResult result) {
+void ParamManager::printPvResult(PvResult result, const char* paramName) {
   if (!result.IsOK()) {
-    ErrorLog << "PvResult: " << result.GetCodeString().GetAscii();
+    ErrorLog << paramName << " PvResult: " << result.GetCodeString().GetAscii();
   }
 }
 

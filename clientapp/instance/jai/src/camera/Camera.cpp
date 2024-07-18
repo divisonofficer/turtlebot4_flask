@@ -65,13 +65,13 @@ void MultiSpectralCamera::closeStream() {
 }
 
 void MultiSpectralCamera::configureExposure(int source, float exposure) {
-  ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
-                             "SourceSelector", source);
-  double value;
-  dualDevice->getDevice(0)->GetParameters()->GetFloatValue("ExposureTime",
-                                                           value);
+  // ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+  //                            "SourceSelector", source);
+  // // double value;
+  // // dualDevice->getDevice(0)->GetParameters()->GetFloatValue("ExposureTime",
+  // //                                                          value);
   configureSourceRuntime(source, [&](PvGenParameterArray* params) {
-    ParamManager::setParam(params, "ExposureTime", exposure + (float)value);
+    ParamManager::setParam(params, "ExposureTime", exposure);
   });
 }
 
