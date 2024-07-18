@@ -25,8 +25,6 @@ typedef std::vector<PvBuffer*> BufferList;
 
 PV_INIT_SIGNAL_HANDLER();
 
-#define BUFFER_COUNT (16)
-
 //
 // Main function
 //
@@ -99,8 +97,7 @@ int run() {
 
   PV_SAMPLE_INIT();
 
-  Debug << "PvStreamSample:"
-        << "\n\n";
+  Debug << "PvStreamSample:" << "\n\n";
 
   PvString lConnectionID;
   std::string displayName;

@@ -1,25 +1,11 @@
+#pragma once
+
+#include <AppConfig.h>
 #include <Camera.h>
 #include <HdrFusion.h>
+#include <HdrScenario.h>
 #include <PvBuffer.h>
-#include <cv_bridge/cv_bridge.h>
-
-#include <chrono>
-#include <functional>
-#include <map>
-#include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/string.hpp>
-#include <vector>
-
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/camera_info.hpp"
-#include "sensor_msgs/msg/compressed_image.hpp"
-#include "sensor_msgs/msg/image.hpp"
-
-#define DEVICE_LEFT_NAME "jai_1600_left"
-#define DEVICE_RIGHT_NAME "jai_1600_right"
-#define DEVICE_LEFT_ADDRESS "00:0c:df:0a:b9:62"
-#define DEVICE_RIGHT_ADDRESS "00:0c:df:0a:c6:c8"
-
+#include <wrapper.h>
 class JAINode : public rclcpp::Node {
  public:
   JAINode();
@@ -50,13 +36,6 @@ class JAINode : public rclcpp::Node {
   std::vector<std::vector<
       rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
       imagePublishers;
-
-  std::vector<std::vector<
-      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
-      imagePublishers_hdr;
-  std::vector<std::vector<
-      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
-      imagePublishers_fusion;
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr logPublisher;
 
@@ -91,15 +70,18 @@ class JAINode : public rclcpp::Node {
 
   void emitRosDeviceParamMsg(int device_num, int source_num, std::string param);
 
-  bool hdr_capture_mode = false;
-  std::vector<std::vector<std::vector<std::pair<int, uint8_t*> > > >
-      hdr_exposure_image;
+  ////// HDR Scenario
 
-  int hdr_exposure_idx[2][2] = {{-1, -1}, {-1, -1}};
-  int hdr_exposures[4] = {1000, 4000, 16000, 64000};
+  bool hdr_capture_mode = true;
 
-  void processHdrImage(int device_num, int source_num, PvBuffer* buffer,
-                       unsigned long buffer_time);
+  std::vector<std::vector<
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      imagePublishers_hdr;
+  std::vector<std::vector<
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      imagePublishers_fusion;
+
+  HdrScenario hdr_scenario;
 
   std::vector<std::thread> subscription_thread;
 

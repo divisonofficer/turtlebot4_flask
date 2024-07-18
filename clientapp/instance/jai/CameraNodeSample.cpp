@@ -8,8 +8,6 @@
 #include <thread>
 PV_INIT_SIGNAL_HANDLER();
 
-#define BUFFER_COUNT (16)
-
 // Function to detect keyboard event
 char detectKeyboardEvent() {
   struct termios oldSettings, newSettings;

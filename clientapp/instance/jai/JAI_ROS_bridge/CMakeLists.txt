@@ -38,7 +38,7 @@ link_directories(${JAI_LIB_DIR})
 
 add_executable(jai_node src/jai_node.cpp)
 
-add_library(jai_node_lib src/ros/JAINode.cpp ../src/camera/Camera.cpp ../src/acquire/Acquire.cpp ../src/device/Device.cpp
+add_library(jai_node_lib src/ros/JAINode.cpp src/ros/HdrFusion.cpp ../src/camera/Camera.cpp ../src/acquire/Acquire.cpp ../src/device/Device.cpp
 ../src/device/DualDevice.cpp ../src/device/ParamManager.cpp
 ../src/logger/Logger.cpp ../src/stream/Stream.cpp
 ../../../../public/proto/cpp/jai.pb.cc

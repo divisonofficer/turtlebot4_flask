@@ -21,6 +21,24 @@ std::vector<std::string> splitString(std::string str, std::string delimiter) {
 JAINode::JAINode() : Node("jai_node") {
   initDevices();
   createPublishers();
+  for (int i = 0; i < 2; i++)
+    for (int j = 0; j < 2; j++) {
+      hdr_scenario.getCameraExposureCallback[i][j] = [this, i, j]() {
+        return cameras[i]->getExposure(j);
+      };
+      hdr_scenario.setCameraExposureCallback[i][j] = [this, i,
+                                                      j](float exposure) {
+        cameras[i]->configureExposure(j, exposure);
+      };
+      hdr_scenario.publishFusionImageCallback[i][j] =
+          [this, i, j](sensor_msgs::msg::CompressedImage fusion) {
+            imagePublishers_fusion[i][j]->publish(fusion);
+          };
+      hdr_scenario.publishHdrImageCallback[i][j] =
+          [this, i, j](sensor_msgs::msg::CompressedImage hdr) {
+            imagePublishers_hdr[i][j]->publish(hdr);
+          };
+    }
   createServiceClient();
 }
 
@@ -162,47 +180,6 @@ void JAINode::convertTo16Bit(const uint8_t* src, int width, int height,
   }
 }
 
-void JAINode::processHdrImage(int dn, int sn, PvBuffer* buffer,
-                              unsigned long buffer_time) {
-  if (hdr_exposure_image.size() <= dn) {
-    hdr_exposure_image.resize(dn + 1);
-  }
-  if (hdr_exposure_image[dn].size() <= sn) {
-    hdr_exposure_image[dn].resize(sn + 1);
-  }
-
-  if (hdr_exposure_idx[dn][sn] > -1) {
-    hdr_exposure_image[dn][sn].push_back(std::make_pair(
-        hdr_exposures[hdr_exposure_idx[dn][sn]], buffer->GetDataPointer()));
-  }
-
-  if (hdr_exposure_idx[dn][sn] < 3) {
-    hdr_exposure_idx[dn][sn]++;
-    cameras[dn]->configureExposure(sn, hdr_exposures[hdr_exposure_idx[dn][sn]]);
-  }
-
-  else {
-    hdr_exposure_idx[dn][sn] = -1;
-    cv::Mat hdr, fusion;
-    hdr_fusion.fusion_hdr(hdr_exposure_image[dn][sn], hdr, fusion, sn == 0);
-
-    auto hdrMsg = sensor_msgs::msg::CompressedImage();
-    hdrMsg.header.stamp = rclcpp::Time(buffer_time);
-    hdrMsg.header.frame_id = "jai_1600_";
-    hdrMsg.header.frame_id += sn == 0 ? "left" : "right";
-    hdrMsg.data.assign(hdr.data, hdr.data + hdr.total() * hdr.elemSize());
-    imagePublishers_hdr[dn][sn]->publish(hdrMsg);
-
-    auto fusionMsg = sensor_msgs::msg::CompressedImage();
-    fusionMsg.header.stamp = rclcpp::Time(buffer_time);
-    fusionMsg.header.frame_id = "jai_1600_";
-    fusionMsg.header.frame_id += sn == 0 ? "left" : "right";
-    fusionMsg.data.assign(fusion.data,
-                          fusion.data + fusion.total() * fusion.elemSize());
-    imagePublishers_fusion[dn][sn]->publish(fusionMsg);
-  }
-}
-
 void JAINode::emitRosImageMsg(int device_num, int source_num,
                               PvBuffer* buffer) {
   if (!buffer) return;
@@ -215,15 +192,15 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
     return;
 
   if (hdr_capture_mode) {
-    processHdrImage(device_num, source_num, buffer, buffer_time);
+    hdr_scenario.processHdrImage(device_num, source_num, buffer, buffer_time);
     return;
   }
 
-  auto imageRosMsg = sensor_msgs::msg::CompressedImage();
+  sensor_msgs::msg::CompressedImage imageRosMsg =
+      sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
-  auto pixelType = buffer->GetImage()->GetPixelType();
-  auto pixelSize = buffer->GetImage()->GetPixelSize(pixelType);
-
+  PvPixelType pixelType = buffer->GetImage()->GetPixelType();
+  uint32_t pixelSize = buffer->GetImage()->GetPixelSize(pixelType);
   int compressType;
   std::string imageFormat = "jpg";
   std::string colorType;
@@ -305,7 +282,7 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
 
 void JAINode::openStream(int camera_num) {
   if (camera_num < 0) {
-    for (int i = 0; i < cameras.size(); i++) {
+    for (int i = 0; i < int(cameras.size()); i++) {
       openStream(i);
       sleep(1);
     }
@@ -317,7 +294,7 @@ void JAINode::openStream(int camera_num) {
 
 void JAINode::closeStream(int camera_num) {
   if (camera_num < 0) {
-    for (int i = 0; i < cameras.size(); i++) {
+    for (int i = 0; i < int(cameras.size()); i++) {
       closeStream(i);
     }
     return;
@@ -380,6 +357,147 @@ void JAINode::join_thread() {
 }
 
 long long JAINode::systemTimeNano() {
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+             std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                 std::chrono::high_resolution_clock::now())
+                 .time_since_epoch())
+      .count();
+}
+
+HdrScenario::HdrScenario() {
+  hdr_exposure_image.resize(2);
+  for (int i = 0; i < 2; i++) {
+    hdr_exposure_image[i].resize(2);
+    for (int j = 0; j < 2; j++) {
+      hdr_exposure_idx[i][j] = -1;
+      hdr_intensity_error_count[i][j] = 0;
+    }
+  }
+  hdr_exposures[0] = 1000.0f;
+  hdr_exposures[1] = 4000.0f;
+  hdr_exposures[2] = 16000.0f;
+  hdr_exposures[3] = 64000.0f;
+}
+
+void HdrScenario::processHdrImage(int dn, int sn, PvBuffer* buffer,
+                                  unsigned long buffer_time) {
+  if (hdr_intensity_error_count[dn][sn] > 10) {
+    clearImageVector(dn, sn);
+    Info << dn << "/" << sn << "HDR Reset";
+  }
+
+  cv::Mat img(1080, 1440, !sn ? CV_8UC3 : CV_8UC1, buffer->GetDataPointer());
+  if (!validateImageExposure(dn, sn, img)) {
+    return;
+  }
+  if (hdr_exposure_idx[dn][sn] < 3) {
+    configureExposure(dn, sn, hdr_exposures[hdr_exposure_idx[dn][sn] + 1]);
+    hdr_config_timestamp[dn][sn] = this->systemTimeNano();
+  }
+  if (hdr_exposure_idx[dn][sn] > -1) {
+    hdr_exposure_image[dn][sn].push_back(
+        std::make_pair(hdr_exposures[hdr_exposure_idx[dn][sn]], img));
+  }
+  if (hdr_exposure_idx[dn][sn] == 3) {
+    hdr_exposure_idx[dn][sn] = -1;
+    if (!validateImageIntensities(dn, sn)) {
+      clearImageVector(dn, sn);
+      return;
+    }
+    cv::Mat hdr, fusion;
+    hdr_fusion.fusion_hdr(hdr_exposure_image[dn][sn], hdr, fusion, sn == 0);
+
+    if (fusion.rows != 1080 || fusion.cols != 1440) {
+      ErrorLog << dn << "/" << sn << " Fusion Image Size Mismatch"
+               << fusion.rows << "x" << fusion.cols;
+
+    } else {
+      publishFusionImage(dn, sn, fusion, buffer_time);
+      publishHdrImage(dn, sn, hdr, buffer_time);
+    }
+
+    clearImageVector(dn, sn);
+    return;
+  }
+  hdr_exposure_idx[dn][sn]++;
+}
+
+bool HdrScenario::validateImageIntensities(int dn, int sn) {
+  std::vector<double> intensity_mean;
+  for (auto& [exposure, img] : hdr_exposure_image[dn][sn]) {
+    intensity_mean.push_back(cv::mean(img)[0]);
+  }
+
+  if (!(intensity_mean[0] * 1.1 < intensity_mean[1] &&
+        intensity_mean[1] * 1.1 < intensity_mean[2] &&
+        intensity_mean[2] * 1.2 < intensity_mean[3])) {
+    ErrorLog << dn << "/" << sn << "Exposure misaligned" << intensity_mean[0]
+             << " " << intensity_mean[1] << " " << intensity_mean[2] << " "
+             << intensity_mean[3];
+    return false;
+  }
+  return true;
+}
+
+bool HdrScenario::validateImageExposure(int dn, int sn, cv::Mat& img) {
+  if (hdr_exposure_idx[dn][sn] >= 0) {
+    auto intensity_average = cv::mean(img)[0];
+    if (hdr_exposures[hdr_exposure_idx[dn][sn]] != getCameraExposure(dn, sn) ||
+        (hdr_exposure_idx[dn][sn] == 0 && intensity_average > 30.0f) ||
+        (hdr_exposure_idx[dn][sn] > 0 &&
+         intensity_average < hdr_intensity_history[dn][sn] * 1.2f)) {
+      Debug << dn << "/" << sn << "Skip Image because of HDR Config"
+            << hdr_exposure_idx[dn][sn] << " " << getCameraExposure(dn, sn)
+            << " " << intensity_average << " " << hdr_intensity_history[dn][sn];
+      img.release();
+      configureExposure(dn, sn, hdr_exposures[hdr_exposure_idx[dn][sn]]);
+      hdr_intensity_error_count[dn][sn]++;
+
+      return false;
+    }
+    hdr_intensity_history[dn][sn] = intensity_average;
+  }
+  return true;
+}
+
+void HdrScenario::configureExposure(int device, int source, float exposure) {
+  setCameraExposureCallback[device][source](exposure);
+}
+
+float HdrScenario::getCameraExposure(int device, int source) {
+  return getCameraExposureCallback[device][source]();
+}
+
+void HdrScenario::clearImageVector(int dn, int sn) {
+  hdr_exposure_image[dn][sn].clear();
+  hdr_exposure_idx[dn][sn] = -1;
+  hdr_intensity_error_count[dn][sn] = 0;
+}
+
+void HdrScenario::publishFusionImage(int dn, int sn, cv::Mat& fusion,
+                                     unsigned long buffer_time) {
+  auto fusionMsg = sensor_msgs::msg::CompressedImage();
+  fusionMsg.header.stamp = rclcpp::Time(buffer_time);
+  fusionMsg.header.frame_id = "jai_1600_";
+  fusionMsg.header.frame_id += sn == 0 ? "left" : "right";
+  fusionMsg.data.assign(fusion.data,
+                        fusion.data + fusion.total() * fusion.elemSize());
+
+  publishFusionImageCallback[dn][sn](fusionMsg);
+}
+
+void HdrScenario::publishHdrImage(int dn, int sn, cv::Mat& hdr,
+                                  unsigned long buffer_time) {
+  auto hdrMsg = sensor_msgs::msg::CompressedImage();
+
+  hdrMsg.header.stamp = rclcpp::Time(buffer_time);
+  hdrMsg.header.frame_id = "jai_1600_";
+  hdrMsg.header.frame_id += sn == 0 ? "left" : "right";
+  hdrMsg.data.assign(hdr.data, hdr.data + hdr.total() * hdr.elemSize());
+  publishHdrImageCallback[dn][sn](hdrMsg);
+}
+
+uint64_t HdrScenario::systemTimeNano() {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
              std::chrono::time_point_cast<std::chrono::nanoseconds>(
                  std::chrono::high_resolution_clock::now())
