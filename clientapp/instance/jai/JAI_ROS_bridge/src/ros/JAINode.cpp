@@ -146,11 +146,14 @@ bool JAINode::validateBufferTimestamp(int device_num, int source_num,
              << (current_time - buffer_time) / 1000000 % 100000 << "ms behinds";
     cameras[0]->closeStream();
     cameras[1]->closeStream();
-    cameras[0]->timeStampReset();
-    cameras[1]->timeStampReset();
+    cameras[0]->timeStampReset(0, 0);
+    int64_t timestamp_left;
+    cameras[0]->dualDevice->getDevice(0)->GetParameters()->GetIntegerValue(
+        "Timestamp", timestamp_left);
+    cameras[1]->timeStampReset(cameras[0]->timestamp_begin, timestamp_left);
     cameras[0]->openStream();
     cameras[1]->openStream();
-
+    // Debug << "Timestamp Reset" << timestamp_left;
     return false;
   }
 
@@ -197,19 +200,23 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   if (!validateBufferTimestamp(device_num, source_num, buffer_time,
                                current_time))
     return;
+  source_framerate[device_num][source_num] =
+      1000000000.0 / (buffer_time - timestamp_history[device_num][source_num]);
+  timestamp_history[device_num][source_num] = buffer_time;
   if (source_num == 0) {
-    if (timestamp_fastest < 1) {
-      timestamp_fastest = buffer_time;
-      timestamp_fastest_idx = device_num * 2 + source_num;
-    } else {
-      if (timestamp_fastest_idx == device_num * 2 + source_num) {
-        timestamp_fastest = buffer_time;
-        Debug << device_num << "/" << source_num << " Time Diff Reset";
-      } else {
-        double time_diff =
-            (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
-        Debug << device_num << "/" << source_num
-              << " Time Diff : " << time_diff;
+    double timestamp_fastest = timestamp_history[1 - device_num][0];
+    double time_diff =
+        (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
+    Debug << device_num << "/" << source_num << " Time Diff : " << time_diff;
+    if (device_num == 0) {
+      if (abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 &&
+          abs(source_framerate[0][0] - FRAME_RATE) < 0.1) {
+        if (time_diff > 1.0 && time_diff < 500.0 / FRAME_RATE) {
+          triggerDelayPending = 1000.0 / FRAME_RATE - time_diff;
+        } else if (time_diff < 1000.0 / FRAME_RATE &&
+                   1000.0 / FRAME_RATE - time_diff > 1.0) {
+          triggerDelayPending = 0.001;
+        }
       }
     }
   }
@@ -304,9 +311,23 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
     cameras.back()->triggerCallback = [this]() {
       cameras[0]->closeStream();
       cameras[1]->closeStream();
+      if (triggerDelayPending > 0.0f) {
+        sleep(0.1);
+        cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
+            "TriggerSelector", 3);
+        double delay;
+        cameras[0]->dualDevice->getDevice(0)->GetParameters()->GetFloatValue(
+            "TriggerDelay", delay);
+        delay += triggerDelayPending * 1000;
+        while (delay > 1000000.0 / FRAME_RATE) {
+          delay -= 1000000.0 / FRAME_RATE;
+        }
+        cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetFloatValue(
+            "TriggerDelay", delay);
+        triggerDelayPending = 0.0f;
+      }
       cameras[0]->openStream();
       cameras[1]->openStream();
-      Info << "Trigger Synchonized Capture";
     };
   }
 
@@ -487,9 +508,6 @@ bool HdrScenario::validateImageExposure(int dn, int sn, cv::Mat& img) {
         (hdr_exposure_idx[dn][sn] == 0 && intensity_average > 30.0f) ||
         (hdr_exposure_idx[dn][sn] > 0 &&
          intensity_average < hdr_intensity_history[dn][sn] * 1.2f)) {
-      Debug << dn << "/" << sn << "Skip Image because of HDR Config"
-            << hdr_exposure_idx[dn][sn] << " " << getCameraExposure(dn, sn)
-            << " " << intensity_average << " " << hdr_intensity_history[dn][sn];
       img.release();
       configureExposure(dn, sn, hdr_exposures[hdr_exposure_idx[dn][sn]]);
       hdr_intensity_error_count[dn][sn]++;
