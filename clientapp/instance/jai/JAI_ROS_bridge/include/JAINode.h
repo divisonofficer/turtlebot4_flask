@@ -4,6 +4,7 @@
 #include <Camera.h>
 #include <HdrFusion.h>
 #include <HdrScenario.h>
+#include <ParamManager.h>
 #include <PvBuffer.h>
 #include <wrapper.h>
 class JAINode : public rclcpp::Node {
@@ -90,6 +91,8 @@ class JAINode : public rclcpp::Node {
 
   HdrFusion hdr_fusion;
 
-  int64_t timestamp_fastest = 0;
-  int timestamp_fastest_idx;
+  int64_t timestamp_history[2][2];
+
+  double triggerDelayPending;
+  double source_framerate[2][2];
 };

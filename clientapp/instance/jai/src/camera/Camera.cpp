@@ -54,12 +54,16 @@ void MultiSpectralCamera::openStream() {
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
 }
 
-void MultiSpectralCamera::timeStampReset() {
-  auto systemNano = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::time_point_cast<std::chrono::nanoseconds>(
-                            std::chrono::high_resolution_clock::now())
-                            .time_since_epoch())
-                        .count();
+void MultiSpectralCamera::timeStampReset(uint64_t system_time,
+                                         uint64_t camera_time) {
+  auto systemNano =
+      system_time == 0
+          ? std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                    std::chrono::high_resolution_clock::now())
+                    .time_since_epoch())
+                .count()
+          : system_time + camera_time;
   this->timestamp_begin = systemNano;
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
   Info << "TimeStampReset Triggered";
@@ -167,6 +171,7 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
       idx++;
       if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
           idx % MULTIFRAME_COUNT == 0) {
+        for (int j = 0; j < 1000000; j++);
         triggerCallback();
       }
     }

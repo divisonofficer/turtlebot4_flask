@@ -29,9 +29,17 @@ DualDevice::DualDevice(PvString &connection_ID) {
                                2);
   }
 
-  Info << "Setting Channel 0 Parameters";
-  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
+  ParamManager::setParamEnum(rgb_device->GetParameters(),
+                             "PulseGeneratorSelector", 0);
+  ParamManager::setParam(rgb_device->GetParameters(), "PulseGeneratorFrequency",
                          FRAME_RATE);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSelector", 3);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerMode", 1);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSource", 7);
+  ParamManager::setParamEnum(rgb_device->GetParameters(),
+                             "PulseGeneratorClearSource", 1);
+  Info << "Setting Channel 0 Parameters";
+
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 0);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
@@ -58,8 +66,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
                              NIR_PIXEL_ACQUIRE_FORMAT);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionSyncMode",
                              1);
-  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
-                         FRAME_RATE);
+
   /**
    *
    * Packet Dealy in Microseconds (not miliseconds!)
