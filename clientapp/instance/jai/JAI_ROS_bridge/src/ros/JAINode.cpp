@@ -144,6 +144,13 @@ bool JAINode::validateBufferTimestamp(int device_num, int source_num,
   if (current_time - buffer_time > 4000000000) {
     ErrorLog << "Device " << device_num << " Channel " << source_num << " "
              << (current_time - buffer_time) / 1000000 % 100000 << "ms behinds";
+    cameras[0]->closeStream();
+    cameras[1]->closeStream();
+    cameras[0]->timeStampReset();
+    cameras[1]->timeStampReset();
+    cameras[0]->openStream();
+    cameras[1]->openStream();
+
     return false;
   }
 
@@ -190,10 +197,31 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   if (!validateBufferTimestamp(device_num, source_num, buffer_time,
                                current_time))
     return;
+  if (source_num == 0) {
+    if (timestamp_fastest < 1) {
+      timestamp_fastest = buffer_time;
+      timestamp_fastest_idx = device_num * 2 + source_num;
+    } else {
+      if (timestamp_fastest_idx == device_num * 2 + source_num) {
+        timestamp_fastest = buffer_time;
+        Debug << device_num << "/" << source_num << " Time Diff Reset";
+      } else {
+        double time_diff =
+            (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
+        Debug << device_num << "/" << source_num
+              << " Time Diff : " << time_diff;
+      }
+    }
+  }
 
   if (hdr_capture_mode) {
     hdr_scenario.processHdrImage(device_num, source_num, buffer, buffer_time);
     return;
+  }
+
+  if (stereo_exposure_sync && device_num == 1) {
+    float exposure_left = cameras[0]->getExposure(source_num);
+    cameras[1]->configureExposure(source_num, exposure_left);
   }
 
   sensor_msgs::msg::CompressedImage imageRosMsg =
@@ -260,14 +288,27 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   imageRosMsg.format = imageFormat;
   imageRosMsg.header.frame_id =
       colorType + "_" + std::to_string(basePixelNumber) + "bit";
+  int buffer_size = buffer->GetImage()->GetWidth() *
+                    buffer->GetImage()->GetHeight() * pixelSize / 8;
+
   imageRosMsg.data.assign(buffer->GetDataPointer(),
-                          buffer->GetDataPointer() + buffer->GetSize());
+                          buffer->GetDataPointer() + buffer_size);
   imagePublishers[device_num][source_num]->publish(imageRosMsg);
 }
 
 void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
                                       std::string macAddress) {
   cameras.push_back(new MultiSpectralCamera(deviceName, macAddress));
+  cameras.back()->device_idx = camera_num;
+  if (camera_num == 0 && TRIGGER_SYNC) {
+    cameras.back()->triggerCallback = [this]() {
+      cameras[0]->closeStream();
+      cameras[1]->closeStream();
+      cameras[0]->openStream();
+      cameras[1]->openStream();
+      Info << "Trigger Synchonized Capture";
+    };
+  }
 
   Info << "Prepare Callback for Stream 0";
   cameras.back()->addStreamCallback(0, [this, camera_num](PvBuffer* buffer) {
