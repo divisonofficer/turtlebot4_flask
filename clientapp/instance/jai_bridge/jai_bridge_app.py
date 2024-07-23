@@ -30,7 +30,7 @@ import cv2
 from stereo_calibration import JaiStereoCalibration
 
 from rclpy.executors import SingleThreadedExecutor
-
+from stereo_depth import JaiStereoDepth
 
 from jai_pb2 import (
     DeviceInfo,
@@ -391,11 +391,12 @@ class JaiBridgeNode(Node):
                 1,
             )
         ]
+        self.init_videostream_subscriptions()
 
     def init_videostream_subscriptions(self):
-        if not self.start_signal.is_set():
-            return
-        self.start_signal.clear()
+        # if not self.start_signal.is_set():
+        #     return
+        # self.start_signal.clear()
         for device_name, video_stream in self.videoStreams.items():
             if (
                 device_name in self.videoStreams
@@ -535,6 +536,7 @@ class JaiBridgeNode(Node):
 
 node: JaiBridgeNode
 calibration_node: JaiStereoCalibration
+depth_node: JaiStereoDepth
 
 import threading
 
@@ -548,7 +550,7 @@ def spin_node():
         executor.spin()
 
     thread = threading.Thread(
-        target=spin_nodes, args=([node, calibration_node],), daemon=True
+        target=spin_nodes, args=([node, calibration_node, depth_node],), daemon=True
     )
     thread.start()
     return thread
@@ -779,10 +781,19 @@ def set_chessboard_shape():
     return {"status": "success"}
 
 
+@app.route("/stereo/stream/<stream>/<timestamp>")
+def stereo_disparity_videostream(stream, timestamp):
+    return Response(
+        depth_node.__getattribute__(stream).generate_preview(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
     calibration_node = JaiStereoCalibration(socketio)
+    depth_node = JaiStereoDepth()
     spin_thread = spin_node()
 
     node.initialize_camera_config()

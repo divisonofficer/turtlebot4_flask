@@ -13,6 +13,8 @@ import numpy as np
 from calibration_type import CalibrationOutput
 from calibration import Calibration
 
+from stereo_queue import StereoQueue
+
 
 class JaiStereoCalibration(Node):
     msg_right_queue: list[CompressedImage] = []
@@ -58,17 +60,11 @@ class JaiStereoCalibration(Node):
 
         self.msg_right_queue: list[CompressedImage] = []
 
-        self.subscription_jai_left = self.create_subscription(
-            CompressedImage,
+        self.stereo_queue = StereoQueue(
+            self,
             "/jai_1600_left/channel_0",
-            self.jai_callback_left,
-            1,
-        )
-        self.subscription_jai_right = self.create_subscription(
-            CompressedImage,
             "/jai_1600_right/channel_0",
-            self.jai_callback_right,
-            1,
+            self.calibrate,
         )
 
         self.calibration = Calibration()
@@ -169,11 +165,6 @@ class JaiStereoCalibration(Node):
         normalized_depth = cv2.applyColorMap(normalized_depth, cv2.COLORMAP_JET)
         self.video_stream_depth.cv_ndarray_callback(normalized_depth)
 
-    def jai_callback_left(self, msg: CompressedImage):
-        if len(self.msg_left_queue) < 10:
-            self.msg_left_queue.append(msg)
-        self.pop_queue()
-
     def get_chessboard_image(self, idx: int, side: int):
         if len(self.calibration.chessboard_images) > idx:
             img = self.calibration.chessboard_images[idx][side]
@@ -185,30 +176,3 @@ class JaiStereoCalibration(Node):
         output = self.calibration.delete_chessboard_image(idx)
         if output is not None:
             self.emit_calibration_result(output[0], output[1], output[2])
-
-    def jai_callback_right(self, msg: CompressedImage):
-        if len(self.msg_right_queue) < 10:
-            self.msg_right_queue.append(msg)
-        self.pop_queue()
-
-    def pop_queue(self):
-        while len(self.msg_left_queue) > 0 and len(self.msg_right_queue) > 0:
-            msg_left = self.msg_left_queue[0]
-            msg_right = self.msg_right_queue[0]
-            time_left = msg_left.header.stamp.sec + msg_left.header.stamp.nanosec / 1e9
-            time_right = (
-                msg_right.header.stamp.sec + msg_right.header.stamp.nanosec / 1e9
-            )
-            # print(
-            #     f"Queue: {time_left - time_right} {len(self.msg_left_queue)} {len(self.msg_right_queue)}"
-            # )
-            if abs(time_left - time_right) < 0.1:
-                self.msg_left_queue.pop(0)
-                self.msg_right_queue.pop(0)
-                self.calibrate(msg_left, msg_right)
-                break
-
-            if time_left < time_right:
-                self.msg_left_queue.pop(0)
-            else:
-                self.msg_right_queue.pop(0)
