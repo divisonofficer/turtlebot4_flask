@@ -12,7 +12,6 @@ DualDevice::DualDevice(PvString &connection_ID) {
   auto streamManager = StreamManager::getInstance();
   rgb_stream =
       static_cast<PvStreamGEV *>(streamManager->OpenStream(connection_ID));
-  // nir_stream = rgb_stream;
   nir_stream =
       static_cast<PvStreamGEV *>(streamManager->OpenStream(connection_ID));
   StreamManager::getInstance()->ConfigureStream(rgb_device, rgb_stream, 0);
@@ -20,11 +19,19 @@ DualDevice::DualDevice(PvString &connection_ID) {
 
   rgb_device->GetParameters()->ExecuteCommand("AcquisitionStop");
 
-  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
-                         8.0f);
+  if (TRIGGER_SYNC) {
+    ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionMode",
+                               1);
+    ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameCount",
+                           MULTIFRAME_COUNT);
+  } else {
+    ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionMode",
+                               2);
+  }
 
   Info << "Setting Channel 0 Parameters";
-
+  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
+                         FRAME_RATE);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 0);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
@@ -45,15 +52,14 @@ DualDevice::DualDevice(PvString &connection_ID) {
   // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
-  // ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
-  //                            2);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
   //                            PvPixelMono10);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
                              NIR_PIXEL_ACQUIRE_FORMAT);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionSyncMode",
                              1);
-
+  ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameRate",
+                         FRAME_RATE);
   /**
    *
    * Packet Dealy in Microseconds (not miliseconds!)
@@ -62,13 +68,14 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 0);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD", 0);
+  ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
+                         (rand() % 2) * 100);
 
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);
 
   ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
-                         rand() % 10 * 5000 + 3000);
+                         (rand() % 10 + 1) * 5000);
 
   streamManager->CreateStreamBuffers(rgb_device, rgb_stream, &rgb_buffer_list);
   streamManager->CreateStreamBuffers(rgb_device, nir_stream, &nir_buffer_list);

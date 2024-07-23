@@ -53,7 +53,14 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     }
   }
 
-  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 1000);
+  // ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout",
+  // 1000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "MaximumResendGroupSize",
+                         30);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 200);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 2000);
+  ParamManager::setParam(lStreamGEV->GetParameters(),
+                         "MaximumResendRequestRetryByPacket", 5);
 
   // lDeviceGEV->SetPacketSize(lStreamGEV->Packet, channel);
   //   if (channel == 0)

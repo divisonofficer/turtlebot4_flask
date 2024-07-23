@@ -1,4 +1,5 @@
 #include <Acquire.h>
+#include <AppConfig.h>
 #include <Camera.h>
 #include <Device.h>
 #include <Logger.h>
@@ -40,13 +41,7 @@ void MultiSpectralCamera::addStreamCallback(
 }
 
 void MultiSpectralCamera::openStream() {
-  auto systemNano = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        std::chrono::time_point_cast<std::chrono::nanoseconds>(
-                            std::chrono::high_resolution_clock::now())
-                            .time_since_epoch())
-                        .count();
-
-  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
+  // timeStampReset();
 
   //   __int64_t timestampLatchValue = rand() % 10000000;
 
@@ -56,8 +51,18 @@ void MultiSpectralCamera::openStream() {
 
   // this->timestamp_begin = systemNano - timestampLatchValue;
 
-  this->timestamp_begin = systemNano;
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
+}
+
+void MultiSpectralCamera::timeStampReset() {
+  auto systemNano = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                            std::chrono::high_resolution_clock::now())
+                            .time_since_epoch())
+                        .count();
+  this->timestamp_begin = systemNano;
+  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
+  Info << "TimeStampReset Triggered";
 }
 
 void MultiSpectralCamera::closeStream() {
@@ -145,6 +150,7 @@ void MultiSpectralCamera::configureSourceRuntime(
 }
 
 void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
+  int idx = 0;
   while (!flagInterrupted) {
     auto buffer = AcquireManager::getInstance()->AcquireBuffer(
         dualDevice->getStream(streamIndex));
@@ -154,6 +160,15 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
       }
       AcquireManager::getInstance()->queueBuffer(
           dualDevice->getStream(streamIndex), buffer);
+    } else {
+      ErrorLog << device_idx << "/" << streamIndex << " Buffer is null";
+    }
+    if (TRIGGER_SYNC) {
+      idx++;
+      if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
+          idx % MULTIFRAME_COUNT == 0) {
+        triggerCallback();
+      }
     }
   }
   flagInterrupted = false;

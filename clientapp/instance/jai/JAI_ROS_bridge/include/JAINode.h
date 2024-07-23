@@ -72,7 +72,8 @@ class JAINode : public rclcpp::Node {
 
   ////// HDR Scenario
 
-  bool hdr_capture_mode = true;
+  bool hdr_capture_mode = HDR_CAPTURE_MODE;
+  bool stereo_exposure_sync = true;
 
   std::vector<std::vector<
       rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
@@ -88,4 +89,7 @@ class JAINode : public rclcpp::Node {
   int64_t timestamp_begin_ros;
 
   HdrFusion hdr_fusion;
+
+  int64_t timestamp_fastest = 0;
+  int timestamp_fastest_idx;
 };

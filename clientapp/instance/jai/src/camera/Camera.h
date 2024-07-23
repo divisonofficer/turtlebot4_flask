@@ -40,11 +40,16 @@ class MultiSpectralCamera {
 
   std::string deviceName;
 
+  int device_idx;
+
   double holdAutoExposureAndGetValue(bool hold);
+  void timeStampReset();
+  std::function<void()> triggerCallback;
 
  private:
   void initDevice();
   std::function<void(PvBuffer*)> streamCallback[2];
+
   DualDevice* dualDevice;
   std::atomic<bool> flagInterrupted;
   std::string macAddressInit;

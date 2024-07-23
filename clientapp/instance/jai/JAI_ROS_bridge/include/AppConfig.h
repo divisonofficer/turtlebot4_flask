@@ -9,3 +9,9 @@
 
 #define VIZ_PIXEL_ACQUIRE_FORMAT PvPixelRGB8
 #define NIR_PIXEL_ACQUIRE_FORMAT PvPixelMono8
+
+#define FRAME_RATE 10.0f
+
+#define TRIGGER_SYNC true
+#define MULTIFRAME_COUNT 5
+#define HDR_CAPTURE_MODE false
