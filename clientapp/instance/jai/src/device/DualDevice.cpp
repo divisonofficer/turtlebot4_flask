@@ -41,7 +41,10 @@ DualDevice::DualDevice(PvString &connection_ID) {
   Info << "Setting Channel 0 Parameters";
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
-  ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 0);
+  // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
+                         80000.0f);
+
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
   // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
@@ -55,7 +58,9 @@ DualDevice::DualDevice(PvString &connection_ID) {
   Info << "Setting Channel 1 Parameters";
 
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 1);
-  ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 0);
+  // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
+                         80000.0f);
 
   // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
@@ -76,7 +81,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
                          "GevStreamChannelSelector", 0);
 
   ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
-                         (rand() % 2) * 100);
+                         (rand() % 2) * 0);
 
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);
