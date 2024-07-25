@@ -52,6 +52,7 @@ class StereoQueue:
             time_right = (
                 msg_right.header.stamp.sec + msg_right.header.stamp.nanosec / 1e9
             )
+
             if abs(time_left - time_right) < TIMEDIFF:
                 self.msg_left_queue.pop(0)
                 self.msg_right_queue.pop(0)

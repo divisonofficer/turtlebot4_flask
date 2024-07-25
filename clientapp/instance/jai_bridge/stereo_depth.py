@@ -93,8 +93,10 @@ class StereoDepth:
         msg_np = np.frombuffer(msg.data, np.uint8)
         if channel == "nir":
             return msg_np.reshape(1080, 1440)
-        else:
-            return msg_np.reshape(1080, 1440, 3)
+        elif msg_np.shape[0] == 1080 * 1440:
+            img = msg_np.reshape(1080, 1440)
+            return cv2.cvtColor(img, cv2.COLOR_BayerRG2RGB)
+        return msg_np.reshape(1080, 1440, 3)
 
     def process_stereo(
         self, msg_left: CompressedImage, msg_right: CompressedImage, channel
@@ -104,6 +106,9 @@ class StereoDepth:
         if channel == "nir":
             image_left = cv2.cvtColor(image_left, cv2.COLOR_GRAY2BGR)
             image_right = cv2.cvtColor(image_right, cv2.COLOR_GRAY2BGR)
+        else:
+            image_left = cv2.cvtColor(image_left, cv2.COLOR_RGB2BGR)
+            image_right = cv2.cvtColor(image_right, cv2.COLOR_RGB2BGR)
 
         left_rect, right_rect = self.rectify_pair(image_left, image_right)
 
@@ -122,11 +127,18 @@ class StereoDepth:
 
         disparity = flow_up.cpu().numpy().squeeze()
         disparity_color = self.dispairty_visualization(disparity)
-
+        disparity_color = cv2.resize(disparity_color, (1440, 1080))
         self.signal.clear()
 
+        self.disparity_videostream(left_rect, right_rect, disparity_color)
+
+    def disparity_videostream(self, left_rect, right_rect, disparity_color):
+        concatenated_img = np.concatenate(
+            (left_rect, right_rect, disparity_color), axis=1
+        )
         if self.stream_disparity_viz is not None:
-            self.stream_disparity_viz.cv_ndarray_callback(disparity_color)
+            print(concatenated_img.shape)
+            self.stream_disparity_viz.cv_ndarray_callback(concatenated_img)
 
     def dispairty_visualization(self, disparity: np.ndarray):
         disparity = np.clip(disparity, 0, 255).astype(np.uint8)
