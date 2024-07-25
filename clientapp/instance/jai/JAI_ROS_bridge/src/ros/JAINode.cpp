@@ -209,10 +209,13 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
         (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
     Debug << device_num << "/" << source_num << " Time Diff : " << time_diff;
     if (device_num == 0) {
-      if (abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 &&
+      Debug << "Frame Rate : " << source_framerate[0][0] << " "
+            << source_framerate[1][0];
+      if ((abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 ||
+           (abs(source_framerate[0][0] - source_framerate[1][0] * 2) < 0.1)) &&
           abs(source_framerate[0][0] - FRAME_RATE) < 0.1) {
         if (time_diff > 1.0 && time_diff < 500.0 / FRAME_RATE) {
-          triggerDelayPending = 1000.0 / FRAME_RATE - time_diff;
+          triggerDelayPending = time_diff;
         } else if (time_diff < 1000.0 / FRAME_RATE &&
                    1000.0 / FRAME_RATE - time_diff > 1.0) {
           triggerDelayPending = 0.001;
@@ -313,16 +316,21 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
       cameras[1]->closeStream();
       if (triggerDelayPending > 0.0f) {
         sleep(0.1);
-        cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
+        Info << "Adjust Stereo Pulse Delay" << triggerDelayPending;
+        cameras[1]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
             "TriggerSelector", 3);
         double delay;
-        cameras[0]->dualDevice->getDevice(0)->GetParameters()->GetFloatValue(
+        cameras[1]->dualDevice->getDevice(0)->GetParameters()->GetFloatValue(
             "TriggerDelay", delay);
-        delay += triggerDelayPending * 1000;
-        while (delay > 1000000.0 / FRAME_RATE) {
-          delay -= 1000000.0 / FRAME_RATE;
+        if (triggerDelayPending < 0.01f) {
+          delay = 0.0f;
         }
-        cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetFloatValue(
+        delay += triggerDelayPending * 1000;
+        auto max_delay = 500000.0 / FRAME_RATE;
+        while (delay > max_delay) {
+          delay -= max_delay;
+        }
+        cameras[1]->dualDevice->getDevice(0)->GetParameters()->SetFloatValue(
             "TriggerDelay", delay);
         triggerDelayPending = 0.0f;
       }
