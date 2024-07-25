@@ -4,7 +4,7 @@
 #define DEVICE_RIGHT_NAME "jai_1600_right"
 #define DEVICE_LEFT_ADDRESS "00:0c:df:0a:b9:62"
 #define DEVICE_RIGHT_ADDRESS "00:0c:df:0a:c6:c8"
-#define BUFFER_COUNT (16)
+#define BUFFER_COUNT (32)
 #define BUFFER_SIZE (1440 * 1080)
 
 #define VIZ_PIXEL_ACQUIRE_FORMAT PvPixelBayerRG8

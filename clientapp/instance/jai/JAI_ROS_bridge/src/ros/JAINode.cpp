@@ -218,7 +218,7 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
           triggerDelayPending = time_diff;
         } else if (time_diff < 1000.0 / FRAME_RATE &&
                    1000.0 / FRAME_RATE - time_diff > 1.0) {
-          triggerDelayPending = 0.001;
+          triggerDelayPending = 1000.0 / FRAME_RATE - time_diff;
         }
       }
     }
@@ -227,11 +227,6 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   if (hdr_capture_mode) {
     hdr_scenario.processHdrImage(device_num, source_num, buffer, buffer_time);
     return;
-  }
-
-  if (stereo_exposure_sync && device_num == 1) {
-    float exposure_left = cameras[0]->getExposure(source_num);
-    cameras[1]->configureExposure(source_num, exposure_left);
   }
 
   sensor_msgs::msg::CompressedImage imageRosMsg =
@@ -324,9 +319,11 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
             "TriggerDelay", delay);
         if (triggerDelayPending < 0.01f) {
           delay = 0.0f;
+        } else {
+          triggerDelayPending -= 0.1f;
         }
         delay += triggerDelayPending * 1000;
-        auto max_delay = 500000.0 / FRAME_RATE;
+        auto max_delay = 1000000.0 / FRAME_RATE;
         while (delay > max_delay) {
           delay -= max_delay;
         }
@@ -334,9 +331,25 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
             "TriggerDelay", delay);
         triggerDelayPending = 0.0f;
       }
+
+      if (stereo_exposure_sync) {
+        float exposure_left = cameras[0]->getExposure(0);
+        cameras[1]->configureExposure(0, exposure_left);
+        exposure_left = cameras[0]->getExposure(1);
+        cameras[1]->configureExposure(1, exposure_left);
+      }
+
+      cameras[0]->openStream();
+      cameras[1]->openStream();
+      cameras[0]->closeStream();
+      cameras[1]->closeStream();
       cameras[0]->openStream();
       cameras[1]->openStream();
     };
+  }
+
+  if (camera_num == 1 && stereo_exposure_sync) {
+    cameras.back()->holdAutoExposureAndGetValue(true);
   }
 
   Info << "Prepare Callback for Stream 0";
