@@ -1,7 +1,10 @@
-import { HStack, VStack } from "@chakra-ui/react";
+import { HStack, Switch, VStack } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 import { VideoStream } from "../../design/other/video";
-import { H4 } from "../../design/text/textsystem";
+import { Body3, H3, H4 } from "../../design/text/textsystem";
+import { observer } from "mobx-react";
+import { jaiStore } from "../../stores/JaiStore";
+import { useEffect } from "react";
 
 const DepthVideoStream = ({ url }: { url: string }) => {
   return (
@@ -25,9 +28,35 @@ const DepthVideoStream = ({ url }: { url: string }) => {
   );
 };
 
+const StorageEnableButton = observer(() => {
+  return (
+    <VStack>
+      <HStack>
+        <H3>Storage</H3>
+        <Switch
+          isChecked={jaiStore.depth_storage_id ? true : false}
+          onChange={(e) => {
+            if (e.target.checked) {
+              jaiStore.fetchEnableStereoStorage();
+            } else {
+              jaiStore.fetchDisableStereoStorage();
+            }
+          }}
+        />
+        <Body3>{jaiStore.depth_storage_id}</Body3>
+      </HStack>
+    </VStack>
+  );
+});
+
 export const DepthViewPage = () => {
+  useEffect(() => {
+    jaiStore.fetchGetStereoNodeStatus();
+  }, []);
+
   return (
     <PageRoot title="Depth">
+      <StorageEnableButton />
       <DepthVideoStream url="/jai/stereo/stream/stream_disparity_viz" />
       <DepthVideoStream url="/jai/stereo/stream/stream_disparity_nir" />
     </PageRoot>

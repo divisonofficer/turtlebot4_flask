@@ -44,6 +44,8 @@ class JaiStore {
     length: 0,
   };
 
+  depth_storage_id: string | undefined = undefined;
+
   constructor() {
     makeAutoObservable(this);
     this.fetchJaiDeviceInfo();
@@ -193,6 +195,30 @@ class JaiStore {
     httpGet(`/jai/calibrate/storage/all`)
       .onSuccess((data: CalibrationMeta[]) => {
         this.calibrationList = data;
+      })
+      .fetch();
+  };
+
+  fetchGetStereoNodeStatus = () => {
+    httpGet(`/jai/stereo`)
+      .onSuccess((data: { storage_id: string }) => {
+        this.depth_storage_id = data.storage_id;
+      })
+      .fetch();
+  };
+
+  fetchEnableStereoStorage = () => {
+    httpPost(`/jai/stereo/storage/enable`, {})
+      .onSuccess((data: { storage_id: string }) => {
+        this.depth_storage_id = data.storage_id;
+      })
+      .fetch();
+  };
+
+  fetchDisableStereoStorage = () => {
+    httpPost(`/jai/stereo/storage/disable`)
+      .onSuccess((data: { storage_id: string }) => {
+        this.depth_storage_id = data.storage_id;
       })
       .fetch();
   };
