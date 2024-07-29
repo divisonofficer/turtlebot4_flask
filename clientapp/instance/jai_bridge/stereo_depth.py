@@ -4,7 +4,7 @@ sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 
 from typing import Optional
 from rclpy.node import Node
-from stereo_queue import StereoQueue
+from stereo_queue import StereoQueue, StereoItemMerged
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
 from modules.RAFT_Stereo.core.utils.utils import InputPadder
 import numpy as np
@@ -14,6 +14,10 @@ from cv_bridge import CvBridge
 import torch
 import threading
 from videostream import VideoStream
+from stereo_storage import StereoCaptureItem, StereoMultiItem, StereoStorage
+import time
+
+COLORMAP = cv2.COLORMAP_VIRIDIS
 
 
 class CameraIntrinsic:
@@ -70,24 +74,29 @@ import traceback
 class StereoDepth:
     stream_disparity_viz: Optional[VideoStream]
 
-    def __init__(self, model: RAFTStereo):
+    def __init__(
+        self, model: RAFTStereo, signal_on: threading.Event, signal_off: threading.Event
+    ):
         self.model = model
         self.parameter = StereoCameraParameters("instance/jai_bridge/calibration.npz")
-        self.signal = threading.Event()
+        self.signal_on = signal_on
+        self.signal_off = signal_off
 
     def raft_stereo(
         self, msg_left: CompressedImage, msg_right: CompressedImage, channel
     ):
-        if self.signal.is_set():
+        if self.signal_on.is_set():
             return
-
+        result = None
+        print("raft_stereo", channel)
         try:
-            self.signal.set()
-            self.process_stereo(msg_left, msg_right, channel)
+            self.signal_on.set()
+            result = self.process_stereo(msg_left, msg_right, channel)
         except Exception as e:
             traceback.print_exc()
         finally:
-            self.signal.clear()
+            self.signal_off.clear()
+        return result
 
     def decoding_msg(self, msg: CompressedImage, channel):
         msg_np = np.frombuffer(msg.data, np.uint8)
@@ -106,9 +115,6 @@ class StereoDepth:
         if channel == "nir":
             image_left = cv2.cvtColor(image_left, cv2.COLOR_GRAY2BGR)
             image_right = cv2.cvtColor(image_right, cv2.COLOR_GRAY2BGR)
-        else:
-            image_left = cv2.cvtColor(image_left, cv2.COLOR_RGB2BGR)
-            image_right = cv2.cvtColor(image_right, cv2.COLOR_RGB2BGR)
 
         left_rect, right_rect = self.rectify_pair(image_left, image_right)
 
@@ -126,23 +132,25 @@ class StereoDepth:
             flow_up = -padder.unpad(flow_up).squeeze()
 
         disparity = flow_up.cpu().numpy().squeeze()
+        disparity = disparity * image_left.shape[1] / 1440
+        disparity = cv2.resize(disparity, (1440, 1080))
         disparity_color = self.dispairty_visualization(disparity)
         disparity_color = cv2.resize(disparity_color, (1440, 1080))
-        self.signal.clear()
 
         self.disparity_videostream(left_rect, right_rect, disparity_color)
+
+        return left_rect, right_rect, disparity, disparity_color
 
     def disparity_videostream(self, left_rect, right_rect, disparity_color):
         concatenated_img = np.concatenate(
             (left_rect, right_rect, disparity_color), axis=1
         )
         if self.stream_disparity_viz is not None:
-            print(concatenated_img.shape)
             self.stream_disparity_viz.cv_ndarray_callback(concatenated_img)
 
     def dispairty_visualization(self, disparity: np.ndarray):
         disparity = np.clip(disparity, 0, 255).astype(np.uint8)
-        disparity = cv2.applyColorMap(disparity, cv2.COLORMAP_JET)
+        disparity = cv2.applyColorMap(disparity, COLORMAP)
         return disparity
 
     def rectify_pair(self, left: np.ndarray, right: np.ndarray):
@@ -169,21 +177,120 @@ class JaiStereoDepth(Node):
     def __init__(self):
         super().__init__("jai_stereo_depth")  # type: ignore
 
-        self.stereo_queue_viz = StereoQueue(
+        self.stereo_queue_merged = StereoQueue[StereoItemMerged](
+            self,
+            None,
+            None,
+            self.stereoMergedCallback,
+        )
+
+        self.stereo_queue_viz = StereoQueue[CompressedImage](
             self,
             "/jai_1600_left/channel_0",
             "/jai_1600_right/channel_0",
-            lambda l, r: self.stereo_callback(l, r, "viz"),
+            lambda l, r: self.stereo_queue_merged.callback_left(StereoItemMerged(l, r)),
         )
 
-        self.stereo_queue_nir = StereoQueue(
+        self.stereo_queue_nir = StereoQueue[CompressedImage](
             self,
             "/jai_1600_left/channel_1",
             "/jai_1600_right/channel_1",
-            lambda l, r: self.stereo_callback(l, r, "nir"),
+            lambda l, r: self.stereo_queue_merged.callback_right(
+                StereoItemMerged(l, r)
+            ),
         )
 
         self.__init_raft_stereo()
+
+        self.stereo_storage_id: Optional[str] = None
+        self.stereo_storage = StereoStorage()
+        self.signal_merged = threading.Event()
+
+        self.color_bar = cv2.applyColorMap(
+            np.repeat(
+                np.linspace(0, 255, 2160, dtype=np.uint8).reshape(2160, 1), 64, axis=1
+            ),
+            COLORMAP,
+        )
+
+        cv2.putText(
+            self.color_bar,
+            "0",
+            (32, 32),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            self.color_bar,
+            "0",
+            (2160 - 32, 32),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+
+    def stereoMergedCallback(self, rgb: StereoItemMerged, nir: StereoItemMerged):
+        try:
+            if self.signal_merged.is_set():
+                raise Exception("stereoMergedCallback is already running")
+            self.signal_merged.set()
+            timestamp = rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
+            result_viz = self.stereo_callback(rgb.left, rgb.right, "viz")
+            result_nir = self.stereo_callback(nir.left, nir.right, "nir")
+            if self.stereo_storage_id is not None:
+                stereo_multi_item = self.store_stereo_item(
+                    timestamp, result_viz, result_nir
+                )
+                if stereo_multi_item is not None:
+                    self.stereo_storage.store_item(
+                        self.stereo_storage_id, stereo_multi_item
+                    )
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            self.signal_merged.clear()
+            del rgb
+            del nir
+
+    def node_status(self):
+        # todo : framerate, queue status, stored_count, left-right sync...
+        return {
+            "storage_id": self.stereo_storage_id,
+            "queue_status": {
+                "viz": self.stereo_queue_viz.queue_status(),
+                "nir": self.stereo_queue_nir.queue_status(),
+                "merged": self.stereo_queue_merged.queue_status(),
+            },
+        }
+
+    def enable_stereo_storage(self, id: Optional[str] = None):
+        self.stereo_storage_id = id
+        if id is None:
+            self.stereo_storage_id = time.strftime("%m-%d-%H-%M-%S")
+
+    def disable_stereo_storage(self):
+        self.stereo_storage_id = None
+
+    def store_stereo_item(self, timestamp: float, result_viz, result_nir):
+        if result_viz is None or result_nir is None:
+            return None
+        result_viz = StereoCaptureItem(*result_viz)
+        result_nir = StereoCaptureItem(*result_nir)
+
+        merged_viz = np.concatenate(
+            (result_viz.left, result_viz.right, result_viz.disparity_color), axis=1
+        )
+        merged_nir = np.concatenate(
+            (result_nir.left, result_nir.right, result_nir.disparity_color), axis=1
+        )
+        merged = np.concatenate((merged_viz, merged_nir), axis=0)
+        merged = np.concatenate((merged, self.color_bar), axis=1)
+        return StereoMultiItem(timestamp, result_viz, result_nir, merged)
 
     def __init_raft_stereo(self):
         class Args:
@@ -210,9 +317,15 @@ class JaiStereoDepth(Node):
         self.raft_stereo = model.module
         self.raft_stereo.cuda()
         self.raft_stereo.eval()
-
-        self.stereo_depth_viz = StereoDepth(self.raft_stereo)
-        self.stereo_depth_nir = StereoDepth(self.raft_stereo)
+        self.signal_viz = threading.Event()
+        self.signal_nir = threading.Event()
+        self.signal_nir.set()
+        self.stereo_depth_viz = StereoDepth(
+            self.raft_stereo, self.signal_viz, self.signal_nir
+        )
+        self.stereo_depth_nir = StereoDepth(
+            self.raft_stereo, self.signal_nir, self.signal_viz
+        )
 
         self.stream_disparity_viz = VideoStream()
         self.stream_disparity_nir = VideoStream()
@@ -223,6 +336,6 @@ class JaiStereoDepth(Node):
         self, msg_left: CompressedImage, msg_right: CompressedImage, channel
     ):
         if channel == "nir":
-            self.stereo_depth_nir.raft_stereo(msg_left, msg_right, channel)
+            return self.stereo_depth_nir.raft_stereo(msg_left, msg_right, channel)
         else:
-            self.stereo_depth_viz.raft_stereo(msg_left, msg_right, channel)
+            return self.stereo_depth_viz.raft_stereo(msg_left, msg_right, channel)
