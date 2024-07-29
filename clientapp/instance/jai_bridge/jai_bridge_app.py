@@ -789,6 +789,24 @@ def stereo_disparity_videostream(stream, timestamp):
     )
 
 
+@app.route("/stereo", methods=["GET"])
+def stereo_status():
+    return depth_node.node_status()
+
+
+@app.route("/stereo/storage/enable", methods=["POST"])
+def enable_stereo_storage():
+    storage_id = request.json.get("id") if request.json else None
+    depth_node.enable_stereo_storage(storage_id)
+    return depth_node.node_status()
+
+
+@app.route("/stereo/storage/disable", methods=["POST"])
+def disable_stereo_storage():
+    depth_node.disable_stereo_storage()
+    return depth_node.node_status()
+
+
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
