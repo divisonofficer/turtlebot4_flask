@@ -1,9 +1,11 @@
 #pragma once
 #include <cv_bridge/cv_bridge.h>
+#include <string.h>
 
 #include <chrono>
 #include <functional>
 #include <map>
+#include <queue>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <vector>

@@ -70,7 +70,11 @@ class JAINode : public rclcpp::Node {
   void emitRosImageMsg(int device_num, int source_num, PvBuffer* buffer);
 
   void emitRosImageMsgPublish(int device_num, int source_num, PvBuffer* buffer,
-                              double buffer_tim);
+                              uint64_t buffer_tim);
+  void emitRosImageMsgPublishBufferBytes(int device_num, int source_num,
+                                         uint8_t* buffer, uint64_t buffer_time,
+                                         uint32_t buffer_size,
+                                         std::string frame_id);
 
   void emitRosDeviceParamMsg(int device_num, int source_num, std::string param);
 
@@ -99,5 +103,5 @@ class JAINode : public rclcpp::Node {
   double triggerDelayPending;
   double source_framerate[2][2];
 
-  std::vector<std::pair<double, PvBuffer*>> buffer_queue[2][2];
+  std::queue<std::pair<double, uint8_t*>> buffer_queue[2][2];
 };

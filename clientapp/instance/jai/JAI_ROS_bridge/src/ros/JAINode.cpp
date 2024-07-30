@@ -228,18 +228,80 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
     hdr_scenario.processHdrImage(device_num, source_num, buffer, buffer_time);
     return;
   }
-  emitRosImageMsgPublish(device_num, source_num, buffer, buffer_time);
+
+  uint8_t* buffer_data = (uint8_t*)calloc(1440 * 1080, sizeof(uint8_t));
+  memcpy(buffer_data, buffer->GetDataPointer(), 1440 * 1080 * sizeof(uint8_t));
+  buffer_queue[device_num][source_num].push(
+      std::make_pair(buffer_time, buffer_data));
+
+  if (device_num == 0 && source_num == 0) {
+    for (int i = 0; i < 2; i++) {
+      while (buffer_queue[i][0].size() && buffer_queue[i][1].size() &&
+             abs(buffer_queue[i][0].front().first -
+                 buffer_queue[i][1].front().first) > 10000000) {
+        if (buffer_queue[i][0].front().first <
+            buffer_queue[i][1].front().first) {
+          free(buffer_queue[i][0].front().second);
+          buffer_queue[i][0].pop();
+        } else {
+          free(buffer_queue[i][1].front().second);
+          buffer_queue[i][1].pop();
+        }
+      }
+    }
+    while (buffer_queue[0][0].size() && buffer_queue[0][1].size() &&
+           buffer_queue[1][0].size() && buffer_queue[1][1].size()) {
+      if (abs(buffer_queue[0][0].front().first -
+              buffer_queue[1][0].front().first) > 10000000) {
+        if (buffer_queue[0][0].front().first <
+            buffer_queue[1][0].front().first) {
+          free(buffer_queue[0][0].front().second);
+          buffer_queue[0][0].pop();
+          free(buffer_queue[0][1].front().second);
+          buffer_queue[0][1].pop();
+        } else {
+          free(buffer_queue[1][0].front().second);
+          buffer_queue[1][0].pop();
+          free(buffer_queue[1][1].front().second);
+          buffer_queue[1][1].pop();
+        }
+        continue;
+      }
+      for (int i = 0; i < 4; i++) {
+        int sn = i / 2, dn = i % 2;
+        emitRosImageMsgPublishBufferBytes(
+            dn, sn, buffer_queue[dn][sn].front().second,
+            buffer_queue[dn][sn].front().first, 1440 * 1080,
+            "jai_1600_" + dn == 0 ? "left" : "right");
+        free(buffer_queue[dn][sn].front().second);
+        buffer_queue[dn][sn].pop();
+      }
+    }
+  }
+
+  // emitRosImageMsgPublish(device_num, source_num, buffer, buffer_time);
 }
 
-void JAINode::emitRosImageMsgPublish(int device_num, int source_num,
-                                     PvBuffer* buffer, double buffer_time) {
+void JAINode::emitRosImageMsgPublishBufferBytes(int dn, int sn, uint8_t* buffer,
+                                                uint64_t buffer_time,
+                                                uint32_t buffer_size,
+                                                std::string frame_id) {
   sensor_msgs::msg::CompressedImage imageRosMsg =
       sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
+  std::string imageFormat = "jpg";
+  imageRosMsg.format = imageFormat;
+  imageRosMsg.header.frame_id = frame_id;
+  imageRosMsg.data.assign(buffer, buffer + buffer_size);
+  imagePublishers[dn][sn]->publish(imageRosMsg);
+}
+
+void JAINode::emitRosImageMsgPublish(int device_num, int source_num,
+                                     PvBuffer* buffer, uint64_t buffer_time) {
   PvPixelType pixelType = buffer->GetImage()->GetPixelType();
   uint32_t pixelSize = buffer->GetImage()->GetPixelSize(pixelType);
   int compressType;
-  std::string imageFormat = "jpg";
+
   std::string colorType;
   int basePixelNumber = 8;
   switch (pixelType) {
@@ -294,15 +356,14 @@ void JAINode::emitRosImageMsgPublish(int device_num, int source_num,
       compressType = CV_8UC1;
       break;
   }
-  imageRosMsg.format = imageFormat;
-  imageRosMsg.header.frame_id =
+
+  std::string frame_id =
       colorType + "_" + std::to_string(basePixelNumber) + "bit";
   int buffer_size = buffer->GetImage()->GetWidth() *
                     buffer->GetImage()->GetHeight() * pixelSize / 8;
-
-  imageRosMsg.data.assign(buffer->GetDataPointer(),
-                          buffer->GetDataPointer() + buffer_size);
-  imagePublishers[device_num][source_num]->publish(imageRosMsg);
+  emitRosImageMsgPublishBufferBytes(device_num, source_num,
+                                    buffer->GetDataPointer(), buffer_time,
+                                    buffer_size, frame_id);
 }
 
 void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
