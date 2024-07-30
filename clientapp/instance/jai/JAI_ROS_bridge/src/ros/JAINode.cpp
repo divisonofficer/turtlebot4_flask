@@ -203,11 +203,11 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   source_framerate[device_num][source_num] =
       1000000000.0 / (buffer_time - timestamp_history[device_num][source_num]);
   timestamp_history[device_num][source_num] = buffer_time;
+  double timestamp_fastest = timestamp_history[1 - device_num][0];
+  double time_diff =
+      (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
+  Debug << device_num << "/" << source_num << " Time Diff : " << time_diff;
   if (source_num == 0) {
-    double timestamp_fastest = timestamp_history[1 - device_num][0];
-    double time_diff =
-        (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
-    Debug << device_num << "/" << source_num << " Time Diff : " << time_diff;
     if (device_num == 0) {
       Debug << "Frame Rate : " << source_framerate[0][0] << " "
             << source_framerate[1][0];
@@ -228,7 +228,11 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
     hdr_scenario.processHdrImage(device_num, source_num, buffer, buffer_time);
     return;
   }
+  emitRosImageMsgPublish(device_num, source_num, buffer, buffer_time);
+}
 
+void JAINode::emitRosImageMsgPublish(int device_num, int source_num,
+                                     PvBuffer* buffer, double buffer_time) {
   sensor_msgs::msg::CompressedImage imageRosMsg =
       sensor_msgs::msg::CompressedImage();
   imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
@@ -310,7 +314,7 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
       cameras[0]->closeStream();
       cameras[1]->closeStream();
       if (triggerDelayPending > 0.0f) {
-        sleep(0.1);
+        // sleep(0.1);
         Info << "Adjust Stereo Pulse Delay" << triggerDelayPending;
         cameras[1]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
             "TriggerSelector", 3);
@@ -339,10 +343,10 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
         cameras[1]->configureExposure(1, exposure_left);
       }
 
-      cameras[0]->openStream();
-      cameras[1]->openStream();
-      cameras[0]->closeStream();
-      cameras[1]->closeStream();
+      // cameras[0]->openStream();
+      // cameras[1]->openStream();
+      // cameras[0]->closeStream();
+      // cameras[1]->closeStream();
       cameras[0]->openStream();
       cameras[1]->openStream();
     };
