@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 
-from typing import Optional
+from typing import Optional, Union
 from rclpy.node import Node
 from stereo_queue import StereoQueue, StereoItemMerged
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
@@ -83,19 +83,21 @@ class StereoDepth:
         self.signal_off = signal_off
 
     def raft_stereo(
-        self, msg_left: CompressedImage, msg_right: CompressedImage, channel
+        self, image_left: cv2.typing.MatLike, image_right: cv2.typing.MatLike, channel
     ):
         if self.signal_on.is_set():
+            print("raft_stereo: processing is already running")
             return
         result = None
-        print("raft_stereo", channel)
+        time_begin = time.time()
         try:
             self.signal_on.set()
-            result = self.process_stereo(msg_left, msg_right, channel)
+            result = self.process_stereo(image_left, image_right, channel)
         except Exception as e:
             traceback.print_exc()
         finally:
             self.signal_off.clear()
+        print("raft_stereo", channel, time.time() - time_begin)
         return result
 
     def decoding_msg(self, msg: CompressedImage, channel):
@@ -108,19 +110,33 @@ class StereoDepth:
         return msg_np.reshape(1080, 1440, 3)
 
     def process_stereo(
-        self, msg_left: CompressedImage, msg_right: CompressedImage, channel
+        self,
+        image_left: cv2.typing.MatLike,
+        image_right: cv2.typing.MatLike,
+        channel,
+        scale=1,
     ):
-        image_left = self.decoding_msg(msg_left, channel)
-        image_right = self.decoding_msg(msg_right, channel)
         if channel == "nir":
             image_left = cv2.cvtColor(image_left, cv2.COLOR_GRAY2BGR)
             image_right = cv2.cvtColor(image_right, cv2.COLOR_GRAY2BGR)
 
         left_rect, right_rect = self.rectify_pair(image_left, image_right)
+        disparity, disparity_color = self.process_stereo_disparity(
+            left_rect, right_rect, scale
+        )
+        return left_rect, right_rect, disparity, disparity_color
 
-        left_rect_tensor = self.tensorfy(left_rect, 0.5)
-        right_rect_tensor = self.tensorfy(right_rect, 0.5)
+    def process_stereo_disparity(self, left_rect, right_rect, scale):
+        left_rect_tensor = self.tensorfy(left_rect, scale)
+        right_rect_tensor = self.tensorfy(right_rect, scale)
 
+        disparity = self.raft_forward(left_rect_tensor, right_rect_tensor)
+        if scale != 1:
+            disparity = cv2.resize(disparity / scale, (1440, 1080))
+        disparity_color = self.dispairty_visualization(disparity)
+        return disparity, disparity_color
+
+    def raft_forward(self, left_rect_tensor, right_rect_tensor):
         with torch.no_grad():
             padder = InputPadder(left_rect_tensor.shape, divis_by=32)
             left_rect_tensor, right_rect_tensor = padder.pad(
@@ -130,16 +146,7 @@ class StereoDepth:
                 left_rect_tensor, right_rect_tensor, iters=7, test_mode=True
             )
             flow_up = -padder.unpad(flow_up).squeeze()
-
-        disparity = flow_up.cpu().numpy().squeeze()
-        disparity = disparity * image_left.shape[1] / 1440
-        disparity = cv2.resize(disparity, (1440, 1080))
-        disparity_color = self.dispairty_visualization(disparity)
-        disparity_color = cv2.resize(disparity_color, (1440, 1080))
-
-        self.disparity_videostream(left_rect, right_rect, disparity_color)
-
-        return left_rect, right_rect, disparity, disparity_color
+        return flow_up.cpu().numpy().squeeze()
 
     def disparity_videostream(self, left_rect, right_rect, disparity_color):
         concatenated_img = np.concatenate(
@@ -177,27 +184,34 @@ class JaiStereoDepth(Node):
     def __init__(self):
         super().__init__("jai_stereo_depth")  # type: ignore
 
-        self.stereo_queue_merged = StereoQueue[StereoItemMerged](
-            self,
-            None,
-            None,
-            self.stereoMergedCallback,
-        )
+        # self.stereo_queue_merged = StereoQueue[StereoItemMerged](
+        #     self,
+        #     None,
+        #     None,
+        #     self.stereoMergedCallback,
+        # )
 
-        self.stereo_queue_viz = StereoQueue[CompressedImage](
-            self,
-            "/jai_1600_left/channel_0",
-            "/jai_1600_right/channel_0",
-            lambda l, r: self.stereo_queue_merged.callback_left(StereoItemMerged(l, r)),
-        )
+        # self.stereo_queue_viz = StereoQueue[CompressedImage](
+        #     self,
+        #     "/jai_1600_left/channel_0",
+        #     "/jai_1600_right/channel_0",
+        #     lambda l, r: self.stereo_queue_merged.callback_left(StereoItemMerged(l, r)),
+        # )
 
-        self.stereo_queue_nir = StereoQueue[CompressedImage](
-            self,
-            "/jai_1600_left/channel_1",
-            "/jai_1600_right/channel_1",
-            lambda l, r: self.stereo_queue_merged.callback_right(
-                StereoItemMerged(l, r)
-            ),
+        # self.stereo_queue_nir = StereoQueue[CompressedImage](
+        #     self,
+        #     "/jai_1600_left/channel_1",
+        #     "/jai_1600_right/channel_1",
+        #     lambda l, r: self.stereo_queue_merged.callback_right(
+        #         StereoItemMerged(l, r)
+        #     ),
+        # )
+
+        self.stereo_merged_subscription = self.create_subscription(
+            CompressedImage,
+            "/jai_1600_stereo/merged",
+            self.stereo_merged_callback,
+            10,
         )
 
         self.__init_raft_stereo()
@@ -225,8 +239,8 @@ class JaiStereoDepth(Node):
         )
         cv2.putText(
             self.color_bar,
-            "0",
-            (2160 - 32, 32),
+            "255",
+            (4, 2160 - 32),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             (255, 255, 255),
@@ -234,19 +248,35 @@ class JaiStereoDepth(Node):
             cv2.LINE_AA,
         )
 
+    def stereo_merged_callback(self, msg: CompressedImage):
+        buffer_np = np.frombuffer(msg.data, np.uint8).reshape(4, 1080, 1440)
+        self.stereoMergedCallback(
+            StereoItemMerged(
+                cv2.cvtColor(buffer_np[0], cv2.COLOR_BayerRG2RGB),
+                cv2.cvtColor(buffer_np[1], cv2.COLOR_BayerRG2RGB),
+            ),
+            StereoItemMerged(buffer_np[2], buffer_np[3]),
+        )
+
     def stereoMergedCallback(self, rgb: StereoItemMerged, nir: StereoItemMerged):
         try:
             if self.signal_merged.is_set():
                 raise Exception("stereoMergedCallback is already running")
             self.signal_merged.set()
-            timestamp = rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
+            timestamp = (
+                rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
+                if not isinstance(rgb.header, dict)
+                else rgb.header["stamp"]["sec"]
+            )
             result_viz = self.stereo_callback(rgb.left, rgb.right, "viz")
             result_nir = self.stereo_callback(nir.left, nir.right, "nir")
-            if self.stereo_storage_id is not None:
-                stereo_multi_item = self.store_stereo_item(
-                    timestamp, result_viz, result_nir
-                )
-                if stereo_multi_item is not None:
+
+            stereo_multi_item = self.store_stereo_item(
+                timestamp, result_viz, result_nir
+            )
+            if stereo_multi_item is not None:
+                self.stream_disparity_viz.cv_ndarray_callback(stereo_multi_item.merged)
+                if self.stereo_storage_id is not None:
                     self.stereo_storage.store_item(
                         self.stereo_storage_id, stereo_multi_item
                     )
@@ -261,11 +291,11 @@ class JaiStereoDepth(Node):
         # todo : framerate, queue status, stored_count, left-right sync...
         return {
             "storage_id": self.stereo_storage_id,
-            "queue_status": {
-                "viz": self.stereo_queue_viz.queue_status(),
-                "nir": self.stereo_queue_nir.queue_status(),
-                "merged": self.stereo_queue_merged.queue_status(),
-            },
+            # "queue_status": {
+            #     "viz": self.stereo_queue_viz.queue_status(),
+            #     "nir": self.stereo_queue_nir.queue_status(),
+            #     "merged": self.stereo_queue_merged.queue_status(),
+            # },
         }
 
     def enable_stereo_storage(self, id: Optional[str] = None):
@@ -332,9 +362,25 @@ class JaiStereoDepth(Node):
         self.stereo_depth_viz.stream_disparity_viz = self.stream_disparity_viz
         self.stereo_depth_nir.stream_disparity_viz = self.stream_disparity_nir
 
+    def decoding_msg(self, msg: CompressedImage, channel):
+        msg_np = np.frombuffer(msg.data, np.uint8)
+        if channel == "nir":
+            return msg_np.reshape(1080, 1440)
+        elif msg_np.shape[0] == 1080 * 1440:
+            img = msg_np.reshape(1080, 1440)
+            return cv2.cvtColor(img, cv2.COLOR_BayerRG2RGB)
+        return msg_np.reshape(1080, 1440, 3)
+
     def stereo_callback(
-        self, msg_left: CompressedImage, msg_right: CompressedImage, channel
+        self,
+        msg_left: Union[CompressedImage, cv2.typing.MatLike],
+        msg_right: Union[CompressedImage, cv2.typing.MatLike],
+        channel,
     ):
+        if isinstance(msg_left, CompressedImage):
+            msg_left = self.decoding_msg(msg_left, channel)
+        if isinstance(msg_right, CompressedImage):
+            msg_right = self.decoding_msg(msg_right, channel)
         if channel == "nir":
             return self.stereo_depth_nir.raft_stereo(msg_left, msg_right, channel)
         else:
