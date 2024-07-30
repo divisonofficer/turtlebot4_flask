@@ -35,20 +35,20 @@ class JAINode : public rclcpp::Node {
                       int bitDepth, bool isRGB);
 
   std::vector<std::vector<
-      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr>>
       imagePublishers;
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr logPublisher;
 
   std::vector<
-      std::vector<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr> >
+      std::vector<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr>>
       cameraInfoPublishers;
 
-  std::vector<std::vector<rclcpp::Publisher<std_msgs::msg::String>::SharedPtr> >
+  std::vector<std::vector<rclcpp::Publisher<std_msgs::msg::String>::SharedPtr>>
       cameraDeviceParamPublishers;
 
   std::vector<
-      std::vector<rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> >
+      std::vector<rclcpp::Subscription<std_msgs::msg::String>::SharedPtr>>
       cameraDeviceParamSubscribers;
 
   std::vector<rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr>
@@ -69,6 +69,9 @@ class JAINode : public rclcpp::Node {
 
   void emitRosImageMsg(int device_num, int source_num, PvBuffer* buffer);
 
+  void emitRosImageMsgPublish(int device_num, int source_num, PvBuffer* buffer,
+                              double buffer_tim);
+
   void emitRosDeviceParamMsg(int device_num, int source_num, std::string param);
 
   ////// HDR Scenario
@@ -77,10 +80,10 @@ class JAINode : public rclcpp::Node {
   bool stereo_exposure_sync = true;
 
   std::vector<std::vector<
-      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr>>
       imagePublishers_hdr;
   std::vector<std::vector<
-      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr> >
+      rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr>>
       imagePublishers_fusion;
 
   HdrScenario hdr_scenario;
@@ -95,4 +98,6 @@ class JAINode : public rclcpp::Node {
 
   double triggerDelayPending;
   double source_framerate[2][2];
+
+  std::vector<std::pair<double, PvBuffer*>> buffer_queue[2][2];
 };
