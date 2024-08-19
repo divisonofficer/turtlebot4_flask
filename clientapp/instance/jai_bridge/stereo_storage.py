@@ -74,7 +74,9 @@ class StereoStorage:
 
     def store_item(self, id: str, item: StereoMultiItem):
         def store():
-            time_stamp = time.strftime("%H_%M_%S", time.localtime(item.timestamp))
+            time_stamp = time.strftime(
+                "%H_%M_%S_", time.localtime(item.timestamp)
+            ) + str(int((item.timestamp % 1) * 1000)).zfill(3)
             os.makedirs(self.FOLDER, exist_ok=True)
             os.makedirs(f"{self.FOLDER}/{id}", exist_ok=True)
             self.store_stereo_item(id, time_stamp, "rgb", item.rgb)

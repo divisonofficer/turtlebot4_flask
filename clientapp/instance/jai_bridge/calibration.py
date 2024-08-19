@@ -152,7 +152,8 @@ class Calibration:
                 im_right = [im_right]
             for left, right in zip(im_left, im_right):
                 self.extract_chessboard_corners(left, right)
-
+        if len(self.chessboard_images) < 1:
+            return None, None, None
         image_shape = self.chessboard_images[0][0].shape[:2]
         ret_left, mtx_left, dist_left, rvecs_left, tvecs_left = cv2.calibrateCamera(
             self.objpoints, self.imgpoints_left, image_shape, None, None  # type: ignore

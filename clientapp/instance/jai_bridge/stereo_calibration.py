@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from flask_socketio import SocketIO
 from jai_pb2 import CameraMatrix, StereoMatrix
@@ -60,14 +60,37 @@ class JaiStereoCalibration(Node):
 
         self.msg_right_queue: list[CompressedImage] = []
 
-        self.stereo_queue = StereoQueue(
-            self,
-            "/jai_1600_left/channel_0",
-            "/jai_1600_right/channel_0",
-            self.calibrate,
-        )
+        # self.stereo_queue = StereoQueue(
+        #     self,
+        #     "/jai_1600_left/channel_0",
+        #     "/jai_1600_right/channel_0",
+        #     self.calibrate,
+        # )
 
         self.calibration = Calibration()
+
+        self.create_subscription(
+            CompressedImage,
+            "/jai_1600_stereo/merged",
+            self.stereo_merged_callback,
+            10,
+        )
+
+    def compute_dimension(self, buffer_length):
+        RATIO = (3, 4)
+        width = int(np.sqrt(buffer_length / (RATIO[0] * RATIO[1]))) * RATIO[1]
+        height = int(np.sqrt(buffer_length / (RATIO[0] * RATIO[1]))) * RATIO[0]
+        return width, height
+
+    def stereo_merged_callback(self, msg: CompressedImage):
+        buffer_np = np.frombuffer(msg.data, np.uint8)
+        width, height = self.compute_dimension(buffer_np.shape[0] / 8)
+        buffer_np = buffer_np.reshape(8, height, width)
+        left, right = buffer_np[0:3].reshape(height, width, 3), buffer_np[3:6].reshape(
+            height, width, 3
+        )
+
+        self.calibrate(left, right)
 
     def update_chessboard_size(
         self, length: Optional[float], shape: Optional[Tuple[int, int]]
@@ -91,11 +114,21 @@ class JaiStereoCalibration(Node):
             self.subscription_jai_right = None
         time.sleep(3)
 
-    def calibrate(self, image_left: CompressedImage, image_right: CompressedImage):
-        print(f"Calibrate on {image_left.header.stamp.sec}")
+    def calibrate(
+        self,
+        image_left: Union[CompressedImage, np.ndarray],
+        image_right: Union[CompressedImage, np.ndarray],
+    ):
+
         time_begin = time.time()
-        im_left = decode_jai_compressedImage(image_left)
-        im_right = decode_jai_compressedImage(image_right)
+        if isinstance(image_left, CompressedImage):
+            im_left = decode_jai_compressedImage(image_left)
+        else:
+            im_left = image_left
+        if isinstance(image_right, CompressedImage):
+            im_right = decode_jai_compressedImage(image_right)
+        else:
+            im_right = image_right
         if im_left.dtype == np.uint16:
             im_left = cv2.normalize(im_left, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore
             im_right = cv2.normalize(im_right, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore

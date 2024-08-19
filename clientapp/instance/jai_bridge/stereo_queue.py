@@ -5,6 +5,7 @@ from sensor_msgs.msg import CompressedImage
 from rclpy.node import Node
 from rclpy.subscription import Subscription
 import time
+from std_msgs.msg import Header
 
 TIMEDIFF = 0.1
 MAX_QUEUE_LENGTH = 10
@@ -13,19 +14,17 @@ T = TypeVar("T")
 
 
 class StereoItemMerged:
+    header: Header
+
     def __init__(
         self,
         left: Union[CompressedImage, cv2.typing.MatLike],
         right: Union[CompressedImage, cv2.typing.MatLike],
-        timestamp: Optional[float] = None,
+        timestamp: Optional[Header] = None,
     ):
         self.left = left
         self.right = right
-        self.header = (
-            left.header
-            if isinstance(left, CompressedImage)
-            else {"stamp": {"sec": timestamp, "nanosec": 0}}
-        )
+        self.header = left.header if isinstance(left, CompressedImage) else timestamp  # type: ignore
 
     def __del__(self):
         del self.left
