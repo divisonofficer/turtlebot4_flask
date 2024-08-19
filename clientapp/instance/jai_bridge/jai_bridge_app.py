@@ -30,7 +30,7 @@ import cv2
 from stereo_calibration import JaiStereoCalibration
 
 from rclpy.executors import SingleThreadedExecutor
-from stereo_depth import JaiStereoDepth
+from stereo_node import JaiStereoDepth
 
 from jai_pb2 import (
     DeviceInfo,
@@ -550,7 +550,15 @@ def spin_node():
         executor.spin()
 
     thread = threading.Thread(
-        target=spin_nodes, args=([node, calibration_node, depth_node],), daemon=True
+        target=spin_nodes,
+        args=(
+            [
+                node,
+                calibration_node,
+                # depth_node
+            ],
+        ),
+        daemon=True,
     )
     thread.start()
     return thread
