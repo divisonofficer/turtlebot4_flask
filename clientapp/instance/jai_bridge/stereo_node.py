@@ -1,5 +1,7 @@
 import sys
 
+from points2depth import Point2Depth
+
 sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 
 import traceback
@@ -11,7 +13,7 @@ from stereo_queue import StereoItemMerged
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
 import numpy as np
 import cv2
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, PointCloud2
 import torch
 import threading
 from videostream import VideoStream
@@ -54,8 +56,11 @@ class JaiStereoDepth(Node):
             self.stereo_merged_callback,
             10,
         )
+        self.stereo_merged_subscription
 
         self.__init_raft_stereo()
+
+        self.points2depth = Point2Depth()
 
         self.stereo_storage_id: Optional[str] = None
         self.stereo_storage = StereoStorage()

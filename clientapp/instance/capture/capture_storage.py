@@ -311,9 +311,9 @@ class CaptureStorage:
         print(f"Time to write images: {time() - time_begin}")
         time_begin = time()
         scene_dict = scene.to_dict_light()
-        scene_dict.images[:] = self.get_capture_scene_images_paths(
-            space_id, capture_id, scene_id
-        )
+        # scene_dict.images[:] = self.get_capture_scene_images_paths(
+        #     space_id, capture_id, scene_id
+        # )
 
         print(f"Time to get image paths: {time() - time_begin}")
         with open(f"{scene_dir}/meta.json", "w") as f:

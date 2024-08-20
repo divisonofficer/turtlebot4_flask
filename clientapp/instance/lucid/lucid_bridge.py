@@ -132,7 +132,7 @@ class LucidStereoNode(Node):
             self.storage.enqueue(
                 StereoMultiItem(
                     self.storage_id,
-                    time.time(),
+                    stereo.header.stamp.sec + stereo.header.stamp.nanosec / 1e9,
                     StereoCaptureItem(stereo.left, stereo.right),
                     lidar,
                 ),

@@ -789,6 +789,21 @@ def set_chessboard_shape():
     return {"status": "success"}
 
 
+@app.route("/calibrate/lidar/transform", methods=["GET"])
+def get_lidar_transform():
+    return Response(
+        calibration_node.get_lidar_RT(),
+        mimetype="application/json",
+    )
+
+
+@app.route("/calibrate/lidar/transform", methods=["POST"])
+def set_lidar_transform():
+    transform = request.json.get("transform") if request.json else None
+    calibration_node.update_lidar_RT(transform) if transform else None
+    return {"status": "success"}
+
+
 @app.route("/stereo/stream/<stream>/<timestamp>")
 def stereo_disparity_videostream(stream, timestamp):
     return Response(

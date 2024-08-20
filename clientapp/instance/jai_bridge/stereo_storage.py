@@ -45,7 +45,7 @@ class StereoMultiItem:
         self.merged = merged
         self.timestamp = timestamp
 
-    def __dell(self):
+    def __del__(self):
         del self.rgb
         del self.nir
         del self.merged

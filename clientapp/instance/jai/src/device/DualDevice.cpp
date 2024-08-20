@@ -46,7 +46,10 @@ DualDevice::DualDevice(PvString &connection_ID) {
                          80000.0f);
 
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 4.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
+                         8.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
   //                            2);
@@ -62,9 +65,11 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
                          80000.0f);
 
-  // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
+  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 4.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
+                         8.0f);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
   //                            PvPixelMono10);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",

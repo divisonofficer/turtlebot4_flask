@@ -187,6 +187,7 @@ class Calibration:
             dist_right,
             image_shape,
         )
+        lidar_RT = self.output.Lidar_RT if self.output else np.eye(4)
         self.output = CalibrationOutput(
             ret,
             mtx_left,
@@ -201,6 +202,7 @@ class Calibration:
             T,
             E,
             F,
+            lidar_RT,
         )
         self.reprojection_errors_mean, self.reprojection_errors = (
             self.compute_reprojection_errors()

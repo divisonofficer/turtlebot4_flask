@@ -38,6 +38,9 @@ class JAINode : public rclcpp::Node {
       rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr>>
       imagePublishers;
 
+  rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr
+      mergedImagePublisher;
+
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr logPublisher;
 
   std::vector<
