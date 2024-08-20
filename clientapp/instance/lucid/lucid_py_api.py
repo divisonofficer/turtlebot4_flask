@@ -1,3 +1,4 @@
+from platform import node
 import threading
 from arena_api.system import system
 from numpy import tri
@@ -13,27 +14,30 @@ from arena_api.buffer import _Buffer
 import numpy as np
 from std_msgs.msg import Header
 
-
-RESOLUTION = (800, 600)
+RESOLUTION_MAX = (2880, 1860)
+RESOLUTION = (1600, 1200)
 
 
 class LucidImage:
     def __init__(self, buffer_np: np.ndarray, timestamp_ns: int):
-        self.buffer_np_list = buffer_np
+        self.buffer_np = buffer_np
         self.header = Header()
         self.header.stamp.sec = timestamp_ns // 1_000_000_000
         self.header.stamp.nanosec = timestamp_ns % 1_000_000_000
 
     def __repr__(self):
-        return f"LucidImage(buffer_np_list={self.buffer_np_list})"
+        return f"LucidImage(buffer_np_list={self.buffer_np})"
+
+    def __del__(self):
+        del self.buffer_np
 
 
 class LucidPyAPI:
     def __init__(self):
         self.SERIAL = ["224201564", "224201585"]
         self.timestamp_base = [0, 0]
-        self.FRAME_RATE = 10.0
-        self.BUFFER_COUNT = 10
+        self.FRAME_RATE = 6.0
+        self.BUFFER_COUNT = 4
         self.buffers_device: List[List[_Buffer]] = [[], []]
         self.trigger_thread: Optional[threading.Thread] = None
 
@@ -71,6 +75,7 @@ class LucidPyAPI:
             )
 
     def device_collect_buffers(self, device: Device, idx: int, trigger=False):
+        begin_time = time.time()
         device.nodemap.get_node("AcquisitionStart").execute()
 
         buffers = device.get_buffer(self.BUFFER_COUNT)
@@ -79,14 +84,35 @@ class LucidPyAPI:
 
     def trigger_loop(self):
         trigger_armed = False
+        trigger_left = self.devices[0].nodemap.get_node("TriggerArmed")
+        trigger_right = self.devices[1].nodemap.get_node("TriggerArmed")
+
+        trigger_ex_left = self.devices[0].nodemap.get_node("TriggerSoftware")
+        trigger_ex_right = self.devices[1].nodemap.get_node("TriggerSoftware")
+
+        trigger_ac_left = self.devices[0].nodemap.get_node("AcquisitionStart")
+        trigger_ac_right = self.devices[1].nodemap.get_node("AcquisitionStart")
+        trigger_time = time.time()
+        count = 0
         while True:
-            trigger_armed = (
-                self.devices[0].nodemap.get_node("TriggerArmed").value
-                and self.devices[1].nodemap.get_node("TriggerArmed").value
-            )
+            try:
+                trigger_armed = trigger_left.value and trigger_right.value
+            except Exception as e:
+                trigger_armed = False
             if trigger_armed:
-                self.devices[0].nodemap.get_node("TriggerSoftware").execute()
-                self.devices[1].nodemap.get_node("TriggerSoftware").execute()
+                # print(f"Triggering took {time.time() - trigger_time} seconds")
+                trigger_time = time.time()
+
+                trigger_ex_left.execute()
+                trigger_ex_right.execute()
+                # if count == self.FRAME_RATE:
+                #     trigger_ac_left.execute()
+                #     trigger_ac_right.execute()
+                #     count = 0
+                count += 1
+            # print(f"Armed {trigger_left.value} {trigger_right.value}")
+            # print(f"OnAcquisitoin {self.devices[0].nodemap['AcquisitionControl']}")
+            # time.sleep(0.05)
 
     def open_stream(self):
         if self.trigger_thread is not None:
@@ -110,9 +136,9 @@ class LucidPyAPI:
         for thread in threads:
             thread.join()
         buffer_np_list: List[List[LucidImage]] = [[], []]
-
         for idx, device in enumerate(self.devices):
             for buffer in self.buffers_device[idx]:
+                time_begin = time.time()
                 buffer_np = self.buffer_to_image(buffer)
                 timestamp_ns = buffer.timestamp_ns + self.timestamp_base[idx]
                 buffer_np_list[idx].append(LucidImage(buffer_np, timestamp_ns))
@@ -122,6 +148,7 @@ class LucidPyAPI:
 
     def buffer_to_image(self, buffer: _Buffer) -> np.ndarray:
         pointer = buffer.xbuffer.xImageGetData()
+
         data_np: np.ndarray = np.ctypeslib.as_array(
             pointer, shape=(buffer.buffer_size,)
         )
@@ -129,19 +156,11 @@ class LucidPyAPI:
             buffer.height, buffer.width, buffer.bits_per_pixel // 8
         )
 
-        result_np = np.zeros((buffer.height, buffer.width), dtype=np.int32)
-
-        result_np = data_np[:, :, 0]
-
-        if data_np.shape[-1] >= 2:
-            result_np = result_np * 256 + data_np[:, :, 1]
-
-        if data_np.shape[-1] >= 3:
-            result_np = result_np * 256 + data_np[:, :, 2]
-        return result_np
+        return data_np
 
     def connect_device(self):
         devices = self.create_devices_with_tries()
+        print("Device List : ", devices)
         self.devices: List[Device] = []
         for serial in self.SERIAL:
             for device in devices:
@@ -171,22 +190,60 @@ class LucidPyAPI:
 
     def config_device(self, device: Device, idx: int):
         nodemap = device.nodemap
+        device.stop_stream()
         resetTimestamp: NodeCommand = nodemap.get_node("TimestampReset")
         resetTimestamp.execute()
-
+        print(
+            nodemap.get_node("AcquisitionStartMode"),
+            nodemap.get_node("TriggerLatency"),
+            nodemap.get_node("TriggerActivation"),
+            nodemap.get_node("TriggerSource"),
+            nodemap.get_node("TriggerMode"),
+            nodemap.get_node("TriggerSelector"),
+            nodemap.get_node("AcquisitionFrameRate"),
+            nodemap.get_node("ISPClockSpeed"),
+            nodemap.get_node("TriggerOverlap"),
+            nodemap["TriggerLatency"],
+        )
+        print(
+            (RESOLUTION_MAX[0] - RESOLUTION[0]) // 2,
+            (RESOLUTION_MAX[1] - RESOLUTION[1]) // 4,
+        )
+        nodemap.get_node("AcquisitionBurstFrameCount").value = 1
+        nodemap.get_node("OffsetX").value = int(
+            (nodemap.get_node("OffsetX").value // 2 // 4) * 4
+        )
+        nodemap.get_node("OffsetY").value = int(
+            (nodemap.get_node("OffsetY").value // 2 // 4) * 4
+        )
         nodemap.get_node("AcquisitionFrameRateEnable").value = True
+        nodemap.get_node("Width").value = (
+            RESOLUTION[0] // nodemap.get_node("BinningHorizontal").value
+        )
+        nodemap.get_node("Height").value = (
+            RESOLUTION[1] // nodemap.get_node("BinningVertical").value
+        )
+        nodemap.get_node("BinningSelector").value = "Sensor"
+        nodemap.get_node("BinningHorizontalMode").value = "Average"
+        nodemap.get_node("BinningVerticalMode").value = "Average"
+
+        nodemap.get_node("BinningHorizontal").value = int(2)
+        nodemap.get_node("BinningVertical").value = int(2)
+
         nodemap.get_node("AcquisitionFrameRate").value = self.FRAME_RATE
         nodemap.get_node("AcquisitionFrameCount").value = self.BUFFER_COUNT
-        nodemap.get_node("AcquisitionMode").value = "MultiFrame"
-        nodemap.get_node("Width").value = RESOLUTION[0]
-        nodemap.get_node("Height").value = RESOLUTION[1]
+        nodemap.get_node("AcquisitionMode").value = "Continuous"
+
         nodemap.get_node("PixelFormat").value = "BayerRG24"
-        # nodemap["TriggerSelector"].value = "AcquisitionStart"
-        # nodemap["TriggerMode"].value = "On"
-        # nodemap["TriggerSource"].value = "Software"
+
         nodemap["TriggerSelector"].value = "FrameStart"
+        nodemap["TriggerOverlap"].value = "PreviousFrame"
         nodemap["TriggerMode"].value = "On"
         nodemap["TriggerSource"].value = "Software"
+
+        tl_stream_nodemap = device.tl_stream_nodemap
+        tl_stream_nodemap["StreamAutoNegotiatePacketSize"].value = True
+        tl_stream_nodemap["StreamPacketResendEnable"].value = True
 
     def __del__(self):
         system.destroy_device()

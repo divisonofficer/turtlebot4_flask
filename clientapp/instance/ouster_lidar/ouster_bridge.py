@@ -1,0 +1,122 @@
+import time
+from typing import Callable, Union
+from ouster.sdk import client
+from ouster.sdk.client import (
+    SensorInfo,
+    Sensor,
+    SensorConfig,
+    LidarMode,
+    OperatingMode,
+    PacketFormat,
+    LidarScan,
+)
+
+from contextlib import closing
+from std_msgs.msg import Header
+
+import numpy as np
+
+HOSTNAME = "os-122107000458.local"
+LIDAR_MODE = LidarMode.MODE_1024x20
+
+
+class OusterLidarData:
+    def __init__(
+        self,
+        metadata: SensorInfo,
+        timestamp_ns: int,
+        reflectivity: np.ndarray,
+        ranges: np.ndarray,
+    ):
+        self.metadata = metadata
+        self.header = Header()
+        self.header.stamp.sec = int(timestamp_ns // 1_000_000_000)
+        self.header.stamp.nanosec = int(timestamp_ns % 1_000_000_000)
+        self.timestamp_ns = timestamp_ns
+        self.reflectivity = reflectivity
+        self.ranges = ranges
+
+    def __repr__(self):
+        return f"""
+    OusterLidarData(metadata={self.metadata}, 
+    timestamp_ns={self.timestamp_ns}, 
+    currentTime = {time.time_ns()},
+    reflectivity={self.reflectivity.shape}, 
+    ranges={self.ranges.shape})"""
+
+    def __del__(self):
+        del self.reflectivity
+        del self.ranges
+
+
+class OusterBridge:
+    def __init__(self):
+        self.base_time = 0
+        config = SensorConfig()
+        config.udp_port_lidar = 7502
+        config.udp_port_imu = 7503
+        config.operating_mode = OperatingMode.OPERATING_NORMAL
+        config.lidar_mode = LIDAR_MODE
+        client.set_config(HOSTNAME, config, persist=True, udp_dest_auto=True)
+        self.sensor = client.Scans.stream(HOSTNAME, 7502, complete=False)
+
+        self.packet_format = PacketFormat(self.sensor.metadata)
+
+    def collect_data(
+        self, callback: Callable[[Union[OusterLidarData, Exception]], None]
+    ):
+        WIDTH = 1024
+        if LIDAR_MODE == LidarMode.MODE_2048x10:
+            WIDTH = 2048
+        if LIDAR_MODE == LidarMode.MODE_512x20 or LIDAR_MODE == LidarMode.MODE_512x20:
+            WIDTH = 512
+        if LIDAR_MODE == LidarMode.MODE_4096x5:
+            WIDTH = 4096
+
+        with closing(self.sensor) as stream:
+            show = True
+
+            while show:
+                try:
+                    for packet in stream:
+                        if isinstance(packet, LidarScan):
+                            if self.base_time == 0:
+                                self.base_time = time.time_ns() - packet.timestamp[-1]
+                            reflectivity = client.destagger(
+                                stream.metadata,
+                                packet.field(client.ChanField.REFLECTIVITY),
+                            )
+                            ranges = client.destagger(
+                                stream.metadata, packet.field(client.ChanField.RANGE)
+                            )
+                            timestamp = packet.timestamp[-1]
+                            callback(
+                                OusterLidarData(
+                                    self.sensor.metadata,
+                                    timestamp + self.base_time,
+                                    reflectivity,
+                                    ranges,
+                                )
+                            )
+                except client.ClientTimeout as e:
+                    print("Lidar Timeout!")
+                    callback(e)
+                    time.sleep(0.05)
+
+    def __del__(self):
+        self.sensor.close()
+        del self.sensor
+        del self.packet_format
+
+
+import cv2
+
+if __name__ == "__main__":
+    ouster_bridge = OusterBridge()
+    print("Ouster bridge initialized")
+    ouster_bridge.collect_data(
+        lambda data: (
+            print(data),
+            cv2.imwrite("Reflecitivity.png", data.reflectivity.astype(np.uint8)),
+        )
+    )
