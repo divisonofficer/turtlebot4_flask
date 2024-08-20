@@ -20,6 +20,7 @@ import { JaiBridgePage } from "./page/jaibridge/JaiBridgePage";
 import { PolarizationCalibrationPage } from "./page/polarization/PolarizationCalibration";
 import { CalibrationPage } from "./page/jaibridge/CalibrationView";
 import { DepthViewPage } from "./page/jaibridge/DepthPage";
+import { LucidCaptureView } from "./page/lucid/LucidCaptureView";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -44,6 +45,7 @@ function App() {
         <Route path="/polarization" element={<PolarizationCalibrationPage />} />
         <Route path="/jaibridge/calibration" element={<CalibrationPage />} />
         <Route path="/jaibridge/depth" element={<DepthViewPage />} />
+        <Route path="/lucid" element={<LucidCaptureView />} />
       </Routes>
     );
   };

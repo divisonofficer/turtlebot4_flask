@@ -3,7 +3,7 @@ import { PageRoot } from "../../design/other/flexs";
 import { VideoStream } from "../../design/other/video";
 import { Body3, H3, H4 } from "../../design/text/textsystem";
 import { observer } from "mobx-react";
-import { jaiStore } from "../../stores/JaiStore";
+import { JaiStereoQueueStatus, jaiStore } from "../../stores/JaiStore";
 import { useEffect } from "react";
 
 const DepthVideoStream = ({ url }: { url: string }) => {
@@ -34,7 +34,7 @@ const StorageEnableButton = observer(() => {
       <HStack>
         <H3>Storage</H3>
         <Switch
-          isChecked={jaiStore.depth_storage_id ? true : false}
+          isChecked={jaiStore.stereo_status?.storage_id ? true : false}
           onChange={(e) => {
             if (e.target.checked) {
               jaiStore.fetchEnableStereoStorage();
@@ -43,9 +43,44 @@ const StorageEnableButton = observer(() => {
             }
           }}
         />
-        <Body3>{jaiStore.depth_storage_id}</Body3>
+        <Body3>{jaiStore.stereo_status?.storage_id}</Body3>
       </HStack>
     </VStack>
+  );
+});
+
+export const QueueStatusView = ({ queue }: { queue: JaiStereoQueueStatus }) => {
+  return (
+    <VStack>
+      <Body3>{queue.merge_interval?.toFixed(4)}</Body3>
+      <Body3>{queue.diff?.toFixed(4)}</Body3>
+      <Body3>{queue.left_count}</Body3>
+      <Body3>{queue.left_last_delay?.toFixed(4)}</Body3>
+      <Body3>{queue.right_count}</Body3>
+      <Body3>{queue.right_last_delay?.toFixed(4)}</Body3>
+    </VStack>
+  );
+};
+export const DepthStatusView = observer(() => {
+  const queue_viz = jaiStore.stereo_status?.queue_status.viz;
+  const queue_nir = jaiStore.stereo_status?.queue_status.nir;
+  const queue_merged = jaiStore.stereo_status?.queue_status.merged;
+
+  return (
+    <HStack>
+      <VStack>
+        <H4>Viz</H4>
+        {queue_viz && <QueueStatusView queue={queue_viz} />}
+      </VStack>
+      <VStack>
+        <H4>Nir</H4>
+        {queue_nir && <QueueStatusView queue={queue_nir} />}
+      </VStack>
+      <VStack>
+        <H4>Merged</H4>
+        {queue_merged && <QueueStatusView queue={queue_merged} />}
+      </VStack>
+    </HStack>
   );
 });
 
@@ -57,8 +92,8 @@ export const DepthViewPage = () => {
   return (
     <PageRoot title="Depth">
       <StorageEnableButton />
+      <DepthStatusView />
       <DepthVideoStream url="/jai/stereo/stream/stream_disparity_viz" />
-      <DepthVideoStream url="/jai/stereo/stream/stream_disparity_nir" />
     </PageRoot>
   );
 };

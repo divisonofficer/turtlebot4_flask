@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Flex,
   HStack,
@@ -198,27 +199,28 @@ const CalibrationResultView = observer(() => {
           }}
         >
           <VStack gap={0} height="100%">
-            {Array.from(Array(graphVGapCount)).map((_, i) => (
-              <Flex
-                style={{
-                  height: `${100 / (errorMax / graphVGap)}%`,
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Body3>
-                  {(graphVGap * (graphVGapCount - 1 - i)).toFixed(2)}
-                </Body3>
-                <div
+            {graphVGapCount > 0 &&
+              Array.from(Array(graphVGapCount)).map((_, i) => (
+                <Flex
                   style={{
-                    width: "100%",
-                    height: "1px",
-                    background: "black",
-                    opacity: 0.5,
+                    height: `${100 / (errorMax / graphVGap)}%`,
+                    flexDirection: "column",
+                    justifyContent: "flex-end",
                   }}
-                />
-              </Flex>
-            ))}
+                >
+                  <Body3>
+                    {(graphVGap * (graphVGapCount - 1 - i)).toFixed(2)}
+                  </Body3>
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "1px",
+                      background: "black",
+                      opacity: 0.5,
+                    }}
+                  />
+                </Flex>
+              ))}
             <Body3>Error</Body3>
           </VStack>
 
@@ -306,10 +308,14 @@ const CalibrationResultView = observer(() => {
           <HStack>
             <Body3>Reprojection Error</Body3>
             <Body3>
-              {jaiStore.stereoMatrix!.left!.reprojectError[vIdx].toFixed(4)}
+              {(jaiStore.stereoMatrix!.left?.reprojectError?.length ??
+                0 > vIdx) &&
+                jaiStore.stereoMatrix!.left!.reprojectError[vIdx].toFixed(4)}
             </Body3>
             <Body3>
-              {jaiStore.stereoMatrix!.right!.reprojectError[vIdx].toFixed(4)}
+              {(jaiStore.stereoMatrix!.right?.reprojectError?.length ??
+                0 > vIdx) &&
+                jaiStore.stereoMatrix!.right!.reprojectError[vIdx].toFixed(4)}
             </Body3>
           </HStack>
           <ReprojectionErrorGraph
@@ -382,6 +388,66 @@ const CalibrationMatrixView = observer(() => {
   );
 });
 
+export const LidarTransformView = observer(() => {
+  const [transform, setTransform] = useState(jaiStore.lidar_transform || []);
+
+  useEffect(() => {
+    setTransform(jaiStore.lidar_transform);
+  }, [jaiStore.lidar_transform]);
+
+  useEffect(() => {
+    jaiStore.fetchLidarTransform();
+  }, []);
+
+  return (
+    <HStack>
+      <Box w="100%" p={4} color="black">
+        <Table variant="simple">
+          <Tbody>
+            {[...Array(3)].map((_, rowIndex) => (
+              <Tr key={rowIndex}>
+                {[...Array(4)].map((_, colIndex) => (
+                  <Td
+                    key={colIndex}
+                    style={{
+                      padding: "0rem",
+                    }}
+                  >
+                    <Input
+                      fontSize="small"
+                      style={{
+                        width: "6rem",
+                        margin: "0rem",
+                        padding: "0.2rem",
+                      }}
+                      defaultValue={transform[rowIndex][colIndex]}
+                      onChange={(e) => {
+                        const newTransform = transform;
+                        newTransform[rowIndex][colIndex] = parseFloat(
+                          e.target.value
+                        );
+                        setTransform(newTransform);
+                      }}
+                    />
+                  </Td>
+                ))}
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </Box>
+      <Btn
+        onClick={() => {
+          jaiStore.updateLidarTransform(transform);
+        }}
+        size="sm"
+      >
+        Update
+      </Btn>
+    </HStack>
+  );
+});
+
 export const CalibrateView = observer(() => {
   return (
     <VStack>
@@ -394,7 +460,9 @@ export const CalibrateView = observer(() => {
         </Btn>
         <CalibrationLoadBtn />
         <CalibrationChessboardShapeView />
+        <LidarTransformView />
       </HStack>
+
       <HStack>
         <VideoStream
           url={`/jai/calibrate/videostream`}

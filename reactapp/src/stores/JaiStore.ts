@@ -28,6 +28,25 @@ export interface ChessboardShape {
   length: number;
 }
 
+export interface JaiStereoQueueStatus {
+  left_count: number;
+  left_last_time: number | undefined;
+  right_count: number;
+  right_last_time: number | undefined;
+  merge_interval: number;
+  left_last_delay: number;
+  right_last_delay: number;
+  diff: number;
+}
+export interface JaiStereoStatus {
+  queue_status: {
+    merged: JaiStereoQueueStatus;
+    nir: JaiStereoQueueStatus;
+    viz: JaiStereoQueueStatus;
+  };
+  storage_id: string | undefined;
+}
+
 class JaiStore {
   jaiCameraParams: {
     [key: string]: {
@@ -44,7 +63,13 @@ class JaiStore {
     length: 0,
   };
 
-  depth_storage_id: string | undefined = undefined;
+  lidar_transform: number[][] = [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+  ];
+
+  stereo_status: JaiStereoStatus | undefined = undefined;
 
   constructor() {
     makeAutoObservable(this);
@@ -55,6 +80,10 @@ class JaiStore {
       console.log(data);
       this.stereoMatrix = data;
     });
+
+    setInterval(() => {
+      this.fetchGetStereoNodeStatus();
+    }, 1000);
   }
   @action
   fetchJaiDeviceInfo = () => {
@@ -71,6 +100,27 @@ class JaiStore {
     httpGet("/jai/status")
       .onSuccess((data) => {
         this.jaiCameraParams = data;
+      })
+      .fetch();
+  };
+
+  @action
+  fetchLidarTransform = () => {
+    httpGet("/jai/calibrate/lidar/transform")
+      .onSuccess((data) => {
+        if (data instanceof Array && data.length === 3 && data[0].length === 4)
+          this.lidar_transform = data;
+      })
+      .fetch();
+  };
+
+  @action
+  updateLidarTransform = (transform: number[][]) => {
+    httpPost("/jai/calibrate/lidar/transform", {
+      transform: transform,
+    })
+      .onSuccess(() => {
+        this.fetchLidarTransform();
       })
       .fetch();
   };
@@ -201,24 +251,24 @@ class JaiStore {
 
   fetchGetStereoNodeStatus = () => {
     httpGet(`/jai/stereo`)
-      .onSuccess((data: { storage_id: string }) => {
-        this.depth_storage_id = data.storage_id;
+      .onSuccess((data: JaiStereoStatus) => {
+        this.stereo_status = data;
       })
       .fetch();
   };
 
   fetchEnableStereoStorage = () => {
     httpPost(`/jai/stereo/storage/enable`, {})
-      .onSuccess((data: { storage_id: string }) => {
-        this.depth_storage_id = data.storage_id;
+      .onSuccess((data: JaiStereoStatus) => {
+        this.stereo_status = data;
       })
       .fetch();
   };
 
   fetchDisableStereoStorage = () => {
     httpPost(`/jai/stereo/storage/disable`)
-      .onSuccess((data: { storage_id: string }) => {
-        this.depth_storage_id = data.storage_id;
+      .onSuccess((data: JaiStereoStatus) => {
+        this.stereo_status = data;
       })
       .fetch();
   };

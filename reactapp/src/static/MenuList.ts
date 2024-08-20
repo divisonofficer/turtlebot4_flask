@@ -101,6 +101,11 @@ export const menuList: MenuItem[] = [
   },
   {
     icon: Angle,
+    name: "Lucid Capture",
+    destination: "/lucid",
+  },
+  {
+    icon: Angle,
     name: "Polarization",
     destination: "/polarization",
   },
