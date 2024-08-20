@@ -3,77 +3,141 @@ PIXEL_FORMAT = "rgb8"
 RESOLUTION = (720, 480)
 
 
-from crypt import methods
 import random
-from time import sleep
 
+
+import sys
+from typing import Optional
+
+from typing import Union
+
+sys.path.append("../")
+
+
+from lucid_storage import StereoMultiItem, StereoCaptureItem
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-import subprocess
 import threading
-from sensor_msgs.msg import Image, PointCloud2
-
+from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
 from stereo_queue import StereoQueue, StereoItemMerged
-from rclpy.qos import (
-    QoSProfile,
-    QoSReliabilityPolicy,
-    QoSHistoryPolicy,
-)
+from lucid_storage import StereoStorage
 from lucid_py_api import LucidPyAPI, LucidImage
+import time
+from flask import Flask, Response
+from flask_socketio import SocketIO
+import json
+from flask_cors import CORS
+
+
+class OusterStatus:
+    working: bool = True
+    exception: Optional[Exception] = None
+
+    def __dict__(self):
+        return {
+            "working": self.working,
+            "exception": (
+                self.exception.__repr__() if self.exception is not None else None
+            ),
+        }
+
+
+class LucidStatus:
+    ouster = OusterStatus()
+    lucid_queue: dict = {}
+    lidar_queue: dict = {}
+    storage_enabled: bool = False
+    storage_queued_cnt: int = 0
+
+    def __dict__(self):
+        return {
+            "ouster": self.ouster.__dict__(),
+            "lucid_queue": self.lucid_queue,
+            "lidar_queue": self.lidar_queue,
+            "storage_enabled": self.storage_enabled,
+            "storage_queued_cnt": self.storage_queued_cnt,
+        }
 
 
 class LucidStereoNode(Node):
 
-    def __init__(self):
-
+    def __init__(self, socket: SocketIO):
+        self.socket = socket
         super().__init__("lucid_stereo_node")
 
         self.lucid_api = LucidPyAPI()
         self.lucid_api.connect_device()
         self.lucid_api.open_stream()
 
+        self.ouster_bridge = OusterBridge()
+
         self.trigger_sig = threading.Event()
 
-        self.stereo_queue = StereoQueue[LucidImage, LucidImage](self.stereo_callback)
-        self.image_lidar_queue = StereoQueue[StereoItemMerged, PointCloud2](
-            self.image_lidar_callback
+        self.stereo_queue = StereoQueue[LucidImage, LucidImage](
+            self.stereo_callback, max_queue_length=20
+        )
+        self.image_lidar_queue = StereoQueue[StereoItemMerged, OusterLidarData](
+            self.image_lidar_callback,
+            max_queue_length=100,
         )
 
         self.trigger_clients = [
             self.create_client(Trigger, f"/arena_camera_node_{0}/trigger_image"),
             self.create_client(Trigger, f"/arena_camera_node_{1}/trigger_image"),
         ]
+        self.storage = StereoStorage()
+        self.trigger_loop_thread = threading.Thread(target=self.trigger_loop)
+        self.ouster_loop_thread = threading.Thread(target=self.ouster_loop)
+        self.storage_loop_thread = threading.Thread(target=self.storage.queue_loop)
+        self.trigger_loop_thread.start()
+        self.ouster_loop_thread.start()
+        self.storage_loop_thread.start()
 
-        self.lidar_subscriptions = self.create_subscription(
-            PointCloud2,
-            "/ouster/points",
-            self.lidar_callback,
-            QoSProfile(
-                depth=2,
-                reliability=QoSReliabilityPolicy.BEST_EFFORT,
-                history=QoSHistoryPolicy.KEEP_LAST,
-            ),
-        )
+        self.storage_id: Optional[str] = None
 
-        threading.Thread(target=self.trigger_loop, daemon=True).start()
-        # threading.Thread(target=self.trigger_sig_consumer, daemon=True).start()
+        self.status = LucidStatus()
 
-    def lidar_callback(self, msg):
-        print("lidar_callback")
+        self.timer = self.create_timer(3, self.status_callback)
+
+    def status_callback(self):
+        self.status.lidar_queue = self.image_lidar_queue.queue_status()
+        self.status.lucid_queue = self.stereo_queue.queue_status()
+        self.status.storage_enabled = self.storage_id is not None
+        self.socket.emit("status", self.status.__dict__())
+
+    def enable_storage(self):
+        self.storage_id = time.strftime("%H_%M_%S_", time.localtime(time.time()))
+        self.status.storage_queued_cnt = 0
+
+    def disable_storage(self):
+        self.storage_id = None
+
+    def lidar_callback(self, msg: Union[OusterLidarData, Exception]):
+        if isinstance(msg, Exception):
+            print("Lidar error: ", msg)
+            self.status.ouster.working = False
+            self.status.ouster.exception = msg
+            return
+        self.status.ouster.working = True
         self.image_lidar_queue.callback_right(msg)
 
     def stereo_callback(self, left, right):
-        print(
-            "stereo_callback, left: ",
-            left.header.stamp.sec,
-            "right: ",
-            right.header.stamp.sec,
-        )
+
         self.image_lidar_queue.callback_left(StereoItemMerged(left, right))
 
-    def image_lidar_callback(self, stereo, lidar):
+    def image_lidar_callback(self, stereo: StereoItemMerged, lidar: OusterLidarData):
         print("image_lidar_callback, stereo: ", stereo.header.stamp.sec)
+        if self.storage_id is not None:
+            self.storage.enqueue(
+                StereoMultiItem(
+                    self.storage_id,
+                    time.time(),
+                    StereoCaptureItem(stereo.left, stereo.right),
+                    lidar,
+                ),
+            )
+            self.status.storage_queued_cnt += 1
 
     def trigger_camera_capture(
         self,
@@ -87,26 +151,32 @@ class LucidStereoNode(Node):
 
             future = self.trigger_clients[idx].call_async(request)
 
+    def buffer_resolve(self, buffers):
+        for idx, (buffer_left, buffer_right) in enumerate(zip(buffers[0], buffers[1])):
+            self.stereo_queue.callback_left(buffer_left)
+            self.stereo_queue.callback_right(buffer_right)
+
     def trigger_loop(self):
         while rclpy.ok():
             buffers = self.lucid_api.collect_images()
-            for idx, (buffer_left, buffer_right) in enumerate(
-                zip(buffers[0], buffers[1])
-            ):
-                self.stereo_queue.callback_left(buffer_left)
-                self.stereo_queue.callback_right(buffer_right)
+            threading.Thread(
+                target=self.buffer_resolve, args=(buffers,), daemon=True
+            ).start()
 
-    def trigger_sig_consumer(self):
-        while rclpy.ok():
-            self.trigger_sig.wait()
-            self.trigger_camera_capture()
-            self.trigger_sig.clear()
+    def ouster_loop(self):
+        self.ouster_bridge.collect_data(self.lidar_callback)
 
+    def __del__(self):
+        self.trigger_loop_thread.join()
+        self.ouster_loop_thread.join()
+        del self.lucid_api
+        del self.ouster_bridge
 
-from flask import Flask, Response
-import json
 
 app = Flask(__name__)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
 node: LucidStereoNode
 
 
@@ -122,12 +192,23 @@ def queue_status():
         "stereo_queue": node.stereo_queue.queue_status(),
         "lidar_queue": node.image_lidar_queue.queue_status(),
     }
-    print(output)
     return Response(
         status=200,
         response=json.dumps(output),
         content_type="application/json",
     )
+
+
+@app.route("/storage/enable", methods=["POST"])
+def enable_storage():
+    node.enable_storage()
+    return Response(status=200)
+
+
+@app.route("/storage/disable", methods=["POST"])
+def disable_storage():
+    node.disable_storage()
+    return Response(status=200)
 
 
 def spin_node():
@@ -136,10 +217,10 @@ def spin_node():
 
 with app.app_context():
     rclpy.init()
-    node = LucidStereoNode()
+    node = LucidStereoNode(socketio)
     threading.Thread(target=spin_node, daemon=True).start()
 
 
 if __name__ == "__main__":
     # spin_node()
-    app.run(port=5021)
+    socketio.run(app, port=5021, host="0.0.0.0")

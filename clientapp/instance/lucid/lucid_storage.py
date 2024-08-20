@@ -1,19 +1,20 @@
+from typing import List, Literal
 import cv2
 from cv2.typing import MatLike
-from sensor_msgs.msg import PointCloud2
 import numpy as np
-import sensor_msgs_py.point_cloud2 as pc2
-import pcl
+from ouster_lidar.ouster_bridge import OusterLidarData
+from lucid_py_api import LucidImage
 
 
 class StereoCaptureItem:
-    left: MatLike
-    right: MatLike
+
+    left: LucidImage
+    right: LucidImage
 
     def __init__(
         self,
-        left: MatLike,
-        right: MatLike,
+        left: LucidImage,
+        right: LucidImage,
     ):
         self.left = left
         self.right = right
@@ -25,15 +26,18 @@ class StereoCaptureItem:
 
 class StereoMultiItem:
     rgb: StereoCaptureItem
-    lidar: PointCloud2
+    lidar: OusterLidarData
     timestamp: float
+    id: str
 
     def __init__(
         self,
+        id: str,
         timestamp: float,
         rgb: StereoCaptureItem,
-        lidar: PointCloud2,
+        lidar: OusterLidarData,
     ):
+        self.id = id
         self.rgb = rgb
         self.lidar = lidar
         self.timestamp = timestamp
@@ -47,10 +51,43 @@ class StereoMultiItem:
 import threading
 import os
 import time
+from PIL import Image
 
 
 class StereoStorage:
-    FOLDER = "tmp/depth"
+    FOLDER = "tmp/lucid"
+
+    def __init__(self):
+        self.storage_queue: List[StereoMultiItem] = []
+
+    def enqueue(self, item: StereoMultiItem):
+        self.storage_queue.append(item)
+
+    def queue_loop(self):
+        threads: List[threading.Thread] = []
+        while True:
+            if len(self.storage_queue) > 0:
+                print("Storing item, queue length: ", len(self.storage_queue))
+                item = self.storage_queue.pop(0)
+                thread = threading.Thread(
+                    target=self.store_item, args=(item.id, item), daemon=False
+                )
+                thread.start()
+            time.sleep(0.1)
+
+    def uint8buffer_to_uint32(self, buffer: np.ndarray) -> np.ndarray:
+        result_buffer = np.zeros((buffer.shape[0], buffer.shape[1]), dtype=np.uint32)
+        for idx in range(buffer.shape[-1]):
+            result_buffer += buffer[:, :, idx].astype(np.uint32) << (8 * idx)
+        return result_buffer
+
+    def write_image(
+        self, path: str, buffer: np.ndarray, format: Literal["png", "tiff"]
+    ):
+        if format == "png":
+            cv2.imwrite(path, buffer)
+        elif format == "tiff":
+            Image.fromarray(self.uint8buffer_to_uint32(buffer)).save(path)
 
     def store_stereo_item(
         self, id: str, timestamp: str, channel: str, item: StereoCaptureItem
@@ -59,37 +96,68 @@ class StereoStorage:
         os.makedirs(root, exist_ok=True)
         root = f"{root}/{channel}"
         os.makedirs(root, exist_ok=True)
-        cv2.imwrite(f"{root}/left.png", item.left)
-        cv2.imwrite(f"{root}/right.png", item.right)
-        cv2.imwrite(f"{root}/left.raw", item.left)
-        cv2.imwrite(f"{root}/right.raw", item.right)
 
-    def save_pointcloud(self, filename: str, item: PointCloud2):
-        cloud = pcl.PointCloud()
-        points_list = []
+        threads = [
+            threading.Thread(
+                target=self.write_image,
+                args=(
+                    f"{root}/left.png",
+                    item.left.buffer_np[:, :, 2],
+                    "png",
+                ),
+            ),
+            threading.Thread(
+                target=self.write_image,
+                args=(
+                    f"{root}/right.png",
+                    item.right.buffer_np[:, :, 2],
+                    "png",
+                ),
+            ),
+            threading.Thread(
+                target=self.write_image,
+                args=(
+                    f"{root}/left.tiff",
+                    item.left.buffer_np,
+                    "tiff",
+                ),
+            ),
+            threading.Thread(
+                target=self.write_image,
+                args=(
+                    f"{root}/right.tiff",
+                    item.right.buffer_np,
+                    "tiff",
+                ),
+            ),
+        ]
 
-        for point in pc2.read_points(item, skip_nans=True):
-            points_list.append([point[0], point[1], point[2]])
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
-        cloud.from_list(points_list)
-
-        # Save to PCD file
-        pcl.save(cloud, filename)
+    def save_lidar(self, folder: str, item: OusterLidarData):
+        lidar_reflectivity_uint8 = item.reflectivity.astype(np.uint8)
+        cv2.imwrite(f"{folder}/lidar_reflectivity.png", lidar_reflectivity_uint8)
+        lidar_range_uint8 = (item.ranges / 255.0).astype(np.uint8)
+        cv2.imwrite(f"{folder}/lidar_range.png", lidar_range_uint8)
+        Image.fromarray(item.reflectivity).save(f"{folder}/lidar_reflectivity.tiff")
+        Image.fromarray(item.ranges).save(f"{folder}/lidar_range.tiff")
 
     def store_item(self, id: str, item: StereoMultiItem):
-        def store():
-            time_stamp = time.strftime(
-                "%H_%M_%S_", time.localtime(item.timestamp)
-            ) + str(int((item.timestamp % 1) * 1000)).zfill(3)
-            os.makedirs(self.FOLDER, exist_ok=True)
-            os.makedirs(f"{self.FOLDER}/{id}", exist_ok=True)
-            self.store_stereo_item(id, time_stamp, "rgb", item.rgb)
-            self.save_pointcloud(
-                f"{self.FOLDER}/{id}/{time_stamp}/lidar.pcd", item.lidar
-            )
 
-        thread = threading.Thread(target=store)
-        thread.start()
-        thread.join()
+        time_stamp = time.strftime("%H_%M_%S_", time.localtime(item.timestamp)) + str(
+            int((item.timestamp % 1) * 1000)
+        ).zfill(3)
+        os.makedirs(f"{self.FOLDER}/{id}/{time_stamp}", exist_ok=True)
+
+        np.savez(
+            f"{self.FOLDER}/{id}/{time_stamp}/raw.npz",
+            reflectivity=item.lidar.reflectivity,
+            ranges=item.lidar.ranges,
+            left=item.rgb.left.buffer_np,
+            right=item.rgb.right.buffer_np,
+        )
 
         del item
