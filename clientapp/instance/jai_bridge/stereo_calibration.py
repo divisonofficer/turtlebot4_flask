@@ -1,10 +1,12 @@
+import imp
 import threading
 import time
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from flask_socketio import SocketIO
+
 from jai_pb2 import CameraMatrix, StereoMatrix
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, PointCloud2
 from rclpy.node import Node
 from rclpy.subscription import Subscription
 from videostream import VideoStream, decode_jai_compressedImage
@@ -14,6 +16,12 @@ from calibration_type import CalibrationOutput
 from calibration import Calibration
 
 from stereo_queue import StereoQueue
+from rclpy.qos import (
+    QoSProfile,
+    QoSReliabilityPolicy,
+    QoSHistoryPolicy,
+)
+from points2depth import Point2Depth
 
 
 class JaiStereoCalibration(Node):
@@ -30,10 +38,18 @@ class JaiStereoCalibration(Node):
         self.socket = socket
         self.stop_signal = threading.Event()
         self.start_signal = threading.Event()
+        self.lidar_points: Optional[PointCloud2] = None
 
         self.create_timer(3, self.timer_signal_callback)
 
         self.calibrate_signal = threading.Event()
+
+        self.point2depth = Point2Depth()
+
+        self.max_depth = 20
+        self.depth_colormap = cv2.applyColorMap(
+            np.arange(256, dtype=np.uint8), cv2.COLORMAP_MAGMA
+        )
 
     def init_calibration_by_loading(self, id: int):
         result = self.calibration.load_calibration(id)
@@ -60,12 +76,16 @@ class JaiStereoCalibration(Node):
 
         self.msg_right_queue: list[CompressedImage] = []
 
-        # self.stereo_queue = StereoQueue(
-        #     self,
-        #     "/jai_1600_left/channel_0",
-        #     "/jai_1600_right/channel_0",
-        #     self.calibrate,
-        # )
+        self.lidar_subscription = self.create_subscription(
+            PointCloud2,
+            "/ouster/points",
+            self.lidar_callback,
+            QoSProfile(
+                depth=10,
+                reliability=QoSReliabilityPolicy.BEST_EFFORT,
+                history=QoSHistoryPolicy.KEEP_LAST,
+            ),
+        )
 
         self.calibration = Calibration()
 
@@ -75,6 +95,10 @@ class JaiStereoCalibration(Node):
             self.stereo_merged_callback,
             10,
         )
+
+    def lidar_callback(self, msg: PointCloud2):
+        print("Lidar callback")
+        self.lidar_points = msg
 
     def compute_dimension(self, buffer_length):
         RATIO = (3, 4)
@@ -100,6 +124,20 @@ class JaiStereoCalibration(Node):
         if shape is not None:
             self.calibration.CHESS_SHAPE = shape
         self.calibration.update_objp()
+
+    def update_lidar_RT(self, RT: List[float]):
+        if self.calibration.output is None:
+            return
+        RT_np = np.array(RT)
+        if RT_np.shape != (4, 4):
+            RT_np = np.concatenate((RT_np, np.array([[0, 0, 0, 1]])), axis=0)
+
+        self.calibration.output.Lidar_RT = RT_np.reshape(4, 4)
+
+    def get_lidar_RT(self):
+        if self.calibration.output is None:
+            return None
+        return self.calibration.output.Lidar_RT.tolist()
 
     def deinit_calibration_task(self):
         if not self.stop_signal.is_set():
@@ -132,6 +170,7 @@ class JaiStereoCalibration(Node):
         if im_left.dtype == np.uint16:
             im_left = cv2.normalize(im_left, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore
             im_right = cv2.normalize(im_right, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore
+
         parameter, im_left_chess, im_right_chess = (
             self.calibration.calibrate_camera(im_left, im_right)
             if self.calibrate_signal.is_set()
@@ -141,13 +180,73 @@ class JaiStereoCalibration(Node):
         if im_left_chess is not None and im_right_chess is not None:
             im_left = im_left_chess
             im_right = im_right_chess
+
+        if self.lidar_points is not None:
+            projected_left = self.project_lidar_points(self.lidar_points, im_left)
+            if projected_left is not None:
+                im_left = projected_left
+            projected_right = self.project_lidar_points(
+                self.lidar_points, im_right, isRight=True
+            )
+            if projected_right is not None:
+                im_right = projected_right
+
         self.emit_calibration_result(parameter, im_left, im_right)
-        im_concated = np.concatenate((im_left, im_right), axis=1)
+
+        im_concated = np.concatenate((im_left, im_right), axis=1)  # type: ignore
         self.video_stream_raw.cv_ndarray_callback(im_concated)
         if depth is not None:
             self.broadcast_depth_image(depth)
         if parameter is not None:
             print(f"Calibration time: {time.time() - time_begin}")
+
+    def project_lidar_points(
+        self, lidar: PointCloud2, image: np.ndarray, isRight=False
+    ):
+        if self.calibration.output is None:
+            return
+        RT = self.calibration.output.Lidar_RT
+        print(RT)
+        if isRight:
+            self.point2depth.set_intrinsics(self.calibration.output.mtx_right)
+            right_t = np.eye(4)
+            right_t[:3, 3] = self.calibration.output.T.T
+            right_t[:3, :3] = self.calibration.output.R
+            RT = np.linalg.inv(RT) @ right_t
+        else:
+            self.point2depth.set_intrinsics(self.calibration.output.mtx_left)
+
+        self.point2depth.set_transform(RT)
+        points, depth = self.point2depth.pointcloud2depth(lidar)
+        width, height = image.shape[1], image.shape[0]
+        filtered_points = points[
+            (points[:, 0] >= 0)
+            & (points[:, 0] < width)
+            & (points[:, 1] >= 0)
+            & (points[:, 1] < height)
+        ]
+        filtered_depth = depth[
+            (points[:, 0] >= 0)
+            & (points[:, 0] < width)
+            & (points[:, 1] >= 0)
+            & (points[:, 1] < height)
+        ]
+
+        for i, point in enumerate(filtered_points):
+            x, y = point[0], point[1]
+            depth = filtered_depth[i] / 1000
+            depth = int(min(depth, self.max_depth) / self.max_depth * 255)
+            if depth >= 0:
+                color = tuple(self.depth_colormap[depth][0].astype(int).tolist())
+                cv2.circle(
+                    image,
+                    (int(x), int(y)),
+                    radius=3,
+                    color=color,
+                    thickness=-1,
+                )
+
+        return image
 
     def emit_calibration_result(
         self,

@@ -51,6 +51,7 @@ class CalibrationStorage:
                 output.mtx_right, output.dist_right[0]
             ),
             "chessboard_shape": chessboard_shape,
+            "Lidar_RT": output.Lidar_RT.tolist(),
         }
         np.savez(
             f"{folder}calibration.npz",
@@ -70,6 +71,7 @@ class CalibrationStorage:
             image_points_left=image_points_left,
             image_points_right=image_points_right,
             shape=chessboard_shape,
+            Lidar_RT=output.Lidar_RT,
         )
         for idx, (img_left, img_right) in enumerate(image_pairs):
             print(f"Saving {folder}{idx}.png")
@@ -109,6 +111,7 @@ class CalibrationStorage:
             tvecs_left=data["left_tvecs"],
             rvect_right=data["right_rvecs"],
             tvect_right=data["right_tvecs"],
+            Lidar_RT=data["Lidar_RT"] if "Lidar_RT" in data else np.eye(4),
         )
         shape = data["shape"] if "shape" in data else (12, 6, 21.9)
 

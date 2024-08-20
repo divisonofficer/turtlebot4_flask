@@ -56,14 +56,12 @@ void MultiSpectralCamera::openStream() {
 
 void MultiSpectralCamera::timeStampReset(uint64_t system_time,
                                          uint64_t camera_time) {
-  auto systemNano =
-      system_time == 0
-          ? std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::time_point_cast<std::chrono::nanoseconds>(
-                    std::chrono::high_resolution_clock::now())
-                    .time_since_epoch())
-                .count()
-          : system_time + camera_time;
+  auto systemNano = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::time_point_cast<std::chrono::nanoseconds>(
+                            std::chrono::high_resolution_clock::now())
+                            .time_since_epoch())
+                        .count();
+
   this->timestamp_begin = systemNano;
   dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("TimestampReset");
   Info << "TimeStampReset Triggered";
@@ -91,7 +89,7 @@ void MultiSpectralCamera::configureGain(int source, float gain) {
   dualDevice->getDevice(0)->GetParameters()->GetFloatValue("Gain", value);
 
   configureSourceRuntime(source, [&](PvGenParameterArray* params) {
-    ParamManager::setParam(params, "Gain", gain + float(value));
+    ParamManager::setParam(params, "Gain", gain);
   });
 }
 
@@ -171,7 +169,7 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
       idx++;
       if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
           idx % MULTIFRAME_COUNT == 0) {
-        for (int j = 0; j < 1000000; j++);
+        // for (int j = 0; j < 1000000; j++);
         triggerCallback();
       }
     }
@@ -241,6 +239,8 @@ double MultiSpectralCamera::holdAutoExposureAndGetValue(bool hold) {
 
       ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
                                  "ExposureAuto", 2);
+      ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
+                                 "GainAuto", 2);
     }
   }
   return 1;

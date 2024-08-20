@@ -1,3 +1,8 @@
 venv/*
 tmp/*
 instance/capture/tmp_capture/*
+instance/ouster_lidar/build/*
+instance/ouster_lidar/install/*
+instance/ouster_lidar/log/*
+instance/ouster_lidar/ros2_ws/*
+instance/lucid/tmp/*
