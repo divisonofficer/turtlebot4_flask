@@ -4,6 +4,7 @@ import { httpPost } from "../connect/http/request";
 
 class LucidStore {
   lucidStatusJson: string = "{}";
+  lucidStatus: { [key: string]: any } = {};
 
   storageEnabled = false;
 
@@ -12,6 +13,7 @@ class LucidStore {
 
     lucidSocket.subscribe("status", (data) => {
       this.lucidStatusJson = JSON.stringify(data);
+      this.lucidStatus = data;
       this.storageEnabled = data.storage_enabled;
     });
   }
@@ -22,6 +24,10 @@ class LucidStore {
 
   fetchDisableStorage() {
     httpPost("/lucid/storage/disable").fetch();
+  }
+
+  fetchUpdateStatusAttributes(update_attr: Object) {
+    httpPost("/lucid/status/update", update_attr).fetch();
   }
 }
 
