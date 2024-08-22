@@ -24,7 +24,7 @@ from stereo_queue import StereoQueue, StereoItemMerged
 from lucid_storage import StereoStorage
 from lucid_py_api import LucidPyAPI, LucidImage
 import time
-from flask import Flask, Response
+from flask import Flask, Response, request
 from flask_socketio import SocketIO
 import json
 from flask_cors import CORS
@@ -49,6 +49,7 @@ class LucidStatus:
     lidar_queue: dict = {}
     storage_enabled: bool = False
     storage_queued_cnt: int = 0
+    single_storage_mode: bool = False
 
     def __dict__(self):
         return {
@@ -57,6 +58,7 @@ class LucidStatus:
             "lidar_queue": self.lidar_queue,
             "storage_enabled": self.storage_enabled,
             "storage_queued_cnt": self.storage_queued_cnt,
+            "single_storage_mode": self.single_storage_mode,
         }
 
 
@@ -107,7 +109,7 @@ class LucidStereoNode(Node):
         self.socket.emit("status", self.status.__dict__())
 
     def enable_storage(self):
-        self.storage_id = time.strftime("%H_%M_%S_", time.localtime(time.time()))
+        self.storage_id = time.strftime("%m_%d_%H_%M", time.localtime(time.time()))
         self.status.storage_queued_cnt = 0
 
     def disable_storage(self):
@@ -138,6 +140,9 @@ class LucidStereoNode(Node):
                 ),
             )
             self.status.storage_queued_cnt += 1
+
+            if self.status.single_storage_mode:
+                self.disable_storage()
 
     def trigger_camera_capture(
         self,
@@ -208,6 +213,18 @@ def enable_storage():
 @app.route("/storage/disable", methods=["POST"])
 def disable_storage():
     node.disable_storage()
+    return Response(status=200)
+
+
+@app.route("/status/update", methods=["POST"])
+def update_status():
+
+    attr_dict = request.json if request.json is not None else {}
+
+    for key, value in attr_dict.items():
+        if hasattr(node.status, key):
+            setattr(node.status, key, value)
+
     return Response(status=200)
 
 
