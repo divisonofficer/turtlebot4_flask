@@ -27,6 +27,7 @@ class OusterLidarData:
         timestamp_ns: int,
         reflectivity: np.ndarray,
         ranges: np.ndarray,
+        points: np.ndarray,
     ):
         self.metadata = metadata
         self.header = Header()
@@ -35,6 +36,7 @@ class OusterLidarData:
         self.timestamp_ns = timestamp_ns
         self.reflectivity = reflectivity
         self.ranges = ranges
+        self.points = points
 
     def __repr__(self):
         return f"""
@@ -47,6 +49,7 @@ class OusterLidarData:
     def __del__(self):
         del self.reflectivity
         del self.ranges
+        del self.points
 
 
 class OusterBridge:
@@ -61,6 +64,7 @@ class OusterBridge:
         self.sensor = client.Scans.stream(HOSTNAME, 7502, complete=False)
 
         self.packet_format = PacketFormat(self.sensor.metadata)
+        self.xyzlut = client.XYZLut(self.sensor.metadata)
 
     def collect_data(
         self, callback: Callable[[Union[OusterLidarData, Exception]], None]
@@ -89,6 +93,7 @@ class OusterBridge:
                             ranges = client.destagger(
                                 stream.metadata, packet.field(client.ChanField.RANGE)
                             )
+                            xyz = self.xyzlut(packet)
                             timestamp = packet.timestamp[-1]
                             callback(
                                 OusterLidarData(
@@ -96,6 +101,7 @@ class OusterBridge:
                                     timestamp + self.base_time,
                                     reflectivity,
                                     ranges,
+                                    xyz,
                                 )
                             )
                 except client.ClientTimeout as e:

@@ -158,6 +158,7 @@ class StereoStorage:
             ranges=item.lidar.ranges,
             left=item.rgb.left.buffer_np,
             right=item.rgb.right.buffer_np,
+            points=item.lidar.points,
         )
 
         del item
