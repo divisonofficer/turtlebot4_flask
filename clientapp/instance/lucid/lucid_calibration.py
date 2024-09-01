@@ -201,8 +201,8 @@ class LidarCalibration:
         self.stereo_depth = StereoDepth()
         calibration_path = args.calibration
         self.calibration = np.load(calibration_path)
-        self.k_left = self.calibration["k_left"]
-        self.dist_left = self.calibration["d_left"]
+        self.k_left = self.calibration["mtx_left"]
+        self.dist_left = self.calibration["dist_left"]
         self.baseline = np.linalg.norm(self.calibration["T"][0])
         self.postprocess = LucidPostProcess()
 
@@ -251,11 +251,16 @@ class LidarCalibration:
         fig.savefig(folder + "/plane_points.png")
 
     def image_get_tonemapped(self, folder: str, side: Literal["left", "right"]):
-        if os.path.exists(folder + f"/{side}_tonemapped.png"):
+        if not self.args.overlap and os.path.exists(folder + f"/{side}_tonemapped.png"):
             return cv2.imread(folder + f"/{side}_tonemapped.png")
         raw_np = np.load(folder + "/raw.npz")
-        raw = raw_np[side]
+        raw = np.concatenate((raw_np["left"], raw_np["right"]), axis=1)
         tonemapped = self.postprocess.rawUint8ToTonemappedBgr(raw)
+        tonemapped = (
+            tonemapped[:, : raw_np["left"].shape[1], :]
+            if side == "left"
+            else tonemapped[:, raw_np["left"].shape[1] :, :]
+        )
         cv2.imwrite(folder + f"/{side}_tonemapped.png", tonemapped)
         return tonemapped
 
@@ -267,12 +272,13 @@ class LidarCalibration:
         ranges = raw_np["ranges"]
 
         if not hasattr(self, "Q"):
-            imageSize = (left.shape[1], left.shape[0])
+            imageSize = (1440, 928)
+            # imageSize = (left.shape[1], left.shape[0])
             R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(
                 self.k_left,
                 self.dist_left,
-                self.calibration["k_right"],
-                self.calibration["d_right"],
+                self.calibration["mtx_right"],
+                self.calibration["dist_right"],
                 imageSize,
                 self.calibration["R"],
                 self.calibration["T"],
@@ -283,13 +289,18 @@ class LidarCalibration:
                 self.k_left, self.dist_left, R1, P1, imageSize, cv2.CV_32FC1
             )
             self.map2x, self.map2y = cv2.initUndistortRectifyMap(
-                self.calibration["k_right"],
-                self.calibration["d_right"],
+                self.calibration["mtx_right"],
+                self.calibration["dist_right"],
                 R2,
                 P2,
                 imageSize,
                 cv2.CV_32FC1,
             )
+            self.remap_mask_left = cv2.remap(
+                np.ones(left.shape[:2]), self.map1x, self.map1y, cv2.INTER_LINEAR
+            )
+
+        image_height, image_width = left.shape[:2]
 
         left = cv2.remap(left, self.map1x, self.map1y, cv2.INTER_LINEAR)
         right = cv2.remap(
@@ -298,9 +309,17 @@ class LidarCalibration:
             self.map2y,
             cv2.INTER_LINEAR,
         )
-
+        left = left[:image_height, :image_width]
+        right = right[:image_height, :image_width]
         disparity = self.stereo_depth.disparity_matching(left, right)
         depth = self.disparity_to_depth(disparity)
+        remap_mask_left = self.remap_mask_left[:image_height, :image_width]
+        disparity[remap_mask_left == 0] = 0
+        depth[remap_mask_left == 0] = 0
+
+        cv2.imwrite(folder + "/left_rectified.png", left)
+        cv2.imwrite(folder + "/right_rectified.png", right)
+
         if self.args.save_depth:
             MAXDIS = 64.0
             MAXDEPTH = 24000
@@ -320,8 +339,8 @@ class LidarCalibration:
                 "disparity": disparity,
                 "k_left": self.k_left,
                 "d_left": self.dist_left,
-                "k_right": self.calibration["k_right"],
-                "d_right": self.calibration["d_right"],
+                "k_right": self.calibration["mtx_right"],
+                "d_right": self.calibration["dist_right"],
                 "R": self.calibration["R"],
                 "T": self.calibration["T"],
             }
@@ -337,7 +356,6 @@ class LidarCalibration:
             self.plot(points_camera, points_lidar, folder + "/points_plot.png")
 
         transform = self.compute_matches(points_camera, points_lidar)
-        print(transform)
         return transform
 
     def disparity_to_depth(self, disparity: np.ndarray):
@@ -461,6 +479,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_on_iteration", action="store_true")
     parser.add_argument("--save_tonemap", action="store_true")
     parser.add_argument("--save_depth", action="store_true")
+    parser.add_argument("--overlap", action="store_true")
     args = parser.parse_args()
     calibration = LucidCalibration(args)
 

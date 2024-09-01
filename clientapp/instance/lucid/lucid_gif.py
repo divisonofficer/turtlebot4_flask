@@ -37,6 +37,7 @@ class StereoDepthGif:
 
     def create_mp4(
         self,
+        args,
         folder_path: str,
         from_img: Optional[str] = None,
         to_img: Optional[str] = None,
@@ -48,16 +49,20 @@ class StereoDepthGif:
         for i in tqdm.tqdm(range(len(files))):
             img = files[i]
             duration = durations[i]
-            merged_path = os.path.join(folder_path, img) + "_merged.png"
-            prev_folder = os.path.join(folder_path, files[i - 1]) if i > 0 else None
-            next_folder = (
-                os.path.join(folder_path, files[i + 1]) if i < len(files) - 1 else None
-            )
-            merged = self.merge_images(
-                os.path.join(folder_path, img), prev_folder, next_folder
-            )
-
-            cv2.imwrite(merged_path, merged)
+            if args.plot:
+                merged_path = os.path.join(folder_path, img, "lidar_plot.png")
+            else:
+                merged_path = os.path.join(folder_path, img) + "_merged.png"
+                prev_folder = os.path.join(folder_path, files[i - 1]) if i > 0 else None
+                next_folder = (
+                    os.path.join(folder_path, files[i + 1])
+                    if i < len(files) - 1
+                    else None
+                )
+                merged = self.merge_images(
+                    os.path.join(folder_path, img), prev_folder, next_folder
+                )
+                cv2.imwrite(merged_path, merged)
 
             clips.append(
                 ImageClip(
@@ -79,7 +84,12 @@ class StereoDepthGif:
         to_img: Optional[str] = None,
     ):
         files = sorted(os.listdir(folder_path))
-        files = [x for x in files if os.path.isdir(os.path.join(folder_path, x))]
+        files = [
+            x
+            for x in files
+            if os.path.isdir(os.path.join(folder_path, x))
+            and x.replace("_", "").isdigit()
+        ]
         if from_img is not None:
             index_from = [i for i, x in enumerate(files) if from_img in x][0]
             files = files[index_from:]
@@ -287,6 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--to_img", type=str, default=None)
     parser.add_argument("--mp4", action="store_true")
     parser.add_argument("--gif", action="store_true")
+    parser.add_argument("--plot", action="store_true")
     args = parser.parse_args()
     gif = StereoDepthGif()
 
@@ -299,6 +310,6 @@ if __name__ == "__main__":
         ]
     for folder_path in folder_paths:
         if args.mp4:
-            gif.create_mp4(folder_path, args.from_img, args.to_img)
+            gif.create_mp4(args, folder_path, args.from_img, args.to_img)
         if args.gif:
             gif.create_gif(folder_path, args.from_img, args.to_img)

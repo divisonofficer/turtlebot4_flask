@@ -46,6 +46,13 @@ class OusterLidarData:
     reflectivity={self.reflectivity.shape}, 
     ranges={self.ranges.shape})"""
 
+    def __dict__(self):
+        return {
+            "reflectivity": self.reflectivity,
+            "ranges": self.ranges,
+            "points": self.points,
+        }
+
     def __del__(self):
         del self.reflectivity
         del self.ranges
@@ -69,14 +76,6 @@ class OusterBridge:
     def collect_data(
         self, callback: Callable[[Union[OusterLidarData, Exception]], None]
     ):
-        WIDTH = 1024
-        if LIDAR_MODE == LidarMode.MODE_2048x10:
-            WIDTH = 2048
-        if LIDAR_MODE == LidarMode.MODE_512x20 or LIDAR_MODE == LidarMode.MODE_512x20:
-            WIDTH = 512
-        if LIDAR_MODE == LidarMode.MODE_4096x5:
-            WIDTH = 4096
-
         with closing(self.sensor) as stream:
             show = True
 
