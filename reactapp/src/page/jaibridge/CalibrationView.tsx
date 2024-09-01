@@ -23,7 +23,7 @@ import { jaiStore } from "../../stores/JaiStore";
 import { Body3, H2, H3 } from "../../design/text/textsystem";
 import { Btn } from "../../design/button/button";
 import { PageRoot } from "../../design/other/flexs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Trash } from "@phosphor-icons/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 
@@ -135,9 +135,7 @@ const CalibrationChessboardShapeView = observer(() => {
 });
 
 const CalibrationResultView = observer(() => {
-  const [timestamp, setTimestamp] = useState(Date.now());
-
-  const ImagePairListView = (props: { imageCount: number }) => {
+  const ImagePairListView = useCallback((props: { imageCount: number }) => {
     return (
       <VStack
         style={{
@@ -153,6 +151,7 @@ const CalibrationResultView = observer(() => {
                 width: "100%",
               }}
               onClick={() => setVIdx(i)}
+              key={i}
             >
               <Img
                 src={`/jai/calibrate/chessboard/${i}/0`}
@@ -167,7 +166,7 @@ const CalibrationResultView = observer(() => {
         })}
       </VStack>
     );
-  };
+  }, []);
 
   const [vIdx, setVIdx] = useState(0);
 
@@ -196,6 +195,7 @@ const CalibrationResultView = observer(() => {
             height: "100%",
             width: "100%",
             alignItems: "flex-end",
+            overflowX: "auto",
           }}
         >
           <VStack gap={0} height="100%">
@@ -451,19 +451,23 @@ export const LidarTransformView = observer(() => {
 export const CalibrateView = observer(() => {
   return (
     <VStack>
+      <Btn size="sm" onClick={() => jaiStore.calibrationCapture()}>
+        Capture
+      </Btn>
       <HStack>
-        <Btn size="sm" onClick={() => jaiStore.calibrationCapture()}>
-          Capture
-        </Btn>
         <Btn size="sm" onClick={() => jaiStore.fetchCalibrationSave()}>
           Save
         </Btn>
         <CalibrationLoadBtn />
         <CalibrationChessboardShapeView />
-        <LidarTransformView />
+        {/*<LidarTransformView /> */}
       </HStack>
 
-      <HStack>
+      <HStack
+        style={{
+          overflowX: "auto",
+        }}
+      >
         <VideoStream
           url={`/jai/calibrate/videostream`}
           style={{
