@@ -63,7 +63,10 @@ class Calibration:
 
     def compute_reprojection_error(self, rvecs, tvecs, mtx, dist, imgpoints):
         imgpoints2, _ = cv2.projectPoints(self.objp, rvecs, tvecs, mtx, dist)
-        return cv2.norm(imgpoints, imgpoints2, cv2.NORM_L2) / len(imgpoints2)
+        error = cv2.norm(imgpoints, imgpoints2, cv2.NORM_L2)
+        mse = (error**2) / len(imgpoints)
+        rsme = np.sqrt(mse)
+        return rsme
 
     def compute_reprojection_errors(self):
         mean_error = 0.0

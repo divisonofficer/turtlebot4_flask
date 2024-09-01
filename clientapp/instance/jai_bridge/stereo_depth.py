@@ -39,7 +39,7 @@ class StereoCameraParameters:
         self.right = CameraIntrinsic(parameters["mtx_right"], parameters["dist_right"])
         self.R = parameters["R"]
         self.T = parameters["T"]
-        self.resolution = (1440, 1080)
+        self.resolution = (720, 540)
         self.scaled_map_dict: dict[float, tuple] = {}
 
         rectify_left, rectify_right, proj_left, proj_right, Q, roi_left, roi_right = (
@@ -226,7 +226,7 @@ class StereoDepth:
 
     def rectify_pair(self, left: np.ndarray, right: np.ndarray):
         map_left_x, map_left_y, map_right_x, map_right_y = (
-            self.parameter.compute_scaled_map(left.shape[0] / 1080.0)
+            self.parameter.compute_scaled_map(1)
         )
         left_rect = cv2.remap(left, map_left_x, map_left_y, cv2.INTER_LINEAR)
         right_rect = cv2.remap(right, map_right_x, map_right_y, cv2.INTER_LINEAR)

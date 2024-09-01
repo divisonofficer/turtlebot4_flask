@@ -15,6 +15,9 @@ import numpy as np
 from calibration_type import CalibrationOutput
 from calibration import Calibration
 
+from lucid.lucid_py_api import LucidPyAPI, LucidImage
+from lucid.lucid_postprocess import LucidPostProcess
+
 from stereo_queue import StereoQueue
 from rclpy.qos import (
     QoSProfile,
@@ -33,6 +36,8 @@ class JaiStereoCalibration(Node):
     def __init__(self, socket: SocketIO):
         super().__init__("jai_stereo_calibration")  # type: ignore
 
+        self.calibration = Calibration()
+
         self.video_stream_raw = VideoStream(create_subscriber=None)
         self.video_stream_depth = VideoStream(create_subscriber=None)
         self.socket = socket
@@ -49,6 +54,25 @@ class JaiStereoCalibration(Node):
         self.max_depth = 20
         self.depth_colormap = cv2.applyColorMap(
             np.arange(256, dtype=np.uint8), cv2.COLORMAP_MAGMA
+        )
+
+    def enable_lucid_camera(self):
+        if hasattr(self, "lucid_api"):
+            return
+        self.lucid_api = LucidPyAPI()
+        self.lucid_post_process = LucidPostProcess()
+        self.lucid_api.connect_device()
+        self.lucid_api.open_stream()
+
+        threading.Thread(
+            target=self.lucid_api.collect_image_loop, args=(self.lucid_callback,)
+        ).start()
+
+    def lucid_callback(self, left: LucidImage, right: LucidImage):
+
+        self.calibrate(
+            self.lucid_post_process.rawUint8ToTonemappedBgr(left.buffer_np),
+            self.lucid_post_process.rawUint8ToTonemappedBgr(right.buffer_np),
         )
 
     def init_calibration_by_loading(self, id: int):
@@ -87,14 +111,12 @@ class JaiStereoCalibration(Node):
             ),
         )
 
-        self.calibration = Calibration()
-
-        self.create_subscription(
-            CompressedImage,
-            "/jai_1600_stereo/merged",
-            self.stereo_merged_callback,
-            10,
-        )
+        # self.create_subscription(
+        #     CompressedImage,
+        #     "/jai_1600_stereo/merged",
+        #     self.stereo_merged_callback,
+        #     10,
+        # )
 
     def lidar_callback(self, msg: PointCloud2):
         print("Lidar callback")

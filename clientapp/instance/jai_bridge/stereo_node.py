@@ -9,7 +9,7 @@ import traceback
 
 from typing import Optional, Union
 from rclpy.node import Node
-from stereo_queue import StereoItemMerged
+from lucid.stereo_queue import StereoItemMerged, StereoQueue
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
 import numpy as np
 import cv2
@@ -21,39 +21,29 @@ from stereo_storage import StereoCaptureItem, StereoMultiItem, StereoStorage
 import time
 from stereo_depth import DISPARITY_MAX, StereoDepth, COLORMAP
 
+from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
+
 
 class JaiStereoDepth(Node):
 
     def __init__(self):
         super().__init__("jai_stereo_depth")  # type: ignore
 
-        # self.stereo_queue_merged = StereoQueue[StereoItemMerged](
-        #     self,
-        #     None,
-        #     None,
-        #     self.stereoMergedCallback,
-        # )
+        self.lidar_bridge = OusterBridge()
 
-        # self.stereo_queue_viz = StereoQueue[CompressedImage](
-        #     self,
-        #     "/jai_1600_left/channel_0",
-        #     "/jai_1600_right/channel_0",
-        #     lambda l, r: self.stereo_queue_merged.callback_left(StereoItemMerged(l, r)),
-        # )
+        self.stereo_lidar_queue = StereoQueue[CompressedImage, OusterLidarData](
+            self.stereo_lidar_callback, time_diff=0.3, max_queue_length=300
+        )
 
-        # self.stereo_queue_nir = StereoQueue[CompressedImage](
-        #     self,
-        #     "/jai_1600_left/channel_1",
-        #     "/jai_1600_right/channel_1",
-        #     lambda l, r: self.stereo_queue_merged.callback_right(
-        #         StereoItemMerged(l, r)
-        #     ),
-        # )
+        threading.Thread(
+            target=self.lidar_bridge.collect_data,
+            args=(self.stereo_lidar_queue.callback_right,),
+        ).start()
 
         self.stereo_merged_subscription = self.create_subscription(
             CompressedImage,
             "/jai_1600_stereo/merged",
-            self.stereo_merged_callback,
+            self.stereo_lidar_queue.callback_left,
             10,
         )
         self.stereo_merged_subscription
@@ -94,30 +84,48 @@ class JaiStereoDepth(Node):
             cv2.LINE_AA,
         )
 
+    def stereo_lidar_callback(self, msg: CompressedImage, lidar: OusterLidarData):
+        rgb, nir = self.stereo_merged_callback(msg)
+        self.stereoMergedCallback(rgb, nir, lidar)
+
     def stereo_merged_callback(self, msg: CompressedImage):
 
         buffer_np = np.frombuffer(msg.data, np.uint8)
         width, height = self.stereo_depth_nir.compute_dimension(buffer_np.shape[0] / 8)
         buffer_np = buffer_np.reshape(8, height, width)
-        self.stereoMergedCallback(
-            StereoItemMerged(
+        return (
+            StereoItemMerged[cv2.typing.MatLike](
                 buffer_np[0:3].reshape(height, width, 3),
                 buffer_np[3:6].reshape(height, width, 3),
                 msg.header,
             ),
-            StereoItemMerged(buffer_np[6], buffer_np[7], msg.header),
+            StereoItemMerged[cv2.typing.MatLike](
+                buffer_np[6], buffer_np[7], msg.header
+            ),
         )
 
-    def stereoMergedCallback(self, rgb: StereoItemMerged, nir: StereoItemMerged):
+    def stereoMergedCallback(
+        self,
+        rgb: StereoItemMerged[cv2.typing.MatLike],
+        nir: StereoItemMerged[cv2.typing.MatLike],
+        lidar: Optional[OusterLidarData] = None,
+        disparity_matching=False,
+    ):
         try:
             if self.signal_merged.is_set():
                 raise Exception("stereoMergedCallback is already running")
             self.signal_merged.set()
             timestamp = rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
-
-            result_viz = self.stereo_callback(rgb.left, rgb.right, "viz")
-            result_nir = self.stereo_callback(nir.left, nir.right, "nir")
-
+            if disparity_matching:
+                result_viz = self.stereo_callback(rgb.left, rgb.right, "viz")
+                result_nir = self.stereo_callback(nir.left, nir.right, "nir")
+            else:
+                result_viz = self.stereo_depth_viz.rectify_pair(rgb.left, rgb.right)
+                result_nir = self.stereo_depth_nir.rectify_pair(nir.left, nir.right)
+                result_nir = (
+                    np.repeat(result_nir[0][:, :, np.newaxis], 3, axis=2),
+                    np.repeat(result_nir[1][:, :, np.newaxis], 3, axis=2),
+                )
             stereo_multi_item = self.store_stereo_item(
                 timestamp, result_viz, result_nir
             )
@@ -125,7 +133,7 @@ class JaiStereoDepth(Node):
                 self.stream_disparity_viz.cv_ndarray_callback(stereo_multi_item.merged)
                 if self.stereo_storage_id is not None:
                     self.stereo_storage.store_item(
-                        self.stereo_storage_id, stereo_multi_item
+                        self.stereo_storage_id, stereo_multi_item, lidar
                     )
         except Exception as e:
             traceback.print_exc()
@@ -138,11 +146,9 @@ class JaiStereoDepth(Node):
         # todo : framerate, queue status, stored_count, left-right sync...
         return {
             "storage_id": self.stereo_storage_id,
-            # "queue_status": {
-            #     "viz": self.stereo_queue_viz.queue_status(),
-            #     "nir": self.stereo_queue_nir.queue_status(),
-            #     "merged": self.stereo_queue_merged.queue_status(),
-            # },
+            "queue_status": {
+                "merged": self.stereo_lidar_queue.queue_status(),
+            },
         }
 
     def enable_stereo_storage(self, id: Optional[str] = None):
@@ -161,19 +167,30 @@ class JaiStereoDepth(Node):
 
         size = result_viz.left.shape[:2]
 
-        merged_viz = np.concatenate(
-            (result_viz.left, result_viz.right, result_viz.disparity_color), axis=1
-        )
+        merged_viz = np.concatenate((result_viz.left, result_viz.right), axis=1)
+        if result_viz.disparity_color is not None:
+            merged_viz = np.concatenate(
+                (merged_viz, result_viz.disparity_color), axis=1
+            )
         merged_nir = np.concatenate(
-            (result_nir.left, result_nir.right, result_nir.disparity_color), axis=1
+            (
+                result_nir.left,
+                result_nir.right,
+            ),
+            axis=1,
         )
+        if result_nir.disparity_color is not None:
+            merged_nir = np.concatenate(
+                (merged_nir, result_nir.disparity_color), axis=1
+            )
         merged = np.concatenate((merged_viz, merged_nir), axis=0)
-        color_bar_scaled = cv2.resize(
-            self.color_bar,
-            (int(self.color_bar.shape[1]), size[0] * 2),
-            interpolation=cv2.INTER_NEAREST,
-        )
-        merged = np.concatenate((merged, color_bar_scaled), axis=1)
+        if result_viz.disparity_color is not None:
+            color_bar_scaled = cv2.resize(
+                self.color_bar,
+                (int(self.color_bar.shape[1]), size[0] * 2),
+                interpolation=cv2.INTER_NEAREST,
+            )
+            merged = np.concatenate((merged, color_bar_scaled), axis=1)
         return StereoMultiItem(timestamp, result_viz, result_nir, merged)
 
     def __init_raft_stereo(self):
@@ -193,7 +210,6 @@ class JaiStereoDepth(Node):
                 self.corr_implementation = "reg_cuda"
 
         args = Args()
-        print(torch.cuda.is_available())
         model = torch.nn.DataParallel(RAFTStereo(args), device_ids=[0])
         model.load_state_dict(torch.load(args.model))
         self.raft_stereo = model.module

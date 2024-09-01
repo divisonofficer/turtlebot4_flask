@@ -11,6 +11,7 @@ import sys
 from google.protobuf.json_format import MessageToDict
 from time import time, sleep
 
+sys.path.append("instance/")
 sys.path.append("../..")
 sys.path.append("../../../public/proto/python")
 sys.path.append("../public/proto/python")
@@ -551,13 +552,7 @@ def spin_node():
 
     thread = threading.Thread(
         target=spin_nodes,
-        args=(
-            [
-                node,
-                calibration_node,
-                # depth_node
-            ],
-        ),
+        args=([node, calibration_node, depth_node],),
         daemon=True,
     )
     thread.start()
@@ -828,6 +823,12 @@ def enable_stereo_storage():
 def disable_stereo_storage():
     depth_node.disable_stereo_storage()
     return depth_node.node_status()
+
+
+@app.route("/calibrate/lucid/enable", methods=["POST"])
+def enable_lucid_calibration():
+    calibration_node.enable_lucid_camera()
+    return {"status": "success"}
 
 
 with app.app_context():
