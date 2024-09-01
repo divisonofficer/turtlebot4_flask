@@ -7,22 +7,24 @@ from numpy import tri
 TAB1 = "  "
 TAB2 = "    "
 import time
-from typing import List, Optional
+from typing import Callable, List, Optional
 from arena_api._device import Device
 from arena_api._node import NodeCommand
 from arena_api.buffer import _Buffer
 import numpy as np
 from std_msgs.msg import Header
 
-RESOLUTION_MAX = (2880, 1860)
-RESOLUTION = (1600, 1200)
+RESOLUTION_MAX = (2880, 1856)
+RESOLUTION = (2880, 1856)
 
 
 class LucidImage:
     def __init__(self, buffer_np: np.ndarray, timestamp_ns: int):
         self.buffer_np = buffer_np
         self.header = Header()
-        self.header.stamp.sec = timestamp_ns // 1_000_000_000
+        timestamp_sec = timestamp_ns // 1_000_000_000
+        timestamp_sec = timestamp_sec % 2147483647
+        self.header.stamp.sec = timestamp_sec
         self.header.stamp.nanosec = timestamp_ns % 1_000_000_000
 
     def __repr__(self):
@@ -36,7 +38,7 @@ class LucidPyAPI:
     def __init__(self):
         self.SERIAL = ["224201564", "224201585"]
         self.timestamp_base = [0, 0]
-        self.FRAME_RATE = 6.0
+        self.FRAME_RATE = 4.0
         self.BUFFER_COUNT = 4
         self.buffers_device: List[List[_Buffer]] = [[], []]
         self.trigger_thread: Optional[threading.Thread] = None
@@ -140,18 +142,36 @@ class LucidPyAPI:
             for buffer in self.buffers_device[idx]:
                 time_begin = time.time()
                 buffer_np = self.buffer_to_image(buffer)
-                timestamp_ns = buffer.timestamp_ns + self.timestamp_base[idx]
-                buffer_np_list[idx].append(LucidImage(buffer_np, timestamp_ns))
+                if buffer_np is not None:
+                    timestamp_ns = buffer.timestamp_ns + self.timestamp_base[idx]
+                    buffer_np_list[idx].append(LucidImage(buffer_np, timestamp_ns))
                 device.requeue_buffer(buffer)
 
         return buffer_np_list
 
-    def buffer_to_image(self, buffer: _Buffer) -> np.ndarray:
+    def collect_image_loop(self, callback: Callable[[LucidImage, LucidImage], None]):
+        while True:
+            images = self.collect_images()
+            for left, right in zip(images[0], images[1]):
+                callback(left, right)
+
+    def buffer_to_image(self, buffer: _Buffer) -> Optional[np.ndarray]:
+        if buffer.is_incomplete:
+            print(
+                f"""
+                  buffer.is_incomplete: {buffer.is_incomplete}
+                  buffer.xbuffer.has_image_data: {buffer.xbuffer.xBufferHasImageData()}
+                  buffer.xbuffer.has_chunk_data: {buffer.xbuffer.xBufferHasChunkData()}
+                  {buffer.xbuffer.xBufferGetSizeFilled()} / {buffer.xbuffer.xBufferGetSizeOfBuffer()}
+                  
+                  """
+            )
+            return None
         pointer = buffer.xbuffer.xImageGetData()
 
         data_np: np.ndarray = np.ctypeslib.as_array(
             pointer, shape=(buffer.buffer_size,)
-        )
+        ).copy()
         data_np = data_np.reshape(
             buffer.height, buffer.width, buffer.bits_per_pixel // 8
         )
@@ -201,21 +221,16 @@ class LucidPyAPI:
             nodemap.get_node("TriggerMode"),
             nodemap.get_node("TriggerSelector"),
             nodemap.get_node("AcquisitionFrameRate"),
-            nodemap.get_node("ISPClockSpeed"),
+            nodemap.get_node("Width"),
+            nodemap.get_node("Height"),
             nodemap.get_node("TriggerOverlap"),
             nodemap["TriggerLatency"],
+            nodemap["PayloadSize"],
         )
-        print(
-            (RESOLUTION_MAX[0] - RESOLUTION[0]) // 2,
-            (RESOLUTION_MAX[1] - RESOLUTION[1]) // 4,
-        )
+
         nodemap.get_node("AcquisitionBurstFrameCount").value = 1
-        nodemap.get_node("OffsetX").value = int(
-            (nodemap.get_node("OffsetX").value // 2 // 4) * 4
-        )
-        nodemap.get_node("OffsetY").value = int(
-            (nodemap.get_node("OffsetY").value // 2 // 4) * 4
-        )
+        nodemap.get_node("OffsetX").value = int(0)
+        nodemap.get_node("OffsetY").value = int(0)
         nodemap.get_node("AcquisitionFrameRateEnable").value = True
         nodemap.get_node("Width").value = (
             RESOLUTION[0] // nodemap.get_node("BinningHorizontal").value

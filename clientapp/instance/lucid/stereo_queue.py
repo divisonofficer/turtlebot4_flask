@@ -1,6 +1,4 @@
 from typing import Callable, Optional, Generic, TypeVar
-
-from lucid_py_api import LucidImage
 import time
 from std_msgs.msg import Header
 
@@ -11,13 +9,13 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
-class StereoItemMerged:
+class StereoItemMerged(Generic[T]):
     header: Header
 
     def __init__(
         self,
-        left: LucidImage,
-        right: LucidImage,
+        left: T,
+        right: T,
         timestamp: Optional[Header] = None,
     ):
         self.left = left

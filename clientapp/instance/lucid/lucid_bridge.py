@@ -1,15 +1,6 @@
-CAMERA_SERIAL = [224201564, 224201585]
-PIXEL_FORMAT = "rgb8"
-RESOLUTION = (720, 480)
-
-
 import random
-
-
 import sys
-from typing import Optional
-
-from typing import Union
+from typing import Optional, Union
 
 sys.path.append("../")
 
@@ -124,7 +115,7 @@ class LucidStereoNode(Node):
         self.status.ouster.working = True
         self.image_lidar_queue.callback_right(msg)
 
-    def stereo_callback(self, left, right):
+    def stereo_callback(self, left: LucidImage, right: LucidImage):
 
         self.image_lidar_queue.callback_left(StereoItemMerged(left, right))
 
