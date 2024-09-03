@@ -109,9 +109,10 @@ class OusterBridge:
                     time.sleep(0.05)
 
     def __del__(self):
-        self.sensor.close()
-        del self.sensor
-        del self.packet_format
+        if hasattr(self, "sensor"):
+            self.sensor.close()
+            del self.sensor
+            del self.packet_format
 
 
 import cv2

@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Literal, Optional
 from PIL import Image
 import tqdm
 
@@ -59,6 +59,18 @@ class StereoDepthGif:
 
         return files
 
+    def read_disparity_file(self, scene: str, channel: Literal["rgb", "nir"]):
+        disparity: Optional[np.ndarray] = None
+        if os.path.exists(os.path.join(scene, channel, "disparity.png")):
+            disparity = cv2.imread(
+                os.path.join(scene, channel, "disparity.png"), cv2.IMREAD_GRAYSCALE
+            )
+        if os.path.exists(os.path.join(scene, channel, "disparity.npz")):
+            disparity = np.load(os.path.join(scene, channel, "disparity.npz"))["arr_0"]
+        if disparity is None:
+            raise FileNotFoundError("Disparity file not found")
+        return disparity
+
     def merge_image_property(self, scene: str):
         left_rgb = cv2.imread(os.path.join(scene, "rgb", "left.png"))
         right_rgb = cv2.imread(os.path.join(scene, "rgb", "right.png"))
@@ -73,12 +85,8 @@ class StereoDepthGif:
             .repeat(3, axis=2)
         )
 
-        dis_rgb = cv2.imread(
-            os.path.join(scene, "rgb", "disparity.png"), cv2.IMREAD_GRAYSCALE
-        )
-        dis_nir = cv2.imread(
-            os.path.join(scene, "nir", "disparity.png"), cv2.IMREAD_GRAYSCALE
-        )
+        dis_rgb = self.read_disparity_file(scene, "rgb")
+        dis_nir = self.read_disparity_file(scene, "nir")
         dis_rgb = self.disparity_colorize(dis_rgb, self.args.max_disparity)
         dis_nir = self.disparity_colorize(dis_nir, self.args.max_disparity)
         rgb = np.concatenate((left_rgb, right_rgb, dis_rgb), axis=1)

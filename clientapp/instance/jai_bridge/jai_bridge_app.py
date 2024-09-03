@@ -5,6 +5,9 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 
 import os
+
+import numpy as np
+from sympy import root
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 import sys
@@ -823,6 +826,109 @@ def enable_stereo_storage():
 def disable_stereo_storage():
     depth_node.disable_stereo_storage()
     return depth_node.node_status()
+
+
+@app.route("/stereo/storage/list", methods=["GET"])
+def list_stereo_storage():
+    root = request.args.get("root", "tmp/depth")
+    return depth_node.stereo_storage.read_storage_list(root)
+
+
+@app.route("/stereo/storage/<id>/frames", methods=["GET"])
+def list_stereo_storage_scene_frames(id):
+    root = request.args.get("root", "tmp/depth")
+    return depth_node.stereo_storage.read_storage_scene(id, root)
+
+
+@app.route("/stereo/storage/<id>/frame/<frame_id>", methods=["GET"])
+def get_stereo_storage_scene_frame(id, frame_id):
+    root = request.args.get("root", "tmp/depth")
+    return Response(
+        json.dumps(
+            depth_node.stereo_storage.read_frame_info(id, frame_id, root).__dict__()
+        ),
+        status=200,
+    )
+
+
+@app.route(
+    "/stereo/storage/<id>/frame/<frame_id>/png/<property>/<channel>", methods=["GET"]
+)
+def get_stereo_storage_scene_frame_property(id, frame_id, property, channel):
+    root = request.args.get("root", "tmp/depth")
+    return send_file(
+        depth_node.stereo_storage.read_frame_property(
+            id, frame_id, channel, property, root
+        ),
+        mimetype="image/png",
+    )
+
+
+@app.route(
+    "/stereo/storage/<id>/frame/<frame_id>/file/<property>/<channel>", methods=["GET"]
+)
+def download_stereo_storage_scene_frame_property(id, frame_id, property, channel):
+    root = request.args.get("root", "tmp/depth")
+    if channel != "rgb" and channel != "nir":
+        channel = None
+    return send_file(
+        depth_node.stereo_storage.read_frame_property(
+            id,
+            frame_id,
+            channel,
+            property,
+            root,
+            file_type=None,
+        ),
+        mimetype="application/octet-stream",
+    )
+
+
+@app.route("/stereo/storage/<id>/calibration", methods=["GET"])
+def get_stereo_storage_calibration(id):
+    root = request.args.get("root", "tmp/depth")
+    if os.path.exists(f"{root}/{id}/calibration.npz"):
+        cal = np.load(f"{root}/{id}/calibration.npz")
+        return {
+            "mtx_left": cal["mtx_left"].tolist(),
+            "dist_left": cal["dist_left"].tolist(),
+            "mtx_right": cal["mtx_right"].tolist(),
+            "dist_right": cal["dist_right"].tolist(),
+            "R": cal["R"].tolist(),
+            "T": cal["T"].tolist(),
+            "E": cal["E"].tolist(),
+            "F": cal["F"].tolist(),
+        }
+    return Response(status=404)
+
+
+@app.route("/stereo/storage/<id>/calibration/load", methods=["POST"])
+def load_stereo_calibration_from_storage(id):
+    root = request.args.get("root", "tmp/depth")
+    calibration_id = request.json.get("calibration_id") if request.json else None
+    depth_node.stereo_storage.scene_update_calibration(root, id, calibration_id)
+    return Response(status=200)
+
+
+@app.route("/stereo/storage/<id>/frame/<frame_id>/disparity", methods=["POST"])
+def process_frame_disparity(id, frame_id):
+    root = request.args.get("root", "tmp/depth")
+    depth_node.post_process_disparity_matching(f"{root}/{id}/{frame_id}")
+    return Response(status=200)
+
+
+@app.route("/stereo/storage/<id>/frame/<frame_id>/ply", methods=["POST"])
+def process_frame_pointcloud(id, frame_id):
+    root = request.args.get("root", "tmp/depth")
+    depth_node.stereo_storage.post_process_pointcloud(root, id, frame_id)
+    return Response(status=200)
+
+
+@app.route("/stereo/storage/<id>/post/disparity", methods=["POST"])
+def post_disparity(id):
+    root = request.args.get("root", "tmp/depth")
+    depth_node.post_process_disparity_matching_scene(id, root)
+    return Response(status=200)
 
 
 @app.route("/calibrate/lucid/enable", methods=["POST"])

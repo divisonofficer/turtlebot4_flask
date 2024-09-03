@@ -3,7 +3,7 @@ import sys
 
 sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 
-from typing import Optional
+from typing import Literal, Optional
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
 from modules.RAFT_Stereo.core.utils.utils import InputPadder
 import numpy as np
@@ -130,7 +130,11 @@ class StereoDepth:
         self.signal_off = signal_off
 
     def raft_stereo(
-        self, image_left: cv2.typing.MatLike, image_right: cv2.typing.MatLike, channel
+        self,
+        image_left: cv2.typing.MatLike,
+        image_right: cv2.typing.MatLike,
+        channel: Literal["rgb", "nir"],
+        rectified=False,
     ):
         if self.signal_on.is_set():
             print("raft_stereo: processing is already running")
@@ -139,7 +143,9 @@ class StereoDepth:
         time_begin = time.time()
         try:
             self.signal_on.set()
-            result = self.process_stereo(image_left, image_right, channel)
+            result = self.process_stereo(
+                image_left, image_right, channel, rectified=rectified
+            )
         except Exception as e:
             traceback.print_exc()
         finally:
@@ -172,12 +178,15 @@ class StereoDepth:
         image_right: cv2.typing.MatLike,
         channel,
         scale=1,
+        rectified=False,
     ):
-        if channel == "nir":
+        if channel == "nir" and len(image_left.shape) == 2:
             image_left = cv2.cvtColor(image_left, cv2.COLOR_GRAY2BGR)
             image_right = cv2.cvtColor(image_right, cv2.COLOR_GRAY2BGR)
-
-        left_rect, right_rect = self.rectify_pair(image_left, image_right)
+        if not rectified:
+            left_rect, right_rect = self.rectify_pair(image_left, image_right)
+        else:
+            left_rect, right_rect = image_left, image_right
         disparity, disparity_color = self.process_stereo_disparity(
             left_rect, right_rect, scale
         )

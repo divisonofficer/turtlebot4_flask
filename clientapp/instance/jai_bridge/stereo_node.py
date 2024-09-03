@@ -1,4 +1,7 @@
+import os
 import sys
+
+import tqdm
 
 from points2depth import Point2Depth
 
@@ -29,27 +32,28 @@ class JaiStereoDepth(Node):
     def __init__(self):
         super().__init__("jai_stereo_depth")  # type: ignore
 
-        self.lidar_bridge = OusterBridge()
-
         self.stereo_lidar_queue = StereoQueue[CompressedImage, OusterLidarData](
             self.stereo_lidar_callback, time_diff=0.3, max_queue_length=300
         )
+        try:
+            self.lidar_bridge = OusterBridge()
 
-        threading.Thread(
-            target=self.lidar_bridge.collect_data,
-            args=(self.stereo_lidar_queue.callback_right,),
-        ).start()
+            threading.Thread(
+                target=self.lidar_bridge.collect_data,
+                args=(self.stereo_lidar_queue.callback_right,),
+            ).start()
 
-        self.stereo_merged_subscription = self.create_subscription(
-            CompressedImage,
-            "/jai_1600_stereo/merged",
-            self.stereo_lidar_queue.callback_left,
-            10,
-        )
-        self.stereo_merged_subscription
+            self.stereo_merged_subscription = self.create_subscription(
+                CompressedImage,
+                "/jai_1600_stereo/merged",
+                self.stereo_lidar_queue.callback_left,
+                10,
+            )
+            self.stereo_merged_subscription
 
+        except Exception as e:
+            print(e)
         self.__init_raft_stereo()
-
         self.points2depth = Point2Depth()
 
         self.stereo_storage_id: Optional[str] = None
@@ -238,6 +242,47 @@ class JaiStereoDepth(Node):
             img = msg_np.reshape(1080, 1440)
             return cv2.cvtColor(img, cv2.COLOR_BayerRG2RGB)
         return msg_np.reshape(1080, 1440, 3)
+
+    def post_process_disparity_matching_scene(
+        self, scene_folder: str, root="tmp/depth"
+    ):
+        frames = self.stereo_storage.read_storage_scene(scene_folder, root)
+        for frame in tqdm.tqdm(frames):
+            self.post_process_disparity_matching(
+                os.path.join(root, scene_folder, frame)
+            )
+
+    def post_process_disparity_matching(self, frame_folder: str):
+        img_left = cv2.imread(
+            os.path.join(frame_folder, "rgb/left.png"), cv2.IMREAD_ANYCOLOR
+        )
+        img_right = cv2.imread(
+            os.path.join(frame_folder, "rgb/right.png"), cv2.IMREAD_ANYCOLOR
+        )
+        img_nir_left = cv2.imread(
+            os.path.join(frame_folder, "nir/left.png"), cv2.IMREAD_GRAYSCALE
+        )
+        img_nir_right = cv2.imread(
+            os.path.join(frame_folder, "nir/right.png"), cv2.IMREAD_GRAYSCALE
+        )
+        result = self.stereo_depth_viz.raft_stereo(
+            img_left, img_right, "rgb", rectified=True
+        )
+        if result is not None:
+            _, _, disparity, disparity_color = result
+            np.savez(os.path.join(frame_folder, "rgb/disparity.npz"), disparity)
+            cv2.imwrite(
+                os.path.join(frame_folder, "rgb/disparity_color.png"), disparity_color
+            )
+        result = self.stereo_depth_nir.raft_stereo(
+            img_nir_left, img_nir_right, "nir", rectified=True
+        )
+        if result is not None:
+            _, _, disparity, disparity_color = result
+            np.savez(os.path.join(frame_folder, "nir/disparity.npz"), disparity)
+            cv2.imwrite(
+                os.path.join(frame_folder, "nir/disparity_color.png"), disparity_color
+            )
 
     def stereo_callback(
         self,
