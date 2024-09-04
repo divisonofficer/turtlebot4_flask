@@ -59,12 +59,13 @@ void JAINode::createPublishers() {
   openStream(-1);
 
   this->cameras[0]->initCameraTimestamp();
+  this->cameras[1]->initCameraTimestamp();
   this->timestamp_begin_ros = this->systemTimeNano();
-
-  subscription_thread.push_back(
-      std::thread([this]() { this->cameras[0]->runUntilInterrupted(0); }));
   subscription_thread.push_back(
       std::thread([this]() { this->cameras.back()->runUntilInterrupted(0); }));
+  subscription_thread.push_back(
+      std::thread([this]() { this->cameras[0]->runUntilInterrupted(0); }));
+
   subscription_thread.push_back(
       std::thread([this]() { this->cameras[0]->runUntilInterrupted(1); }));
   subscription_thread.push_back(
@@ -214,13 +215,18 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
     if (device_num == 0) {
       Debug << "Frame Rate : " << source_framerate[0][0] << " "
             << source_framerate[1][0];
-      if ((abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 ||
-           (abs(source_framerate[0][0] - source_framerate[1][0] * 2) < 0.1)) &&
-          abs(source_framerate[0][0] - FRAME_RATE) < 0.1) {
-        if (time_diff > 1.0 && time_diff < 500.0 / FRAME_RATE) {
+      if (((abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 ||
+            (abs(source_framerate[0][0] - source_framerate[1][0] * 2) < 0.1)) &&
+           abs(source_framerate[0][0] - FRAME_RATE) < 0.1) ||
+          abs(source_framerate[1][0] - FRAME_RATE) < 0.1) {
+        triggerDelayPending = 0;
+        while (time_diff > 1000.0 / FRAME_RATE) {
+          time_diff -= 1000.0 / FRAME_RATE;
+        }
+        if (time_diff > MIN_DIFFS && time_diff < 500.0 / FRAME_RATE) {
           triggerDelayPending = time_diff;
-        } else if (time_diff < 1000.0 / FRAME_RATE &&
-                   1000.0 / FRAME_RATE - time_diff > 1.0) {
+        } else if (time_diff > MIN_DIFFS && time_diff < 1000.0 / FRAME_RATE &&
+                   1000.0 / FRAME_RATE - time_diff > MIN_DIFFS) {
           triggerDelayPending = 1000.0 / FRAME_RATE - time_diff;
         }
       }
@@ -276,8 +282,12 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
       for (int i = 0; i < 4; i++) {
         int sn = i / 2, dn = i % 2;
         cv::Mat img(1080, 1440, CV_8UC1, buffer_queue[dn][sn].front().second);
-        if (sn == 0) cv::cvtColor(img, img, cv::COLOR_BayerRG2RGB);
-        cv::resize(img, img, cv::Size(720, 540), 0, 0, cv::INTER_LINEAR);
+        if (sn == 0) {
+          cv::cvtColor(img, img, cv::COLOR_BayerRG2RGB);
+          cv::resize(img, img, cv::Size(720, 540), 0, 0, cv::INTER_LINEAR);
+        } else {
+          img = img(cv::Rect(0, 0, 720, 540));
+        }
         memcpy(buffer_merged + 720 * 540 * (dn * (sn == 0 ? 3 : 1) + sn * 6),
                img.data, 720 * 540 * sizeof(uint8_t) * (3 - sn * 2));
         free(buffer_queue[dn][sn].front().second);
@@ -293,7 +303,6 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
       imageRosMsg.data.assign(buffer_merged, buffer_merged + 720 * 540 * 8);
       mergedImagePublisher->publish(imageRosMsg);
       free(buffer_merged);
-      Debug << "Merged Image Published";
     }
   }
 
@@ -392,12 +401,12 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
     cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
         "ExposureAuto", 2);
     cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
-        "GainAuto", 2);
+        "GainAuto", 0);
 
     cameras.back()->triggerCallback = [this]() {
-      cameras[0]->closeStream();
-      cameras[1]->closeStream();
       if (triggerDelayPending > 0.0f) {
+        cameras[0]->closeStream();
+        cameras[1]->closeStream();
         // sleep(0.1);
         Info << "Adjust Stereo Pulse Delay" << triggerDelayPending;
         double delay;
@@ -419,26 +428,27 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
         }
         cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetFloatValue(
             "TriggerDelay", delay);
+
         triggerDelayPending = 0.0f;
+        cameras[0]->openStream();
+        cameras[1]->openStream();
       }
 
       if (stereo_exposure_sync) {
         float exposure_left = cameras[0]->getExposure(0);
-        float gain_left = cameras[0]->getGain(0);
+        // float gain_left = cameras[0]->getGain(0);
         cameras[1]->configureExposure(0, exposure_left);
-        cameras[1]->configureGain(0, gain_left);
+        // cameras[1]->configureGain(0, gain_left);
         exposure_left = cameras[0]->getExposure(1);
-        gain_left = cameras[0]->getGain(1);
+        // gain_left = cameras[0]->getGain(1);
         cameras[1]->configureExposure(1, exposure_left);
-        cameras[1]->configureGain(1, gain_left);
+        // cameras[1]->configureGain(1, gain_left);
       }
 
       // cameras[0]->openStream();
       // cameras[1]->openStream();
       // cameras[0]->closeStream();
       // cameras[1]->closeStream();
-      cameras[0]->openStream();
-      cameras[1]->openStream();
     };
   }
 
