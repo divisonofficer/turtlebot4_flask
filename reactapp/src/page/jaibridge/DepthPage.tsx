@@ -1,10 +1,20 @@
-import { HStack, Switch, VStack } from "@chakra-ui/react";
+import {
+  HStack,
+  Switch,
+  VStack,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Button,
+} from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 import { VideoStream } from "../../design/other/video";
 import { Body3, H3, H4 } from "../../design/text/textsystem";
 import { observer } from "mobx-react";
 import { JaiStereoQueueStatus, jaiStore } from "../../stores/JaiStore";
 import { useEffect } from "react";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 
 const DepthVideoStream = ({ url }: { url: string }) => {
   return (
@@ -54,10 +64,18 @@ export const QueueStatusView = ({ queue }: { queue: JaiStereoQueueStatus }) => {
     <VStack>
       <Body3>{queue.merge_interval?.toFixed(4)}</Body3>
       <Body3>{queue.diff?.toFixed(4)}</Body3>
+      <Body3>Left Queue Size</Body3>
       <Body3>{queue.left_count}</Body3>
-      <Body3>{queue.left_last_delay?.toFixed(4)}</Body3>
+      <Body3>Left Last Delay</Body3>
+      <Body3>
+        {queue.left_last_delay?.toFixed(4)} _ {queue.left_last_time}
+      </Body3>
+      <Body3>Right Queue Size</Body3>
       <Body3>{queue.right_count}</Body3>
-      <Body3>{queue.right_last_delay?.toFixed(4)}</Body3>
+      <Body3>Right Last Delay</Body3>
+      <Body3>
+        {queue.right_last_delay?.toFixed(4)} _ {queue.right_last_time}
+      </Body3>
     </VStack>
   );
 };
@@ -84,13 +102,43 @@ export const DepthStatusView = observer(() => {
   );
 });
 
+const LoadCalibrationButton = observer(() => {
+  useEffect(() => {
+    jaiStore.fetchGetCalibrationList();
+  }, []);
+
+  return (
+    <Menu placement="bottom-end">
+      <MenuButton as={Button} rightIcon={<ChevronDownIcon />} fontSize="md">
+        Load Calibration
+      </MenuButton>
+      <MenuList>
+        {jaiStore.calibrationList.map((meta, index) => {
+          return (
+            <MenuItem
+              key={index}
+              fontSize="small"
+              onClick={() => {
+                jaiStore.fetchDepthSetCurrentCalibration(meta.id);
+              }}
+            >
+              {meta.id} : {meta.month}/{meta.day}/{meta.hour}
+            </MenuItem>
+          );
+        })}
+      </MenuList>
+    </Menu>
+  );
+});
+
 export const DepthViewPage = () => {
   useEffect(() => {
-    jaiStore.fetchGetStereoNodeStatus();
+    //jaiStore.fetchGetStereoNodeStatus();
   }, []);
 
   return (
     <PageRoot title="Depth">
+      <LoadCalibrationButton />
       <StorageEnableButton />
       <DepthStatusView />
       <DepthVideoStream url="/jai/stereo/stream/stream_disparity_viz" />

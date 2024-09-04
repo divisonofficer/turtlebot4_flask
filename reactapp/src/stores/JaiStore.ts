@@ -83,7 +83,7 @@ class JaiStore {
 
     setInterval(() => {
       this.fetchGetStereoNodeStatus();
-    }, 1000);
+    }, 10000);
   }
   @action
   fetchJaiDeviceInfo = () => {
@@ -247,6 +247,10 @@ class JaiStore {
         this.calibrationList = data;
       })
       .fetch();
+  };
+
+  fetchDepthSetCurrentCalibration = (id: number) => {
+    httpPost(`/jai/stereo/calibration/load`, { calibration_id: id }).fetch();
   };
 
   fetchGetStereoNodeStatus = () => {
