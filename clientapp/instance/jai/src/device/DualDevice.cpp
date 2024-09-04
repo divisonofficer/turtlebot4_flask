@@ -21,7 +21,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
 
   if (TRIGGER_SYNC) {
     ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionMode",
-                               1);
+                               2);
     ParamManager::setParam(rgb_device->GetParameters(), "AcquisitionFrameCount",
                            MULTIFRAME_COUNT);
   } else {
@@ -43,13 +43,13 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
-                         80000.0f);
+                         40000.0f);
 
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 4.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 8.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
-                         8.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
+                         10.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 50);
   // ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "BalanceWhiteAuto",
   //                            2);
@@ -63,13 +63,15 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 1);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
-                         80000.0f);
+                         40000.0f);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 30);
+  ParamManager::setParam(rgb_device->GetParameters(), "BinningHorizontal", 2);
+  ParamManager::setParam(rgb_device->GetParameters(), "BinningVertical", 2);
+  ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 50);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 4.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 8.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
-                         8.0f);
+                         10.0f);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
   //                            PvPixelMono10);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
@@ -86,7 +88,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
                          "GevStreamChannelSelector", 0);
 
   ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
-                         (rand() % 2) * 0);
+                         (rand() % 1000));
 
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);

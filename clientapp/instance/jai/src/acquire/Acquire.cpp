@@ -109,16 +109,28 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
 
   if (!lResult.IsOK()) {
-    ErrorLog << "Failed to retrieve buffer: "
-             << lResult.GetCodeString().GetAscii();
-    if (lBuffer) queueBuffer(aStream, lBuffer);
-    return nullptr;
+    if (lResult.GetCode() == PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS) {
+    } else if (lResult.GetCode() == PvResult::Code::TOO_MANY_RESENDS) {
+    } else if (lResult.GetCode() == PvResult::Code::RESENDS_FAILURE) {
+    } else {
+      ErrorLog << "Failed to retrieve buffer: "
+               << lResult.GetCodeString().GetAscii() << " "
+               << lResult.GetCode();
+      if (lBuffer) queueBuffer(aStream, lBuffer);
+      return nullptr;
+    }
   }
   if (!lBuffer) {
     Debug << "Buffer is null";
     return nullptr;
   }
   if (!lOperationResult.IsOK()) {
+    switch (lOperationResult.GetCode()) {
+      case PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS:
+      case PvResult::Code::TOO_MANY_RESENDS:
+      case PvResult::Code::RESENDS_FAILURE:
+        return lBuffer;
+    }
     ErrorLog << "Operation result is not OK : "
              << lOperationResult.GetCodeString().GetAscii();
   } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
