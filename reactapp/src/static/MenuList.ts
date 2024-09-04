@@ -15,6 +15,7 @@ import {
   Notification,
   Robot,
   RocketLaunch,
+  VideoCameraSlash,
 } from "@phosphor-icons/react";
 import { ElementType } from "react";
 
@@ -96,6 +97,13 @@ export const menuList: MenuItem[] = [
         icon: MonitorArrowUp,
         name: "Depth",
         destination: "/jaibridge/depth",
+        subMenu: [
+          {
+            icon: VideoCameraSlash,
+            name: "Storage",
+            destination: "/jaibridge/depth/storage",
+          },
+        ],
       },
     ],
   },
