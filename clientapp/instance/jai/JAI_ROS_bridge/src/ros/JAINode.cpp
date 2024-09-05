@@ -277,19 +277,21 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
         continue;
       }
       uint8_t* buffer_merged =
-          (uint8_t*)calloc(1440 * 1080 * 4, sizeof(uint8_t));
+          (uint8_t*)calloc(ROS_MSG_BUFFER_SIZE * 8, sizeof(uint8_t));
 
       for (int i = 0; i < 4; i++) {
         int sn = i / 2, dn = i % 2;
         cv::Mat img(1080, 1440, CV_8UC1, buffer_queue[dn][sn].front().second);
         if (sn == 0) {
           cv::cvtColor(img, img, cv::COLOR_BayerRG2RGB);
-          cv::resize(img, img, cv::Size(720, 540), 0, 0, cv::INTER_LINEAR);
+          if (ROS_SCALE_DOWN)
+            cv::resize(img, img, cv::Size(720, 540), 0, 0, cv::INTER_LINEAR);
         } else {
-          img = img(cv::Rect(0, 0, 720, 540));
+          if (ROS_SCALE_DOWN) img = img(cv::Rect(0, 0, 720, 540));
         }
-        memcpy(buffer_merged + 720 * 540 * (dn * (sn == 0 ? 3 : 1) + sn * 6),
-               img.data, 720 * 540 * sizeof(uint8_t) * (3 - sn * 2));
+        memcpy(buffer_merged +
+                   ROS_MSG_BUFFER_SIZE * (dn * (sn == 0 ? 3 : 1) + sn * 6),
+               img.data, ROS_MSG_BUFFER_SIZE * sizeof(uint8_t) * (3 - sn * 2));
         free(buffer_queue[dn][sn].front().second);
         img.release();
         buffer_queue[dn][sn].pop();
@@ -300,7 +302,8 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
 
       imageRosMsg.format = "jpg";
       imageRosMsg.header.frame_id = "jai_1600_stereo";
-      imageRosMsg.data.assign(buffer_merged, buffer_merged + 720 * 540 * 8);
+      imageRosMsg.data.assign(buffer_merged,
+                              buffer_merged + ROS_MSG_BUFFER_SIZE * 8);
       mergedImagePublisher->publish(imageRosMsg);
       free(buffer_merged);
     }

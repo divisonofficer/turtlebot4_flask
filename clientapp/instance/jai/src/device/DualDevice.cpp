@@ -65,8 +65,10 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
                          40000.0f);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "BinningHorizontal", 2);
-  ParamManager::setParam(rgb_device->GetParameters(), "BinningVertical", 2);
+  ParamManager::setParam(rgb_device->GetParameters(), "BinningHorizontal",
+                         ROS_SCALE_DOWN ? 2 : 1);
+  ParamManager::setParam(rgb_device->GetParameters(), "BinningVertical",
+                         ROS_SCALE_DOWN ? 2 : 1);
   ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 50);
   ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "Gain", 8.0f);
