@@ -106,7 +106,7 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   PvResult lOperationResult;
 
   // Retrieve next buffer
-  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 250);
 
   if (!lResult.IsOK()) {
     if (lResult.GetCode() == PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS) {
@@ -125,14 +125,24 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     return nullptr;
   }
   if (!lOperationResult.IsOK()) {
+    if (lOperationResult.IsSuccess()) {
+      Debug << "Operation result is Success but not OK";
+    }
+    if (lOperationResult.IsPending()) {
+      Debug << "Operation result is Pending";
+    }
     switch (lOperationResult.GetCode()) {
       case PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS:
       case PvResult::Code::TOO_MANY_RESENDS:
       case PvResult::Code::RESENDS_FAILURE:
-        return lBuffer;
+        Debug << "Payload is not complete";
+        break;
+      default:
+        ErrorLog << "Operation result is not OK : "
+                 << lOperationResult.GetCodeString().GetAscii();
+        break;
     }
-    ErrorLog << "Operation result is not OK : "
-             << lOperationResult.GetCodeString().GetAscii();
+
   } else if (lBuffer->GetPayloadType() != PvPayloadTypeImage) {
     Debug << "Payload type is not Image";
 
