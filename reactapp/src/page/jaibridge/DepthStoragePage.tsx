@@ -11,7 +11,11 @@ import {
   Switch,
   VStack,
 } from "@chakra-ui/react";
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@chakra-ui/icons";
 import { FrameInfo, jaiDepthStore as jds } from "../../stores/JaiDepthStore";
 import { useCallback, useEffect, useState } from "react";
 import { Body3, H2, H3, H4 } from "../../design/text/textsystem";
@@ -154,8 +158,8 @@ const FrameDetail = ({ frame }: { frame: string }) => {
                       jds.scene_id
                     }/frame/${frame}/png/${prop}/${channel}?root=${jds.storage_url()}`}
                     style={{
-                      width: "8rem",
-                      height: "6rem",
+                      width: "20rem",
+                      height: "15rem",
                     }}
                     alt={frame}
                   />
@@ -232,6 +236,8 @@ const FrameThumb = ({ frame }: { frame: string }) => {
 };
 
 const FramesList = observer(() => {
+  const [page, setPage] = useState(0);
+
   return (
     <HStack
       style={{
@@ -239,11 +245,27 @@ const FramesList = observer(() => {
         width: "100%",
       }}
     >
+      {page > 0 && (
+        <Btn
+          size="sm"
+          icon={<ChevronLeftIcon />}
+          onClick={() => setPage(page - 1)}
+        />
+      )}
       <HStack style={{}}>
-        {jds.scene_frame_list.map((frame, index) => {
-          return <FrameThumb key={index} frame={frame} />;
-        })}
+        {jds.scene_frame_list
+          .slice(page * 10, page * 10 + 10)
+          .map((frame, index) => {
+            return <FrameThumb key={index} frame={frame} />;
+          })}
       </HStack>
+      {page < Math.floor(jds.scene_frame_list.length / 10) && (
+        <Btn
+          size="sm"
+          icon={<ChevronRightIcon />}
+          onClick={() => setPage(page + 1)}
+        />
+      )}
     </HStack>
   );
 });

@@ -15,6 +15,7 @@ import { observer } from "mobx-react";
 import { JaiStereoQueueStatus, jaiStore } from "../../stores/JaiStore";
 import { useEffect } from "react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
+import { InfoCard } from "../../design/other/infocard";
 
 const DepthVideoStream = ({ url }: { url: string }) => {
   return (
@@ -98,6 +99,19 @@ export const DepthStatusView = observer(() => {
         <H4>Merged</H4>
         {queue_merged && <QueueStatusView queue={queue_merged} />}
       </VStack>
+
+      {jaiStore.stereo_status && (
+        <HStack>
+          <InfoCard
+            title="Stored Frame Count"
+            value={jaiStore.stereo_status.storage_status.stored_frame_cnt}
+          />
+          <InfoCard
+            title="Framerate"
+            value={jaiStore.stereo_status.storage_status.frame_rate.toFixed(4)}
+          />
+        </HStack>
+      )}
     </HStack>
   );
 });
