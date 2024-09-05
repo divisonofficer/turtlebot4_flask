@@ -158,6 +158,7 @@ class Calibration:
         if len(self.chessboard_images) < 1:
             return None, None, None
         image_shape = self.chessboard_images[0][0].shape[:2]
+        image_shape = (image_shape[1], image_shape[0])
         ret_left, mtx_left, dist_left, rvecs_left, tvecs_left = cv2.calibrateCamera(
             self.objpoints, self.imgpoints_left, image_shape, None, None  # type: ignore
         )  # type: ignore
@@ -206,6 +207,7 @@ class Calibration:
             E,
             F,
             lidar_RT,
+            image_shape,
         )
         self.reprojection_errors_mean, self.reprojection_errors = (
             self.compute_reprojection_errors()

@@ -23,6 +23,7 @@ class CalibrationOutput:
         E: np.ndarray,
         F: np.ndarray,
         Lidar_RT: np.ndarray,
+        image_size: tuple[int, int],
     ):
         self.ret = ret
         self.mtx_left = mtx_left
@@ -38,3 +39,4 @@ class CalibrationOutput:
         self.rvecs_right = rvect_right
         self.tvecs_right = tvect_right
         self.Lidar_RT = Lidar_RT
+        self.image_size = image_size
