@@ -340,6 +340,7 @@ class JaiBridgeNode(Node):
 
     def initialize_camera_config(self):
         self.load_device_info_from_json_file()
+        return
         for device in DEVICE_INFO:
             for channel_id, source in enumerate(device.source_types):
                 msg = String()
@@ -812,6 +813,15 @@ def stereo_disparity_videostream(stream, timestamp):
 
 @app.route("/stereo", methods=["GET"])
 def stereo_status():
+    return depth_node.node_status()
+
+
+@app.route("/stereo/calibration/load", methods=["POST"])
+def load_calibration_from_storage():
+    calibration_id = request.json.get("calibration_id") if request.json else None
+    if calibration_id is None:
+        return Response(status=400, response="Invalid calibration id")
+    depth_node.load_calibration(calibration_id)
     return depth_node.node_status()
 
 

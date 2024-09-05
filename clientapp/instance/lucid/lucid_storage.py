@@ -73,7 +73,7 @@ class StereoStorage:
                     target=self.store_item, args=(item.id, item), daemon=False
                 )
                 thread.start()
-            time.sleep(0.1)
+                thread.join()
 
     def uint8buffer_to_uint32(self, buffer: np.ndarray) -> np.ndarray:
         result_buffer = np.zeros((buffer.shape[0], buffer.shape[1]), dtype=np.uint32)
@@ -151,14 +151,15 @@ class StereoStorage:
             int((item.timestamp % 1) * 1000)
         ).zfill(3)
         os.makedirs(f"{self.FOLDER}/{id}/{time_stamp}", exist_ok=True)
-
+        store_dict = {
+            **item.lidar.__dict__(),
+            "left": item.rgb.left.buffer_np,
+            "right": item.rgb.right.buffer_np,
+            "timestamp_ns": item.timestamp,
+        }
         np.savez(
             f"{self.FOLDER}/{id}/{time_stamp}/raw.npz",
-            reflectivity=item.lidar.reflectivity,
-            ranges=item.lidar.ranges,
-            left=item.rgb.left.buffer_np,
-            right=item.rgb.right.buffer_np,
-            points=item.lidar.points,
+            **store_dict,
         )
 
         del item
