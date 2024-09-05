@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 import cv2
 from cv2.typing import MatLike
 import numpy as np
@@ -40,26 +40,35 @@ class StereoCaptureItem:
 class StereoMultiItem:
     rgb: StereoCaptureItem
     nir: StereoCaptureItem
-    merged: MatLike
+    merged: Optional[MatLike]
     timestamp: float
+    id: str
+    lidar: Optional[OusterLidarData]
+    calibration: dict
 
     def __init__(
         self,
         timestamp: float,
         rgb: StereoCaptureItem,
         nir: StereoCaptureItem,
-        merged: MatLike,
+        merged: Optional[MatLike],
+        calibration: dict,
+        lidar: Optional[OusterLidarData] = None,
     ):
         self.rgb = rgb
         self.nir = nir
         self.merged = merged
         self.timestamp = timestamp
+        self.lidar = lidar
+        self.calibration = calibration
 
     def __del__(self):
         del self.rgb
         del self.nir
         del self.merged
         del self.timestamp
+        del self.lidar
+        del self.calibration
 
 
 class StereoStorageFrame:
@@ -100,6 +109,24 @@ class StereoStorageFrame:
 class StereoStorage:
     FOLDER = "tmp/depth"
 
+    def __init__(self):
+        self.storage_queue: List[StereoMultiItem] = []
+
+    def enqueue(self, item: StereoMultiItem):
+        self.storage_queue.append(item)
+
+    def queue_loop(self):
+        threads: List[threading.Thread] = []
+        while True:
+            if len(self.storage_queue) > 0:
+                print("Storing item, queue length: ", len(self.storage_queue))
+                item = self.storage_queue.pop(0)
+                thread = threading.Thread(
+                    target=self.store_item, args=(item.id, item), daemon=False
+                )
+                thread.start()
+            time.sleep(0.01)
+
     def store_stereo_item(
         self, id: str, timestamp: str, channel: str, item: StereoCaptureItem
     ):
@@ -128,26 +155,26 @@ class StereoStorage:
         frame_list.sort()
         return frame_list
 
-    def store_item(
-        self, id: str, item: StereoMultiItem, lidar: Optional[OusterLidarData] = None
-    ):
-        def store():
-            time_stamp = time.strftime(
-                "%H_%M_%S_", time.localtime(item.timestamp)
-            ) + str(int((item.timestamp % 1) * 1000)).zfill(3)
-            os.makedirs(self.FOLDER, exist_ok=True)
-            os.makedirs(f"{self.FOLDER}/{id}", exist_ok=True)
-            self.store_stereo_item(id, time_stamp, "rgb", item.rgb)
-            self.store_stereo_item(id, time_stamp, "nir", item.nir)
+    def store_item(self, id: str, item: StereoMultiItem):
+        time_stamp = time.strftime("%H_%M_%S_", time.localtime(item.timestamp)) + str(
+            int((item.timestamp % 1) * 1000)
+        ).zfill(3)
+        os.makedirs(self.FOLDER, exist_ok=True)
+        os.makedirs(f"{self.FOLDER}/{id}", exist_ok=True)
+        self.store_stereo_item(id, time_stamp, "rgb", item.rgb)
+        self.store_stereo_item(id, time_stamp, "nir", item.nir)
+        if item.merged is not None:
             cv2.imwrite(f"{self.FOLDER}/{id}/{time_stamp}_merged.png", item.merged)
-            if lidar is not None:
-                np.savez(
-                    f"{self.FOLDER}/{id}/{time_stamp}/lidar.npz", **lidar.__dict__()
-                )
-
-        thread = threading.Thread(target=store)
-        thread.start()
-        thread.join()
+        post_dict = {
+            **item.calibration,
+        }
+        if item.lidar is not None:
+            for key, value in item.lidar.__dict__().items():
+                post_dict[key] = value
+        np.savez(
+            f"{self.FOLDER}/{id}/{time_stamp}/post.npz",
+            **post_dict,
+        )
 
         del item
 
@@ -185,6 +212,8 @@ class StereoStorage:
 
         if os.path.exists(f"{root}/lidar.npz"):
             frame.lidar_path = f"{root}/lidar.npz"
+        elif os.path.exists(f"{root}/post.npz"):
+            frame.lidar_path = f"{root}/post.npz"
         if os.path.exists(f"{root}/lidar.ply"):
             frame.lidar_ply_path = f"{root}/lidar.ply"
         return frame
@@ -218,19 +247,24 @@ class StereoStorage:
         return points
 
     def post_process_pointcloud(self, root, scene_id, frame_id):
-        points_path = f"{root}/{scene_id}/{frame_id}/lidar.npz"
         rgb_disparity_path = f"{root}/{scene_id}/{frame_id}/rgb/disparity.npz"
-
-        calibration = np.load(f"{root}/{scene_id}/calibration.npz")
+        if os.path.exists(f"{root}/{scene_id}/{frame_id}/post.npz"):
+            post_dict = np.load(f"{root}/{scene_id}/{frame_id}/post.npz")
+            lidar_points = post_dict["points"].reshape(-1, 3) * 1000
+            calibration = post_dict
+        else:
+            points_path = f"{root}/{scene_id}/{frame_id}/lidar.npz"
+            lidar_points = np.load(points_path)["points"].reshape(-1, 3) * 1000
+            calibration = np.load(f"{root}/{scene_id}/calibration.npz")
         fx = calibration["mtx_left"][0, 0]
         fy = calibration["mtx_left"][1, 1]
+        cx = calibration["mtx_left"][0, 2]
+        cy = calibration["mtx_left"][1, 2]
         bl = np.linalg.norm(calibration["T"])
         disparity = np.load(rgb_disparity_path)["arr_0"]
         depth = self.disparity_to_depth(fx, bl, disparity)
-        cx = calibration["mtx_left"][0, 2]
-        cy = calibration["mtx_left"][1, 2]
+
         camera_points = self.depth_to_pointcloud(depth, fx, fy, cx, cy)
-        lidar_points = np.load(points_path)["points"].reshape(-1, 3) * 1000
 
         lidar_pcd = o3d.geometry.PointCloud()
         lidar_pcd.points = o3d.utility.Vector3dVector(lidar_points)

@@ -34,10 +34,11 @@ class StereoQueue(Generic[T, K]):
         stereo_callback: Callable[[T, K], None],
         time_diff: float = TIMEDIFF,
         max_queue_length: int = MAX_QUEUE_LENGTH,
+        hold_right: bool = False,
     ):
         self.msg_left_queue: list[T] = []
         self.msg_right_queue: list[K] = []
-
+        self.hold_right = hold_right
         self.stereo_callback = stereo_callback
 
         self.timestamp_last_merged = 0
@@ -57,8 +58,8 @@ class StereoQueue(Generic[T, K]):
         if len(self.msg_right_queue) < self.max_queue_length:
             self.msg_right_queue.append(msg)
             self.timestamp_right_last = self.get_timestamp_second(msg)
-
-        self.pop_queue()
+        if not self.hold_right:
+            self.pop_queue()
 
     def pop_queue(self):
         while len(self.msg_left_queue) > 0 and len(self.msg_right_queue) > 0:
@@ -69,7 +70,8 @@ class StereoQueue(Generic[T, K]):
 
             if abs(time_left - time_right) < self.time_diff:
                 self.msg_left_queue.pop(0)
-                self.msg_right_queue.pop(0)
+                if not self.hold_right:
+                    self.msg_right_queue.pop(0)
                 self.stereo_callback(msg_left, msg_right)
 
                 if self.timestamp_last_merged > 0:
@@ -77,7 +79,7 @@ class StereoQueue(Generic[T, K]):
                         time_left - self.timestamp_last_merged
                     )
                 self.timestamp_last_merged = time_left
-                break
+                continue
 
             if time_left < time_right:
                 del self.msg_left_queue[0]

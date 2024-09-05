@@ -51,6 +51,13 @@ class OusterLidarData:
             "reflectivity": self.reflectivity,
             "ranges": self.ranges,
             "points": self.points,
+            "lidar_timestamp_ns": self.timestamp_ns,
+            "beam_altitude_angles": self.metadata.beam_altitude_angles,
+            "beam_azimuth_angles": self.metadata.beam_azimuth_angles,
+            "imu_to_sensor_transform": self.metadata.imu_to_sensor_transform,
+            "lidar_to_sensor_transform": self.metadata.lidar_to_sensor_transform,
+            "lidar_origin_to_beam_origin_mm": self.metadata.lidar_origin_to_beam_origin_mm,
+            "beam_to_lidar_transform": self.metadata.beam_to_lidar_transform,
         }
 
     def __del__(self):
@@ -85,6 +92,11 @@ class OusterBridge:
                         if isinstance(packet, LidarScan):
                             if self.base_time == 0:
                                 self.base_time = time.time_ns() - packet.timestamp[-1]
+
+                            if not packet.complete():
+                                print("Incomplete packet!")
+                                continue
+
                             reflectivity = client.destagger(
                                 stream.metadata,
                                 packet.field(client.ChanField.REFLECTIVITY),
@@ -106,7 +118,6 @@ class OusterBridge:
                 except client.ClientTimeout as e:
                     print("Lidar Timeout!")
                     callback(e)
-                    time.sleep(0.05)
 
     def __del__(self):
         if hasattr(self, "sensor"):

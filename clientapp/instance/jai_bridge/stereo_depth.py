@@ -37,10 +37,16 @@ class StereoCameraParameters:
         parameters = np.load(parameter_npz)
         self.left = CameraIntrinsic(parameters["mtx_left"], parameters["dist_left"])
         self.right = CameraIntrinsic(parameters["mtx_right"], parameters["dist_right"])
+        self.parameters = parameters
         self.R = parameters["R"]
         self.T = parameters["T"]
-        self.resolution = (720, 540)
+        self.resolution = (
+            tuple(parameters["image_size"])
+            if "image_size" in parameters
+            else (720, 540)
+        )
         self.scaled_map_dict: dict[float, tuple] = {}
+        self.scaled_calibration_dict: dict[float, dict] = {}
 
         rectify_left, rectify_right, proj_left, proj_right, Q, roi_left, roi_right = (
             cv2.stereoRectify(
@@ -70,7 +76,34 @@ class StereoCameraParameters:
             cv2.CV_32FC1,
         )
 
-    def compute_scaled_map(self, scale):
+    def get_scaled_calibration_dict(self, scale=1):
+        """
+        Scale에 Vertical Resolution을 넣으면, Scale을 다시 계산합니다.
+        실수값을 입력하면 Scale을 그대로 사용합니다.
+        """
+        if scale > 100:
+            scale = scale / self.resolution[1]
+        if scale in self.scaled_calibration_dict:
+            return self.scaled_calibration_dict[scale]
+        calibration = {
+            **self.parameters,
+        }
+
+        calibration["mtx_left"][0, 0] *= scale
+        calibration["mtx_right"][0, 0] *= scale
+        calibration["mtx_left"][1, 1] *= scale
+        calibration["mtx_right"][1, 1] *= scale
+        calibration["mtx_left"][0, 2] *= scale
+        calibration["mtx_right"][0, 2] *= scale
+        calibration["mtx_left"][1, 2] *= scale
+        calibration["mtx_right"][1, 2] *= scale
+        self.scaled_calibration_dict[scale] = calibration
+        return calibration
+
+    def compute_scaled_map(self, scale=1):
+        if scale == 1:
+            return self.map_left_x, self.map_left_y, self.map_right_x, self.map_right_y
+
         if scale in self.scaled_map_dict:
             return self.scaled_map_dict[scale]
         resolution_scaled = (
@@ -235,7 +268,9 @@ class StereoDepth:
 
     def rectify_pair(self, left: np.ndarray, right: np.ndarray):
         map_left_x, map_left_y, map_right_x, map_right_y = (
-            self.parameter.compute_scaled_map(1)
+            self.parameter.compute_scaled_map(
+                left.shape[0] / self.parameter.resolution[1]
+            )
         )
         left_rect = cv2.remap(left, map_left_x, map_left_y, cv2.INTER_LINEAR)
         right_rect = cv2.remap(right, map_right_x, map_right_y, cv2.INTER_LINEAR)

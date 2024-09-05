@@ -100,23 +100,12 @@ class JaiStereoCalibration(Node):
 
         self.msg_right_queue: list[CompressedImage] = []
 
-        self.lidar_subscription = self.create_subscription(
-            PointCloud2,
-            "/ouster/points",
-            self.lidar_callback,
-            QoSProfile(
-                depth=10,
-                reliability=QoSReliabilityPolicy.BEST_EFFORT,
-                history=QoSHistoryPolicy.KEEP_LAST,
-            ),
+        self.create_subscription(
+            CompressedImage,
+            "/jai_1600_stereo/merged",
+            self.stereo_merged_callback,
+            10,
         )
-
-        # self.create_subscription(
-        #     CompressedImage,
-        #     "/jai_1600_stereo/merged",
-        #     self.stereo_merged_callback,
-        #     10,
-        # )
 
     def lidar_callback(self, msg: PointCloud2):
         print("Lidar callback")
