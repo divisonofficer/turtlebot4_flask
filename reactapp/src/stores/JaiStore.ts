@@ -45,6 +45,10 @@ export interface JaiStereoStatus {
     viz: JaiStereoQueueStatus;
   };
   storage_id: string | undefined;
+  storage_status: {
+    stored_frame_cnt: number;
+    frame_rate: number;
+  };
 }
 
 class JaiStore {
@@ -83,7 +87,7 @@ class JaiStore {
 
     setInterval(() => {
       this.fetchGetStereoNodeStatus();
-    }, 10000);
+    }, 3000);
   }
   @action
   fetchJaiDeviceInfo = () => {
