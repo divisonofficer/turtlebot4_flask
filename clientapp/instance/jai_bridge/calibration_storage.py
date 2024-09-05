@@ -72,6 +72,7 @@ class CalibrationStorage:
             image_points_right=image_points_right,
             shape=chessboard_shape,
             Lidar_RT=output.Lidar_RT,
+            image_size=output.image_size,
         )
         for idx, (img_left, img_right) in enumerate(image_pairs):
             print(f"Saving {folder}{idx}.png")
@@ -112,6 +113,7 @@ class CalibrationStorage:
             rvect_right=data["right_rvecs"],
             tvect_right=data["right_tvecs"],
             Lidar_RT=data["Lidar_RT"] if "Lidar_RT" in data else np.eye(4),
+            image_size=data["image_size"] if "image_size" in data else (720, 540),
         )
         shape = data["shape"] if "shape" in data else (12, 6, 21.9)
 
