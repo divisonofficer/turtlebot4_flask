@@ -88,6 +88,10 @@ class StereoCameraParameters:
         calibration = {
             **self.parameters,
         }
+        del calibration["left_rvecs"]
+        del calibration["left_tvecs"]
+        del calibration["right_rvecs"]
+        del calibration["right_tvecs"]
 
         calibration["mtx_left"][0, 0] *= scale
         calibration["mtx_right"][0, 0] *= scale

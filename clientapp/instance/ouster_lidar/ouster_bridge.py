@@ -17,7 +17,7 @@ from std_msgs.msg import Header
 import numpy as np
 
 HOSTNAME = "os-122107000458.local"
-LIDAR_MODE = LidarMode.MODE_1024x20
+LIDAR_MODE = LidarMode.MODE_1024x10
 
 
 class OusterLidarData:
@@ -51,6 +51,17 @@ class OusterLidarData:
             "reflectivity": self.reflectivity,
             "ranges": self.ranges,
             "points": self.points,
+            "lidar_timestamp_ns": self.timestamp_ns,
+            "beam_altitude_angles": self.metadata.beam_altitude_angles,
+            "beam_azimuth_angles": self.metadata.beam_azimuth_angles,
+            "imu_to_sensor_transform": self.metadata.imu_to_sensor_transform,
+            "lidar_to_sensor_transform": self.metadata.lidar_to_sensor_transform,
+            "lidar_origin_to_beam_origin_mm": self.metadata.lidar_origin_to_beam_origin_mm,
+            "beam_to_lidar_transform": self.metadata.beam_to_lidar_transform,
+        }
+
+    def meta_dict(self):
+        return {
             "lidar_timestamp_ns": self.timestamp_ns,
             "beam_altitude_angles": self.metadata.beam_altitude_angles,
             "beam_azimuth_angles": self.metadata.beam_azimuth_angles,

@@ -1,6 +1,7 @@
 import os
 import sys
 
+from flask_socketio import SocketIO
 import tqdm
 
 from points2depth import Point2Depth
@@ -29,7 +30,7 @@ from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
 
 class JaiStereoDepth(Node):
 
-    def __init__(self):
+    def __init__(self, socket: SocketIO):
         super().__init__("jai_stereo_depth")  # type: ignore
 
         self.stereo_lidar_queue = StereoQueue[CompressedImage, OusterLidarData](
@@ -38,6 +39,7 @@ class JaiStereoDepth(Node):
             max_queue_length=300,
             hold_right=True,
         )
+        self.socket = socket
         try:
             self.lidar_bridge = OusterBridge()
 
@@ -67,6 +69,8 @@ class JaiStereoDepth(Node):
         threading.Thread(target=self.stereo_storage.queue_loop).start()
         self.signal_merged = threading.Event()
 
+        self.timer = self.create_timer(5, self.node_status)
+
     def ouster_lidar_callback(self, msg: Union[OusterLidarData, Exception]):
         if isinstance(msg, Exception):
             print("Lidar error: ", msg)
@@ -76,10 +80,10 @@ class JaiStereoDepth(Node):
         self.stereo_lidar_queue.callback_right(msg)
 
     def stereo_lidar_callback(self, msg: CompressedImage, lidar: OusterLidarData):
-        rgb, nir = self.stereo_merged_callback(msg)
-        self.stereoMergedCallback(rgb, nir, lidar)
+        rgb, nir = self.unpack_stereo_msg(msg)
+        self.merged_frame_callback(rgb, nir, lidar)
 
-    def stereo_merged_callback(self, msg: CompressedImage):
+    def unpack_stereo_msg(self, msg: CompressedImage):
 
         buffer_np = np.frombuffer(msg.data, np.uint8)
         width, height = self.stereo_depth_nir.compute_dimension(buffer_np.shape[0] / 8)
@@ -95,7 +99,7 @@ class JaiStereoDepth(Node):
             ),
         )
 
-    def stereoMergedCallback(
+    def merged_frame_callback(
         self,
         rgb: StereoItemMerged[cv2.typing.MatLike],
         nir: StereoItemMerged[cv2.typing.MatLike],
@@ -113,10 +117,10 @@ class JaiStereoDepth(Node):
             else:
                 result_viz = self.stereo_depth_viz.rectify_pair(rgb.left, rgb.right)
                 result_nir = self.stereo_depth_nir.rectify_pair(nir.left, nir.right)
-                result_nir = (
-                    np.repeat(result_nir[0][:, :, np.newaxis], 3, axis=2),
-                    np.repeat(result_nir[1][:, :, np.newaxis], 3, axis=2),
-                )
+                # result_nir = (
+                #     np.repeat(result_nir[0][:, :, np.newaxis], 3, axis=2),
+                #     np.repeat(result_nir[1][:, :, np.newaxis], 3, axis=2),
+                # )
             stereo_multi_item = self.wrap_stereo_multi_item(
                 timestamp, result_viz, result_nir, lidar
             )
@@ -139,7 +143,7 @@ class JaiStereoDepth(Node):
 
     def node_status(self):
         # todo : framerate, queue status, stored_count, left-right sync...
-        return {
+        status_dict = {
             "storage_id": self.stereo_storage_id,
             "queue_status": {
                 "merged": self.stereo_lidar_queue.queue_status(),
@@ -147,8 +151,12 @@ class JaiStereoDepth(Node):
             "storage_status": {
                 "stored_frame_cnt": self.stored_frame_cnt,
                 "frame_rate": self.frame_rate,
+                "queue_length": len(self.stereo_storage.storage_queue),
+                "item_store_time": self.stereo_storage.item_store_time,
             },
         }
+        self.socket.emit("stereo_status", status_dict)
+        return status_dict
 
     def load_calibration(self, id: str):
         path = f"tmp/calibration/{id}/calibration.npz"
