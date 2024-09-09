@@ -191,6 +191,22 @@ class JaiStereoDepth(Node):
             lidar,
         )
 
+    def npz_to_h5(self, scene_id: str, root: str):
+        if hasattr(self, "npzh5_thread") and self.npzh5_thread.is_alive():
+            raise Exception("npz_to_h5 is already running")
+
+        if os.path.exists(os.path.join(root, scene_id, "0.hdf5")):
+            raise Exception("HDF5 file already exists")
+
+        def progress_callback(progress: float):
+            self.socket.emit("npz_h5_progress", {"progress": progress})
+
+        self.npzh5_thread = threading.Thread(
+            target=self.stereo_storage.npz_to_h5,
+            args=(scene_id, root, progress_callback),
+        )
+        self.npzh5_thread.start()
+
     def __init_raft_stereo(self):
         class Args:
             def __init__(self):
