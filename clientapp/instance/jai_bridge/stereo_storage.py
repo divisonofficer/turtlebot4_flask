@@ -1,8 +1,9 @@
-from typing import List, Literal, Optional
+from typing import Callable, List, Literal, Optional, Tuple
 from weakref import ref
 import cv2
 from cv2.typing import MatLike
 import numpy as np
+import tqdm
 
 from ouster_lidar.ouster_bridge import OusterLidarData
 
@@ -12,6 +13,7 @@ import time
 import open3d as o3d
 from PIL import Image
 import h5py
+from io import BytesIO
 
 
 class StereoCaptureItem:
@@ -169,25 +171,72 @@ class StereoStorage:
         with h5py.File(h5_file, "r") as f:
             return list(f["frame"].keys())
 
-    def h5py_savez(self, path: str, *args, **kwargs):
-        f = h5py.File(path, "w")
-        for k, v in kwargs.items():
-            f[k] = v
-        f.close()
-
     def get_scene_h5_file_for_store(self, scene_id: str, root=FOLDER):
         hdf5_files = [
             f for f in os.listdir(os.path.join(root, scene_id)) if f.endswith(".hdf5")
         ]
         if len(hdf5_files) == 0:
             return h5py.File(os.path.join(root, scene_id, "0.hdf5"), "w")
-        hdf5_files.sort()
+        hdf5_files.sort(key=lambda x: int(x.split("/")[-1].split(".")[0]))
         with h5py.File(os.path.join(root, scene_id, hdf5_files[-1]), "a") as f:
             if len(f["frame"].keys()) < 100:
                 f.close()
                 return h5py.File(os.path.join(root, scene_id, hdf5_files[-1]), "a")
             f.close()
         return h5py.File(os.path.join(root, scene_id, f"{len(hdf5_files)}.hdf5"), "w")
+
+    def store_item_to_h5(
+        self,
+        id: str,
+        timestamp: float,
+        calibration: dict,
+        lidar_meta: dict,
+        lidar_points: np.ndarray,
+        lidar_reflectivity: np.ndarray,
+        disparity: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        root=FOLDER,
+    ):
+        time_stamp = time.strftime("%H_%M_%S_", time.localtime(timestamp)) + str(
+            int((timestamp % 1) * 1000)
+        ).zfill(3)
+        with self.get_scene_h5_file_for_store(id, root) as f:
+            if not "calibration" in f:
+                f.create_group("calibration")
+                for k, v in calibration.items():
+                    f["calibration"].attrs[k] = v
+            frame = f.create_group(f"frame/{time_stamp}")
+            frame.create_group("image")
+            frame["image"].attrs["timestamp"] = timestamp
+            frame["image"].attrs["rgb_left_path"] = os.path.join(
+                time_stamp, "rgb", "left.png"
+            )
+            frame["image"].attrs["rgb_right_path"] = os.path.join(
+                time_stamp, "rgb", "right.png"
+            )
+            frame["image"].attrs["nir_left_path"] = os.path.join(
+                time_stamp, "nir", "left.png"
+            )
+            frame["image"].attrs["nir_right_path"] = os.path.join(
+                time_stamp, "nir", "right.png"
+            )
+
+            if disparity is not None:
+                frame["image"].attrs["rgb_disparity_path"] = os.path.join(
+                    time_stamp, "rgb/disparity.png"
+                )
+                frame["image"].attrs["nir_disparity_path"] = os.path.join(
+                    time_stamp, "nir/disparity.png"
+                )
+                disparity_group = frame.create_group("disparity")
+                disparity_group.create_dataset("rgb", data=disparity[0])
+                disparity_group.create_dataset("nir", data=disparity[1])
+
+            frame.create_group("lidar")
+            for k, v in lidar_meta.items():
+                frame["lidar"].attrs[k] = v
+            frame.create_dataset("lidar/reflectivity", data=lidar_reflectivity)
+            frame.create_dataset("lidar/points", data=lidar_points)
+            f.close()
 
     def store_item(self, id: str, item: StereoMultiItem):
         time_begin = time.time()
@@ -209,39 +258,81 @@ class StereoStorage:
         ]
         for thread in threads:
             thread.start()
-
-        with self.get_scene_h5_file_for_store(id) as f:
-            if not "calibration" in f:
-                f.create_group("calibration")
-                for k, v in item.calibration.items():
-                    f["calibration"].attrs[k] = v
-            frame = f.create_group(f"frame/{time_stamp}")
-            frame.create_group("image")
-            frame["image"].attrs["timestamp"] = item.timestamp
-            frame["image"].attrs["rgb_left_path"] = os.path.join(
-                time_stamp, "rgb", "left.png"
+        if item.lidar is not None:
+            self.store_item_to_h5(
+                id,
+                item.timestamp,
+                item.calibration,
+                item.lidar.meta_dict(),
+                item.lidar.points,
+                item.lidar.reflectivity,
             )
-            frame["image"].attrs["rgb_right_path"] = os.path.join(
-                time_stamp, "rgb", "right.png"
-            )
-            frame["image"].attrs["nir_left_path"] = os.path.join(
-                time_stamp, "nir", "left.png"
-            )
-            frame["image"].attrs["nir_right_path"] = os.path.join(
-                time_stamp, "nir", "right.png"
-            )
-            if item.lidar is not None:
-                frame.create_group("lidar")
-                for k, v in item.lidar.meta_dict().items():
-                    frame["lidar"].attrs[k] = v
-                frame.create_dataset("lidar/reflectivity", data=item.lidar.reflectivity)
-                frame.create_dataset("lidar/points", data=item.lidar.points)
-            f.close()
         for thread in threads:
             thread.join()
 
         del item
         self.item_store_time = time.time() - time_begin
+
+    def npz_to_h5(
+        self,
+        scene_id: str,
+        root=FOLDER,
+        progress_callback: Optional[Callable[[float], None]] = None,
+    ):
+        scene_root_path = os.path.join(root, scene_id)
+        frames = [
+            f
+            for f in os.listdir(scene_root_path)
+            if os.path.isdir(os.path.join(scene_root_path, f))
+        ]
+        frames.sort()
+
+        for idx, frame in tqdm.tqdm(enumerate(frames)):
+            if progress_callback is not None:
+                progress_callback(idx / len(frames))
+            frame_root = os.path.join(scene_root_path, frame)
+            if not os.path.exists(os.path.join(frame_root, "post.npz")):
+                continue
+
+            with np.load(os.path.join(frame_root, "post.npz")) as post:
+                calibration = {}
+                for k in [
+                    "mtx_left",
+                    "dist_left",
+                    "mtx_right",
+                    "dist_right",
+                    "R",
+                    "T",
+                    "E",
+                    "F",
+                ]:
+                    calibration[k] = post[k]
+                timestamp = int("".join(frame.split("_"))) / 1000.0
+                lidar_meta = {
+                    "beam_altitude_angles": post["beam_altitude_angles"],
+                    "beam_azimuth_angles": post["beam_azimuth_angles"],
+                    "imu_to_sensor_transform": post["imu_to_sensor_transform"],
+                    "lidar_to_sensor_transform": post["lidar_to_sensor_transform"],
+                    "lidar_origin_to_beam_origin_mm": post[
+                        "lidar_origin_to_beam_origin_mm"
+                    ],
+                    "beam_to_lidar_transform": post["beam_to_lidar_transform"],
+                }
+                lidar_points = post["points"]
+                lidar_reflectivity = post["reflectivity"]
+                self.store_item_to_h5(
+                    scene_id,
+                    timestamp,
+                    calibration,
+                    lidar_meta,
+                    lidar_points,
+                    lidar_reflectivity,
+                    disparity=(
+                        post["disparity_rgb"],
+                        post["disparity_nir"],
+                    ),
+                    root=root,
+                )
 
     def read_frame_property(
         self,
@@ -255,8 +346,15 @@ class StereoStorage:
         root = f"{root}/{scene_id}/{frame_id}"
         if channel is not None:
             root = f"{root}/{channel}"
+        if file_type == ".png":
+            image = Image.open(f"{root}/{property}.png")
+            image.thumbnail((128, 128))
+            img_bytes = BytesIO()
+            image.save(img_bytes, format="PNG")
+            return img_bytes.getvalue()
         if file_type is not None:
             return f"{root}/{property}{file_type}"
+
         return f"{root}/{property}"
 
     def read_frame_info(self, scene_id: str, frame_id: str, root=FOLDER):

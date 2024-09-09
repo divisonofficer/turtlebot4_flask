@@ -866,11 +866,11 @@ def get_stereo_storage_scene_frame(id, frame_id):
 )
 def get_stereo_storage_scene_frame_property(id, frame_id, property, channel):
     root = request.args.get("root", "tmp/depth")
-    return send_file(
+    return Response(
         depth_node.stereo_storage.read_frame_property(
             id, frame_id, channel, property, root
         ),
-        mimetype="image/png",
+        mimetype="image/jpeg",
     )
 
 
@@ -941,6 +941,13 @@ def post_disparity(id):
     return Response(status=200)
 
 
+@app.route("/stereo/storage/<id>/post/npzh5", methods=["POST"])
+def post_npzh5(id):
+    root = request.args.get("root", "tmp/depth")
+    depth_node.npz_to_h5(id, root)
+    return Response(status=200)
+
+
 @app.route("/calibrate/lucid/enable", methods=["POST"])
 def enable_lucid_calibration():
     calibration_node.enable_lucid_camera()
@@ -951,7 +958,7 @@ with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
     calibration_node = JaiStereoCalibration(socketio)
-    depth_node = JaiStereoDepth()
+    depth_node = JaiStereoDepth(socketio)
     spin_thread = spin_node()
 
     node.initialize_camera_config()
