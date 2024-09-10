@@ -116,16 +116,16 @@ void JAINode::enlistJAIDevice(int device_num, std::string device_name,
   // Per Stream Publishers
 
   for (int i = 0; i < channel_count; i++) {
-    imagePublishers[device_num][i] =
-        this->create_publisher<sensor_msgs::msg::CompressedImage>(
-            device_name + "/channel_" + std::to_string(i), 3);
-    imagePublishers_fusion[device_num][i] =
-        this->create_publisher<sensor_msgs::msg::CompressedImage>(
-            device_name + "/channel_" + std::to_string(i) + "/fusion", 3);
+    // imagePublishers[device_num][i] =
+    //     this->create_publisher<sensor_msgs::msg::CompressedImage>(
+    //         device_name + "/channel_" + std::to_string(i), 3);
+    // imagePublishers_fusion[device_num][i] =
+    //     this->create_publisher<sensor_msgs::msg::CompressedImage>(
+    //         device_name + "/channel_" + std::to_string(i) + "/fusion", 3);
 
-    imagePublishers_hdr[device_num][i] =
-        this->create_publisher<sensor_msgs::msg::CompressedImage>(
-            device_name + "/channel_" + std::to_string(i) + "/hdr", 3);
+    // imagePublishers_hdr[device_num][i] =
+    //     this->create_publisher<sensor_msgs::msg::CompressedImage>(
+    //         device_name + "/channel_" + std::to_string(i) + "/hdr", 3);
 
     cameraDeviceParamPublishers[device_num][i] =
         this->create_publisher<std_msgs::msg::String>(
@@ -210,15 +210,13 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
   double timestamp_fastest = timestamp_history[1 - device_num][0];
   double time_diff =
       (double(buffer_time) - double(timestamp_fastest)) / 1000000.0;
+
   Debug << device_num << "/" << source_num << " Time Diff : " << time_diff;
   if (source_num == 0) {
     if (device_num == 0) {
       Debug << "Frame Rate : " << source_framerate[0][0] << " "
             << source_framerate[1][0];
-      if (((abs(source_framerate[0][0] - source_framerate[1][0]) < 0.1 ||
-            (abs(source_framerate[0][0] - source_framerate[1][0] * 2) < 0.1)) &&
-           abs(source_framerate[0][0] - FRAME_RATE) < 0.1) ||
-          abs(source_framerate[1][0] - FRAME_RATE) < 0.1) {
+      if (time_diff < 1000.0) {
         triggerDelayPending = 0;
         while (time_diff > 1000.0 / FRAME_RATE) {
           time_diff -= 1000.0 / FRAME_RATE;
@@ -278,7 +276,7 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
       }
       uint8_t* buffer_merged =
           (uint8_t*)calloc(ROS_MSG_BUFFER_SIZE * 8, sizeof(uint8_t));
-
+      auto buffer_time = buffer_queue[0][0].front().first;
       for (int i = 0; i < 4; i++) {
         int sn = i / 2, dn = i % 2;
         cv::Mat img(1080, 1440, CV_8UC1, buffer_queue[dn][sn].front().second);

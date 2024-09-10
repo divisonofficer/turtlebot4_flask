@@ -11,7 +11,7 @@
 #define VIZ_PIXEL_ACQUIRE_FORMAT PvPixelBayerRG8
 #define NIR_PIXEL_ACQUIRE_FORMAT PvPixelMono8
 
-#define FRAME_RATE 24.0f
+#define FRAME_RATE 12.0f
 
 #define TRIGGER_SYNC true
 #define MULTIFRAME_COUNT 50

@@ -204,7 +204,12 @@ class StereoStorage:
                 f.create_group("calibration")
                 for k, v in calibration.items():
                     f["calibration"].attrs[k] = v
-            frame = f.create_group(f"frame/{time_stamp}")
+            try:
+                frame = f.create_group(f"frame/{time_stamp}")
+            except Exception as e:
+                print(e)
+                f.close()
+                return
             frame.create_group("image")
             frame["image"].attrs["timestamp"] = timestamp
             frame["image"].attrs["rgb_left_path"] = os.path.join(
