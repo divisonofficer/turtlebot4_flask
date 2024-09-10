@@ -69,11 +69,12 @@ class StereoStorage:
             if len(self.storage_queue) > 0:
                 print("Storing item, queue length: ", len(self.storage_queue))
                 item = self.storage_queue.pop(0)
-                thread = threading.Thread(
-                    target=self.store_item, args=(item.id, item), daemon=False
-                )
-                thread.start()
-                thread.join()
+                self.store_item(item.id, item)
+                # thread = threading.Thread(
+                #     target=self.store_item, args=(item.id, item), daemon=False
+                # )
+                # thread.start()
+                # thread.join()
 
     def uint8buffer_to_uint32(self, buffer: np.ndarray) -> np.ndarray:
         result_buffer = np.zeros((buffer.shape[0], buffer.shape[1]), dtype=np.uint32)
@@ -157,9 +158,20 @@ class StereoStorage:
             "right": item.rgb.right.buffer_np,
             "timestamp_ns": item.timestamp,
         }
-        np.savez(
-            f"{self.FOLDER}/{id}/{time_stamp}/raw.npz",
-            **store_dict,
-        )
+        threads = [
+            threading.Thread(
+                target=np.save,
+                args=(f"{self.FOLDER}/{id}/{time_stamp}/{k}.npy", v),
+            )
+            for k, v in store_dict.items()
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        # np.savez(
+        #     f"{self.FOLDER}/{id}/{time_stamp}/raw.npz",
+        #     **store_dict,
+        # )
 
         del item
