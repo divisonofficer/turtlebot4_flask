@@ -163,13 +163,12 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
       AcquireManager::getInstance()->queueBuffer(
           dualDevice->getStream(streamIndex), buffer);
     } else {
-      ErrorLog << device_idx << "/" << streamIndex << " Buffer is null";
+      ErrorLog << device_idx << "/" << streamIndex << " BUFFER NULL";
     }
     if (TRIGGER_SYNC) {
       idx++;
       if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
           idx % MULTIFRAME_COUNT == 0) {
-        // for (int j = 0; j < 1000000; j++);
         triggerCallback();
       }
     }
