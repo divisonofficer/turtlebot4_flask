@@ -72,7 +72,8 @@ class LucidStereoNode(Node):
         )
         self.image_lidar_queue = StereoQueue[StereoItemMerged, OusterLidarData](
             self.image_lidar_callback,
-            max_queue_length=100,
+            max_queue_length=200,
+            hold_right=True,
         )
 
         self.trigger_clients = [

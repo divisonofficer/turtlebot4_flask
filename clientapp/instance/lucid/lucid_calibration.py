@@ -120,7 +120,9 @@ class LucidCalibration:
         for f in folders:
             if os.path.isdir(os.path.join(folder, f)):
 
-                if os.path.exists(os.path.join(folder, f, "raw.npz")):
+                if os.path.exists(os.path.join(folder, f, "raw.npz")) or os.path.exists(
+                    os.path.join(folder, f, "points.npy")
+                ):
                     output.append(os.path.join(folder, f))
                 elif depth < 3:
                     output += self.extract_folders(os.path.join(folder, f), depth + 1)
@@ -215,6 +217,20 @@ class LidarCalibration:
             ]
         )
 
+    def get_raw_np(self, folder: str):
+        if os.path.exists(folder + "/raw.npz"):
+            return np.load(folder + "/raw.npz")
+        keys = [
+            "left",
+            "right",
+            "points",
+            "ranges",
+            "timestamp_ns",
+            "lidar_timestamp_ns",
+            "reflectivity",
+        ]
+        return {key: np.load(folder + f"/{key}.npy") for key in keys}
+
     def calibrate_frame_chessboard(self, folder: str):
         raw_np = np.load(folder + "/raw.npz")
         left = self.image_get_tonemapped(folder, "left")
@@ -253,7 +269,7 @@ class LidarCalibration:
     def image_get_tonemapped(self, folder: str, side: Literal["left", "right"]):
         if not self.args.overlap and os.path.exists(folder + f"/{side}_tonemapped.png"):
             return cv2.imread(folder + f"/{side}_tonemapped.png")
-        raw_np = np.load(folder + "/raw.npz")
+        raw_np = self.get_raw_np(folder)
         raw = np.concatenate((raw_np["left"], raw_np["right"]), axis=1)
         tonemapped = self.postprocess.rawUint8ToTonemappedBgr(raw)
         tonemapped = (
@@ -266,13 +282,14 @@ class LidarCalibration:
 
     def calibrate_frame(self, folder: str):
         print(folder)
-        raw_np = np.load(folder + "/raw.npz")
+        raw_np = self.get_raw_np(folder)
         left = self.image_get_tonemapped(folder, "left")
         right = self.image_get_tonemapped(folder, "right")
         ranges = raw_np["ranges"]
 
         if not hasattr(self, "Q"):
-            imageSize = (1440, 928)
+            imageSize = (left.shape[1], left.shape[0])
+            # imageSize = (1440, 928)
             # imageSize = (left.shape[1], left.shape[0])
             R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(
                 self.k_left,
@@ -313,9 +330,9 @@ class LidarCalibration:
         right = right[:image_height, :image_width]
         disparity = self.stereo_depth.disparity_matching(left, right)
         depth = self.disparity_to_depth(disparity)
-        remap_mask_left = self.remap_mask_left[:image_height, :image_width]
-        disparity[remap_mask_left == 0] = 0
-        depth[remap_mask_left == 0] = 0
+        # remap_mask_left = self.remap_mask_left[:image_height, :image_width]
+        # disparity[remap_mask_left == 0] = 0
+        # depth[remap_mask_left == 0] = 0
 
         cv2.imwrite(folder + "/left_rectified.png", left)
         cv2.imwrite(folder + "/right_rectified.png", right)

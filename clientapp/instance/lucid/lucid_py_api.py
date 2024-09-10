@@ -38,8 +38,8 @@ class LucidPyAPI:
     def __init__(self):
         self.SERIAL = ["224201564", "224201585"]
         self.timestamp_base = [0, 0]
-        self.FRAME_RATE = 4.0
-        self.BUFFER_COUNT = 4
+        self.FRAME_RATE = 10.0
+        self.BUFFER_COUNT = 6
         self.buffers_device: List[List[_Buffer]] = [[], []]
         self.trigger_thread: Optional[threading.Thread] = None
 
@@ -226,6 +226,8 @@ class LucidPyAPI:
             nodemap.get_node("TriggerOverlap"),
             nodemap["TriggerLatency"],
             nodemap["PayloadSize"],
+            nodemap["ExposureTime"],
+            nodemap["ExposureAuto"],
         )
 
         nodemap.get_node("AcquisitionBurstFrameCount").value = 1
