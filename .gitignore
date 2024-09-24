@@ -21,3 +21,4 @@ clientapp/instance/jai/JAI_ROS_bridge/Makefile
 clientapp/instance/lucid/docs/*
 clientapp/instance/lucid/examples/*
 clientapp/instance/lucid/ArenaSDK_Linux_x64/*
+build/*

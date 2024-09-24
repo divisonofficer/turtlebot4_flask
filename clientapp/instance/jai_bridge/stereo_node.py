@@ -1,4 +1,5 @@
 import os
+from random import randint
 import sys
 
 from flask_socketio import SocketIO
@@ -11,7 +12,7 @@ sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 import traceback
 
 
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 from rclpy.node import Node
 from lucid.stereo_queue import StereoItemMerged, StereoQueue
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
@@ -88,21 +89,27 @@ class JaiStereoDepth(Node):
         buffer_np = np.frombuffer(msg.data, np.uint8)
         width, height = self.stereo_depth_nir.compute_dimension(buffer_np.shape[0] / 8)
         buffer_np = buffer_np.reshape(8, height, width)
+        exposure_times = [
+            float(x) for x in msg.header.frame_id.split("stereo_")[-1].split("_")
+        ]
+
         return (
-            StereoItemMerged[cv2.typing.MatLike](
-                buffer_np[0:3].reshape(height, width, 3),
-                buffer_np[3:6].reshape(height, width, 3),
+            StereoItemMerged[Tuple[cv2.typing.MatLike, float]](
+                (buffer_np[0:3].reshape(height, width, 3), exposure_times[0]),
+                (buffer_np[3:6].reshape(height, width, 3), exposure_times[2]),
                 msg.header,
             ),
-            StereoItemMerged[cv2.typing.MatLike](
-                buffer_np[6], buffer_np[7], msg.header
+            StereoItemMerged[Tuple[cv2.typing.MatLike, float]](
+                (buffer_np[6], exposure_times[1]),
+                (buffer_np[7], exposure_times[3]),
+                msg.header,
             ),
         )
 
     def merged_frame_callback(
         self,
-        rgb: StereoItemMerged[cv2.typing.MatLike],
-        nir: StereoItemMerged[cv2.typing.MatLike],
+        rgb: StereoItemMerged[Tuple[cv2.typing.MatLike, float]],
+        nir: StereoItemMerged[Tuple[cv2.typing.MatLike, float]],
         lidar: Optional[OusterLidarData] = None,
         disparity_matching=False,
     ):
@@ -112,11 +119,15 @@ class JaiStereoDepth(Node):
             self.signal_merged.set()
             timestamp = rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
             if disparity_matching:
-                result_viz = self.stereo_callback(rgb.left, rgb.right, "viz")
-                result_nir = self.stereo_callback(nir.left, nir.right, "nir")
+                result_viz = self.stereo_callback(rgb.left[0], rgb.right[0], "viz")
+                result_nir = self.stereo_callback(nir.left[0], nir.right[0], "nir")
             else:
-                result_viz = self.stereo_depth_viz.rectify_pair(rgb.left, rgb.right)
-                result_nir = self.stereo_depth_nir.rectify_pair(nir.left, nir.right)
+                result_viz = self.stereo_depth_viz.rectify_pair(
+                    rgb.left[0], rgb.right[0]
+                )
+                result_nir = self.stereo_depth_nir.rectify_pair(
+                    nir.left[0], nir.right[0]
+                )
                 # result_nir = (
                 #     np.repeat(result_nir[0][:, :, np.newaxis], 3, axis=2),
                 #     np.repeat(result_nir[1][:, :, np.newaxis], 3, axis=2),
@@ -125,9 +136,25 @@ class JaiStereoDepth(Node):
                 timestamp, result_viz, result_nir, lidar
             )
             if stereo_multi_item is not None:
-                self.stream_disparity_viz.cv_ndarray_callback(
-                    stereo_multi_item.rgb.left
-                )
+                if randint(0, 10) == 0:
+                    self.stream_disparity_viz.cv_ndarray_callback(
+                        np.concatenate(
+                            [
+                                rgb.left[0],
+                                np.repeat(
+                                    nir.left[0][:, :, np.newaxis],
+                                    3,
+                                    axis=2,
+                                ),
+                            ],
+                            axis=2,
+                        )
+                    )
+                stereo_multi_item.rgb.exposure_left = rgb.left[1]
+                stereo_multi_item.rgb.exposure_right = rgb.right[1]
+                stereo_multi_item.nir.exposure_left = nir.left[1]
+                stereo_multi_item.nir.exposure_right = nir.right[1]
+
                 if self.stereo_storage_id is not None:
                     stereo_multi_item.id = self.stereo_storage_id
                     self.stereo_storage.enqueue(stereo_multi_item)

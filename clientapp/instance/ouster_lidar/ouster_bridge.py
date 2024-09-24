@@ -17,7 +17,7 @@ from std_msgs.msg import Header
 import numpy as np
 
 HOSTNAME = "os-122107000458.local"
-LIDAR_MODE = LidarMode.MODE_1024x10
+LIDAR_MODE = LidarMode.MODE_1024x20
 
 
 class OusterLidarData:
