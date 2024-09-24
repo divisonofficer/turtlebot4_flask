@@ -106,5 +106,5 @@ class JAINode : public rclcpp::Node {
   double triggerDelayPending;
   double source_framerate[2][2];
 
-  std::queue<std::pair<double, uint8_t*>> buffer_queue[2][2];
+  std::queue<std::pair<std::pair<double, double>, uint8_t*>> buffer_queue[2][2];
 };

@@ -23,6 +23,9 @@ class StereoCaptureItem:
     disparity: Optional[MatLike]
     disparity_color: Optional[MatLike]
 
+    exposure_left: Optional[float] = None
+    exposure_right: Optional[float] = None
+
     def __init__(
         self,
         left: MatLike,
@@ -194,6 +197,7 @@ class StereoStorage:
         lidar_points: np.ndarray,
         lidar_reflectivity: np.ndarray,
         disparity: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        exposure_times: Optional[Tuple[float, float, float, float]] = None,
         root=FOLDER,
     ):
         time_stamp = time.strftime("%H_%M_%S_", time.localtime(timestamp)) + str(
@@ -224,6 +228,11 @@ class StereoStorage:
             frame["image"].attrs["nir_right_path"] = os.path.join(
                 time_stamp, "nir", "right.png"
             )
+            if exposure_times is not None:
+                frame["image"].attrs["rgb_exposure_left"] = exposure_times[0]
+                frame["image"].attrs["rgb_exposure_right"] = exposure_times[1]
+                frame["image"].attrs["nir_exposure_left"] = exposure_times[2]
+                frame["image"].attrs["nir_exposure_right"] = exposure_times[3]
 
             if disparity is not None:
                 frame["image"].attrs["rgb_disparity_path"] = os.path.join(
@@ -271,6 +280,12 @@ class StereoStorage:
                 item.lidar.meta_dict(),
                 item.lidar.points,
                 item.lidar.reflectivity,
+                exposure_times=(
+                    item.rgb.exposure_left,
+                    item.rgb.exposure_right,
+                    item.nir.exposure_left,
+                    item.nir.exposure_right,
+                ),  # type: ignore
             )
         for thread in threads:
             thread.join()

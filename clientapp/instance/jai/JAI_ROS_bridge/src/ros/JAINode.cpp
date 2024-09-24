@@ -238,30 +238,39 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
 
   uint8_t* buffer_data = (uint8_t*)calloc(1440 * 1080, sizeof(uint8_t));
   memcpy(buffer_data, buffer->GetDataPointer(), 1440 * 1080 * sizeof(uint8_t));
+  auto exposure_time = cameras[device_num]->getExposure(source_num);
   buffer_queue[device_num][source_num].push(
-      std::make_pair(buffer_time, buffer_data));
+      std::make_pair(std::make_pair(buffer_time, exposure_time), buffer_data));
 
   if (device_num == 0 && source_num == 0) {
-    for (int i = 0; i < 2; i++) {
-      while (buffer_queue[i][0].size() && buffer_queue[i][1].size() &&
-             abs(buffer_queue[i][0].front().first -
-                 buffer_queue[i][1].front().first) > 1000000) {
-        if (buffer_queue[i][0].front().first <
-            buffer_queue[i][1].front().first) {
-          free(buffer_queue[i][0].front().second);
-          buffer_queue[i][0].pop();
-        } else {
-          free(buffer_queue[i][1].front().second);
-          buffer_queue[i][1].pop();
-        }
-      }
-    }
     while (buffer_queue[0][0].size() && buffer_queue[0][1].size() &&
            buffer_queue[1][0].size() && buffer_queue[1][1].size()) {
-      if (abs(buffer_queue[0][0].front().first -
-              buffer_queue[1][0].front().first) > 3000000) {
-        if (buffer_queue[0][0].front().first <
-            buffer_queue[1][0].front().first) {
+      auto time00 = buffer_queue[0][0].front().first.first;
+      auto time01 = buffer_queue[0][1].front().first.first;
+      auto time10 = buffer_queue[1][0].front().first.first;
+      auto time11 = buffer_queue[1][1].front().first.first;
+      if (abs(time00 - time01) > 1000000) {
+        if (time00 < time01) {
+          free(buffer_queue[0][0].front().second);
+          buffer_queue[0][0].pop();
+        } else {
+          free(buffer_queue[0][1].front().second);
+          buffer_queue[0][1].pop();
+        }
+        continue;
+      }
+      if (abs(time10 - time11) > 1000000) {
+        if (time10 < time11) {
+          free(buffer_queue[1][0].front().second);
+          buffer_queue[1][0].pop();
+        } else {
+          free(buffer_queue[1][1].front().second);
+          buffer_queue[1][1].pop();
+        }
+        continue;
+      }
+      if (abs(time00 - time10) > 3000000) {
+        if (time00 < time10) {
           free(buffer_queue[0][0].front().second);
           buffer_queue[0][0].pop();
           free(buffer_queue[0][1].front().second);
@@ -276,7 +285,18 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
       }
       uint8_t* buffer_merged =
           (uint8_t*)calloc(ROS_MSG_BUFFER_SIZE * 8, sizeof(uint8_t));
-      auto buffer_time = buffer_queue[0][0].front().first;
+      auto buffer_time = time00;
+      sensor_msgs::msg::CompressedImage imageRosMsg =
+          sensor_msgs::msg::CompressedImage();
+      imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
+
+      imageRosMsg.format = "jpg";
+      imageRosMsg.header.frame_id = "jai_1600_stereo";
+      for (int i = 0; i < 4; i++) {
+        imageRosMsg.header.frame_id += "_";
+        imageRosMsg.header.frame_id +=
+            std::to_string(buffer_queue[i / 2][i % 2].front().first.second);
+      }
       for (int i = 0; i < 4; i++) {
         int sn = i / 2, dn = i % 2;
         cv::Mat img(1080, 1440, CV_8UC1, buffer_queue[dn][sn].front().second);
@@ -294,12 +314,7 @@ void JAINode::emitRosImageMsg(int device_num, int source_num,
         img.release();
         buffer_queue[dn][sn].pop();
       }
-      sensor_msgs::msg::CompressedImage imageRosMsg =
-          sensor_msgs::msg::CompressedImage();
-      imageRosMsg.header.stamp = rclcpp::Time(buffer_time);
 
-      imageRosMsg.format = "jpg";
-      imageRosMsg.header.frame_id = "jai_1600_stereo";
       imageRosMsg.data.assign(buffer_merged,
                               buffer_merged + ROS_MSG_BUFFER_SIZE * 8);
       mergedImagePublisher->publish(imageRosMsg);
@@ -455,6 +470,8 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
 
   if (camera_num == 1 && stereo_exposure_sync) {
     cameras.back()->holdAutoExposureAndGetValue(true);
+    cameras[0]->dualDevice->getDevice(0)->GetParameters()->SetEnumValue(
+        "ExposureAuto", 2);
   }
 
   Info << "Prepare Callback for Stream 0";
