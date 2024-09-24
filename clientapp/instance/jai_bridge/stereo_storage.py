@@ -198,6 +198,7 @@ class StereoStorage:
         lidar_reflectivity: np.ndarray,
         disparity: Optional[Tuple[np.ndarray, np.ndarray]] = None,
         exposure_times: Optional[Tuple[float, float, float, float]] = None,
+        lidar_imu_data: Optional[dict] = None,
         root=FOLDER,
     ):
         time_stamp = time.strftime("%H_%M_%S_", time.localtime(timestamp)) + str(
@@ -248,8 +249,13 @@ class StereoStorage:
             frame.create_group("lidar")
             for k, v in lidar_meta.items():
                 frame["lidar"].attrs[k] = v
+            if lidar_imu_data is not None:
+                imu = frame["lidar"].create_group("imu")
+                for k, v in lidar_imu_data.items():
+                    imu.attrs[k] = v
             frame.create_dataset("lidar/reflectivity", data=lidar_reflectivity)
             frame.create_dataset("lidar/points", data=lidar_points)
+
             f.close()
 
     def store_item(self, id: str, item: StereoMultiItem):
@@ -286,6 +292,7 @@ class StereoStorage:
                     item.nir.exposure_left,
                     item.nir.exposure_right,
                 ),  # type: ignore
+                lidar_imu_data=item.lidar.imu.dict(),
             )
         for thread in threads:
             thread.join()

@@ -147,7 +147,7 @@ class JaiStereoDepth(Node):
                                     axis=2,
                                 ),
                             ],
-                            axis=2,
+                            axis=1,
                         )
                     )
                 stereo_multi_item.rgb.exposure_left = rgb.left[1]
