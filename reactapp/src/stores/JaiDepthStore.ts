@@ -1,6 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
 import axios from "axios";
+import { jaiSocket } from "../connect/socket/subscribe";
 
 export interface FrameInfo {
   frame_id: string;
@@ -30,8 +31,14 @@ class JaiDepthStore {
   scene_id: string | undefined = undefined;
   frame_id: string | undefined = undefined;
 
+  progress: number | undefined = undefined;
+
   constructor() {
     makeAutoObservable(this);
+
+    jaiSocket.subscribe("npz_h5_progress", (data: { progress: number }) => {
+      this.progress = data.progress;
+    });
   }
 
   storage_url = () => {
@@ -138,6 +145,17 @@ class JaiDepthStore {
     )
       .onSuccess((data) => {
         onSucess();
+      })
+      .fetch();
+  };
+  fetchNpzH5Post = () => {
+    httpPost(
+      `/jai/stereo/storage/${
+        this.scene_id
+      }/post/npzh5?root=${this.storage_url()}`
+    )
+      .onSuccess((data) => {
+        this.progress = 0;
       })
       .fetch();
   };

@@ -110,6 +110,16 @@ export const DepthStatusView = observer(() => {
             title="Framerate"
             value={jaiStore.stereo_status.storage_status.frame_rate.toFixed(4)}
           />
+          <InfoCard
+            title="Queue Len"
+            value={jaiStore.stereo_status.storage_status.queue_length}
+          />
+          <InfoCard
+            title="Store Time"
+            value={jaiStore.stereo_status.storage_status.item_store_time.toFixed(
+              4
+            )}
+          />
         </HStack>
       )}
     </HStack>

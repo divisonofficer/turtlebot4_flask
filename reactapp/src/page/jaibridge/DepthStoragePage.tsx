@@ -8,6 +8,8 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Progress,
+  ProgressLabel,
   Switch,
   VStack,
 } from "@chakra-ui/react";
@@ -31,7 +33,7 @@ const SceneLoadDropdown = ({ sceneList }: { sceneList: string[] }) => {
   return (
     <Menu placement="bottom-end">
       <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-        LoadProfile
+        {jds.scene_id || "Load Scene"}
       </MenuButton>
       <MenuList>
         {sceneList.map((scene, index) => {
@@ -136,7 +138,7 @@ const FrameDetail = ({ frame }: { frame: string }) => {
     jds.getFrameInfo(frame, (frame_out) => {
       setFrameInfo(frame_out);
       if (frame_out?.capture_rgb.disparity_viz_path) {
-        setFrameDisplay(["left", "right", "disparity_color"]);
+        setFrameDisplay(["left", "right", "disparity"]);
       } else {
         setFrameDisplay(["left", "right"]);
       }
@@ -288,6 +290,18 @@ const SceneRootTool = observer(() => {
       )}
       {jds.scene_id && jds.scene_calibration === undefined && (
         <LoadCalibrationButton />
+      )}
+      <Btn size="sm" onClick={() => jds.fetchNpzH5Post()}>
+        npz to h5
+      </Btn>
+      {jds.progress && (
+        <HStack>
+          <Progress
+            style={{ width: "20rem", height: "2rem" }}
+            value={jds.progress * 100}
+          />
+          <Body3>{(jds.progress * 100).toFixed(2)}% Complete</Body3>
+        </HStack>
       )}
     </HStack>
   );
