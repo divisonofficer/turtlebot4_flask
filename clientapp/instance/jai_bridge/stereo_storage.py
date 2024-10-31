@@ -1,7 +1,7 @@
-from typing import Callable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from weakref import ref
 import cv2
-from cv2.typing import MatLike
+
 import numpy as np
 import tqdm
 
@@ -17,21 +17,21 @@ from io import BytesIO
 
 
 class StereoCaptureItem:
-    left: MatLike
-    right: MatLike
+    left: np.ndarray
+    right: np.ndarray
 
-    disparity: Optional[MatLike]
-    disparity_color: Optional[MatLike]
+    disparity: Optional[np.ndarray]
+    disparity_color: Optional[np.ndarray]
 
     exposure_left: Optional[float] = None
     exposure_right: Optional[float] = None
 
     def __init__(
         self,
-        left: MatLike,
-        right: MatLike,
-        disparity: Optional[MatLike] = None,
-        disparity_color: Optional[MatLike] = None,
+        left: np.ndarray,
+        right: np.ndarray,
+        disparity: Optional[np.ndarray] = None,
+        disparity_color: Optional[np.ndarray] = None,
     ):
         self.left = left
         self.right = right
@@ -48,7 +48,9 @@ class StereoCaptureItem:
 class StereoMultiItem:
     rgb: StereoCaptureItem
     nir: StereoCaptureItem
-    merged: Optional[MatLike]
+    merged: Optional[np.ndarray]
+    rgbd_rear: Optional[np.ndarray]
+    rgbd_disp: Optional[np.ndarray]
     timestamp: float
     id: str
     lidar: Optional[OusterLidarData]
@@ -59,9 +61,11 @@ class StereoMultiItem:
         timestamp: float,
         rgb: StereoCaptureItem,
         nir: StereoCaptureItem,
-        merged: Optional[MatLike],
+        merged: Optional[np.ndarray],
         calibration: dict,
         lidar: Optional[OusterLidarData] = None,
+        rgbd_disp: Optional[np.ndarray] = None,
+        rgbd_rear: Optional[np.ndarray] = None,
     ):
         self.rgb = rgb
         self.nir = nir
@@ -69,6 +73,8 @@ class StereoMultiItem:
         self.timestamp = timestamp
         self.lidar = lidar
         self.calibration = calibration
+        self.rgbd_disp = rgbd_disp
+        self.rgbd_rear = rgbd_rear
 
     def __del__(self):
         del self.rgb
@@ -77,6 +83,8 @@ class StereoMultiItem:
         del self.timestamp
         del self.lidar
         del self.calibration
+        del self.rgbd_rear
+        del self.rgbd_disp
 
 
 class StereoStorageFrame:
@@ -86,7 +94,7 @@ class StereoStorageFrame:
         disparity_path: Optional[str] = None
         disparity_viz_path: Optional[str] = None
 
-        def __dict__(self):
+        def to_dict(self):
             return {
                 "left_path": self.left_path,
                 "right_path": self.right_path,
@@ -102,10 +110,10 @@ class StereoStorageFrame:
     lidar_ply_path: Optional[str] = None
     lidar_projected_path: Optional[str] = None
 
-    def __dict__(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
-            "capture_rgb": self.capture_rgb.__dict__(),
-            "capture_nir": self.capture_nir.__dict__(),
+            "capture_rgb": self.capture_rgb.to_dict(),
+            "capture_nir": self.capture_nir.to_dict(),
             "lidar_path": self.lidar_path,
             "lidar_ply_path": self.lidar_ply_path,
             "lidar_projected_path": self.lidar_projected_path,
@@ -143,8 +151,8 @@ class StereoStorage:
         root = f"{self.FOLDER}/{id}/{timestamp}"
         root = f"{root}/{channel}"
         os.makedirs(root, exist_ok=True)
-        cv2.imwrite(f"{root}/left.png", item.left)
-        cv2.imwrite(f"{root}/right.png", item.right)
+        cv2.imwrite(f"{root}/left_distorted.png", item.left)
+        cv2.imwrite(f"{root}/right_distorted.png", item.right)
         if item.disparity is not None and item.disparity_color is not None:
             cv2.imwrite(f"{root}/disparity.png", item.disparity)
             cv2.imwrite(f"{root}/disparity_color.png", item.disparity_color)
@@ -195,7 +203,8 @@ class StereoStorage:
         calibration: dict,
         lidar_meta: dict,
         lidar_points: np.ndarray,
-        lidar_reflectivity: np.ndarray,
+        lidar_reflectivity: Optional[np.ndarray] = None,
+        rgbd_disp: Optional[np.ndarray] = None,
         disparity: Optional[Tuple[np.ndarray, np.ndarray]] = None,
         exposure_times: Optional[Tuple[float, float, float, float]] = None,
         lidar_imu_data: Optional[dict] = None,
@@ -253,7 +262,10 @@ class StereoStorage:
                 imu = frame["lidar"].create_group("imu")
                 for k, v in lidar_imu_data.items():
                     imu.attrs[k] = v
-            frame.create_dataset("lidar/reflectivity", data=lidar_reflectivity)
+            if lidar_reflectivity is not None:
+                frame.create_dataset("lidar/reflectivity", data=lidar_reflectivity)
+            if rgbd_disp is not None:
+                frame.create_dataset("rgbd_disp", data=rgbd_disp)
             frame.create_dataset("lidar/points", data=lidar_points)
 
             f.close()
@@ -276,6 +288,13 @@ class StereoStorage:
                 args=(id, time_stamp, "nir", item.nir),
             ),
         ]
+        if item.rgbd_rear is not None:
+            t = threading.Thread(
+                target=cv2.imwrite,
+                args=(f"{self.FOLDER}/{id}/{time_stamp}/rgbd_rear.png", item.rgbd_rear),
+            )
+            threads.append(t)
+
         for thread in threads:
             thread.start()
         if item.lidar is not None:
@@ -285,7 +304,8 @@ class StereoStorage:
                 item.calibration,
                 item.lidar.meta_dict(),
                 item.lidar.points,
-                item.lidar.reflectivity,
+                None,
+                rgbd_disp=item.rgbd_disp,
                 exposure_times=(
                     item.rgb.exposure_left,
                     item.rgb.exposure_right,

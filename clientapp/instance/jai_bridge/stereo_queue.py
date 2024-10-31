@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Generic, TypeVar, Union
 
 import cv2
+import numpy as np
 from sensor_msgs.msg import CompressedImage
 from rclpy.node import Node
 from rclpy.subscription import Subscription
@@ -18,8 +19,8 @@ class StereoItemMerged:
 
     def __init__(
         self,
-        left: Union[CompressedImage, cv2.typing.MatLike],
-        right: Union[CompressedImage, cv2.typing.MatLike],
+        left: Union[CompressedImage, np.ndarray],
+        right: Union[CompressedImage, np.ndarray],
         timestamp: Optional[Header] = None,
     ):
         self.left = left
