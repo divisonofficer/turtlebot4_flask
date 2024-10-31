@@ -168,8 +168,8 @@ class StereoDepth:
 
     def raft_stereo(
         self,
-        image_left: cv2.typing.MatLike,
-        image_right: cv2.typing.MatLike,
+        image_left: np.ndarray,
+        image_right: np.ndarray,
         channel: Literal["rgb", "nir"],
         rectified=False,
     ):
@@ -211,8 +211,8 @@ class StereoDepth:
 
     def process_stereo(
         self,
-        image_left: cv2.typing.MatLike,
-        image_right: cv2.typing.MatLike,
+        image_left: np.ndarray,
+        image_right: np.ndarray,
         channel,
         scale=1,
         rectified=False,

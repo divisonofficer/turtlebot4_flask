@@ -134,7 +134,7 @@ DEVICE_INFO: List[DeviceInfo] = [
             ParameterInfo(
                 name="ExposureAutoControlMin",
                 type="float",
-                min=100,
+                min=1,
                 max=5000,
                 source=ParameterInfo.Source.SOURCE,
             ),
@@ -251,7 +251,7 @@ DEVICE_INFO: List[DeviceInfo] = [
             ParameterInfo(
                 name="ExposureAutoControlMin",
                 type="float",
-                min=100,
+                min=1,
                 max=5000,
                 source=ParameterInfo.Source.SOURCE,
             ),
@@ -832,6 +832,14 @@ def enable_stereo_storage():
     return depth_node.node_status()
 
 
+@app.route("/stereo/option/<option>", methods=["POST"])
+def set_stereo_option(option):
+    value = request.json.get("value") if request.json else None
+    if hasattr(depth_node, option):
+        setattr(depth_node, option, value)
+    return depth_node.node_status()
+
+
 @app.route("/stereo/storage/disable", methods=["POST"])
 def disable_stereo_storage():
     depth_node.disable_stereo_storage()
@@ -855,7 +863,7 @@ def get_stereo_storage_scene_frame(id, frame_id):
     root = request.args.get("root", "tmp/depth")
     return Response(
         json.dumps(
-            depth_node.stereo_storage.read_frame_info(id, frame_id, root).__dict__()
+            depth_node.stereo_storage.read_frame_info(id, frame_id, root).to_dict()
         ),
         status=200,
     )
