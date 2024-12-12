@@ -30,61 +30,71 @@ from stereo_depth import DISPARITY_MAX, StereoCameraParameters, StereoDepth, COL
 from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
 
 
+class JaiStereoConfig:
+    reset_on_lidar_error = True
+    single_frame_mode = False
+    lidar_collect = True
+    oakd_collect = True
+
+
 class JaiStereoDepth(Node):
 
     def __init__(self, socket: SocketIO):
         super().__init__("jai_stereo_depth")  # type: ignore
-
+        self.config = JaiStereoConfig()
         self.stereo_lidar_queue = StereoQueue[
-            CompressedImage, StereoItemMerged[OusterLidarData, Optional[DepthAIData]]
+            CompressedImage,
+            StereoItemMerged[Optional[OusterLidarData], Optional[DepthAIData]],
         ](
-            self.stereo_lidar_callback,
+            self.callback_queue_root,
             time_diff=0.05,
             max_queue_length=300,
             hold_right=True,
         )
 
         self.rgbd_queue = StereoQueue[OusterLidarData, DepthAIData](
-            self.rgbd_lidar_callback,
+            self.callback_queue_lidar_depth,
             time_diff=0.1,
             max_queue_length=100,
             hold_right=True,
         )
 
         self.socket = socket
-        try:
 
+        try:
             self.oakd_bridge = DepthAICamera(5)
-            self.oakd_bridge.set_frame_callback(self.rgbd_queue.callback_right)
+            self.oakd_bridge.set_frame_callback(self.callback_sensor_oakd)
             threading.Thread(
                 target=self.oakd_bridge.start,
                 args=(),
             ).start()
+        except Exception as e:
+            print(e)
 
+        try:
             self.lidar_bridge = OusterBridge()
-
             threading.Thread(
                 target=self.lidar_bridge.collect_data,
-                args=(self.ouster_lidar_callback,),
+                args=(self.callback_sensor_lidar,),
             ).start()
+        except Exception as e:
+            print(e)
 
+        try:
             self.stereo_merged_subscription = self.create_subscription(
                 CompressedImage,
                 "/jai_1600_stereo/merged",
-                self.stereo_lidar_queue.callback_left,
+                self.callback_sensor_stereo,
                 10,
             )
             self.stereo_merged_subscription
-
         except Exception as e:
             print(e)
+
         self.__init_raft_stereo()
         self.points2depth = Point2Depth()
 
         self.stereo_storage_id: Optional[str] = None
-
-        self.reset_on_lidar_error = True
-        self.single_frame_mode = False
 
         self.stored_frame_cnt = 0
         self.prev_timestamp = time.time()
@@ -95,31 +105,50 @@ class JaiStereoDepth(Node):
 
         self.timer = self.create_timer(5, self.node_status)
 
-    def ouster_lidar_callback(self, msg: Union[OusterLidarData, Exception]):
+    def callback_sensor_lidar(self, msg: Union[OusterLidarData, Exception]):
         if isinstance(msg, Exception):
             print("Lidar error: ", msg)
-            if self.stereo_storage_id is not None and self.reset_on_lidar_error:
+            if self.stereo_storage_id is not None and self.config.reset_on_lidar_error:
                 self.enable_stereo_storage()
             return
-        # self.rgbd_queue.callback_left(msg)
-        self.rgbd_queue.callback_left(msg)
-        # self.stereo_lidar_queue.callback_right(StereoItemMerged(msg, None, msg.header))
 
-    def stereo_lidar_callback(
+        # if rgbd is offline, set rgbd body empty
+        if not self.config.oakd_collect:
+            self.stereo_lidar_queue.callback_right(
+                StereoItemMerged(msg, None, msg.header)
+            )
+            return
+        self.rgbd_queue.callback_left(msg)
+
+    def callback_sensor_stereo(self, msg: CompressedImage):
+        if self.config.oakd_collect or self.config.lidar_collect:
+            self.stereo_lidar_queue.callback_left(msg)
+            return
+        self.callback_queue_root(msg, StereoItemMerged(None, None, msg.header))
+
+    def callback_sensor_oakd(self, msg: DepthAIData):
+        if self.config.lidar_collect:
+            self.rgbd_queue.callback_right(msg)
+            return
+        self.callback_queue_lidar_depth(None, msg)
+
+    def callback_queue_root(
         self,
         msg: CompressedImage,
-        depth: StereoItemMerged[OusterLidarData, Optional[DepthAIData]],
+        depth: StereoItemMerged[Optional[OusterLidarData], Optional[DepthAIData]],
     ):
         rgb, nir = self.unpack_stereo_msg(msg)
         lidar = depth.left
         rgbd = depth.right
-
-        lidar_time_ns = int(lidar.header.stamp.nanosec + lidar.header.stamp.sec * 1e9)
-        imu_data_stacked = self.lidar_bridge.get_imu_value_queue_until_time(
-            lidar_time_ns
-        )
-        if imu_data_stacked.timestamp_ns.shape[0] > lidar.imu.timestamp_ns.shape[0]:
-            lidar.imu = imu_data_stacked
+        if lidar is not None:
+            lidar_time_ns = int(
+                lidar.header.stamp.nanosec + lidar.header.stamp.sec * 1e9
+            )
+            imu_data_stacked = self.lidar_bridge.get_imu_value_queue_until_time(
+                lidar_time_ns
+            )
+            if imu_data_stacked.timestamp_ns.shape[0] > lidar.imu.timestamp_ns.shape[0]:
+                lidar.imu = imu_data_stacked
 
         self.merged_frame_callback(
             rgb,
@@ -128,11 +157,16 @@ class JaiStereoDepth(Node):
             rgbd=(rgbd.frameDisp, rgbd.frameRgb) if rgbd is not None else None,
         )
 
-    def rgbd_lidar_callback(self, lidar: OusterLidarData, depth: DepthAIData):
-
-        self.stereo_lidar_queue.callback_right(
-            StereoItemMerged(lidar, depth, lidar.header)
-        )
+    def callback_queue_lidar_depth(
+        self, lidar: Optional[OusterLidarData], depth: Optional[DepthAIData]
+    ):
+        if lidar is not None:
+            header = lidar.header
+        elif depth is not None:
+            header = depth.header
+        else:
+            return
+        self.stereo_lidar_queue.callback_right(StereoItemMerged(lidar, depth, header))
 
     def unpack_stereo_msg(self, msg: CompressedImage) -> Tuple[
         StereoItemMerged[Tuple[np.ndarray, float], Tuple[np.ndarray, float]],
@@ -176,12 +210,6 @@ class JaiStereoDepth(Node):
                 result_viz = self.stereo_callback(rgb.left[0], rgb.right[0], "viz")
                 result_nir = self.stereo_callback(nir.left[0], nir.right[0], "nir")
             else:
-                # result_viz = self.stereo_depth_viz.rectify_pair(
-                #     rgb.left[0], rgb.right[0]
-                # )
-                # result_nir = self.stereo_depth_nir.rectify_pair(
-                #     nir.left[0], nir.right[0]
-                # )
                 result_viz = rgb.left[0], rgb.right[0]
                 result_nir = nir.left[0], nir.right[0]
             stereo_multi_item = self.wrap_stereo_multi_item(
@@ -211,7 +239,7 @@ class JaiStereoDepth(Node):
                     stereo_multi_item.id = self.stereo_storage_id
                     self.stereo_storage.enqueue(stereo_multi_item)
                     self.stored_frame_cnt += 1
-                    if self.single_frame_mode:
+                    if self.config.single_frame_mode:
                         self.stereo_storage_id_cache = self.stereo_storage_id
                         self.disable_stereo_storage()
             self.frame_rate = 1.0 / (time.time() - self.prev_timestamp)
@@ -228,8 +256,10 @@ class JaiStereoDepth(Node):
         status_dict = {
             "storage_id": self.stereo_storage_id,
             "option_status": {
-                "reset_on_lidar_error": self.reset_on_lidar_error,
-                "single_frame_mode": self.single_frame_mode,
+                "reset_on_lidar_error": self.config.reset_on_lidar_error,
+                "single_frame_mode": self.config.single_frame_mode,
+                "lidar_collect": self.config.lidar_collect,
+                "oakd_collect": self.config.oakd_collect,
             },
             "queue_status": {
                 "merged": self.stereo_lidar_queue.queue_status(),
