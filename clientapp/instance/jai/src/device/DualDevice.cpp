@@ -43,10 +43,13 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParamEnum(rgb_device->GetParameters(), "SourceSelector", 0);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
-                         40000.0f);
+                         20000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMin",
+                         100.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 0.45);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "LUTMode", 1);
 
-  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 8.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
                          10.0f);
   ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 50);
@@ -64,14 +67,17 @@ DualDevice::DualDevice(PvString &connection_ID) {
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "ExposureAuto", 2);
   ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMax",
                          40000.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "ExposureAutoControlMin",
+                         1.0f);
 
   ParamManager::setParam(rgb_device->GetParameters(), "BinningHorizontal",
                          ROS_SCALE_DOWN ? 2 : 1);
   ParamManager::setParam(rgb_device->GetParameters(), "BinningVertical",
                          ROS_SCALE_DOWN ? 2 : 1);
   ParamManager::setParam(rgb_device->GetParameters(), "ALCReference", 50);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 1.0f);
-  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 8.0f);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gamma", 0.45);
+  ParamManager::setParam(rgb_device->GetParameters(), "Gain", 1.0f);
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "LUTMode", 1);
   ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
                          10.0f);
   // ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",

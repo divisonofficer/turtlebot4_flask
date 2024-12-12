@@ -66,6 +66,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="40000", type="float"
                         ),
                         ParameterValue(name="Gain", value="1.0", type="float"),
+                        ParameterValue(name="Gamma", value="0.45", type="float"),
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
@@ -89,6 +90,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="60000", type="float"
                         ),
                         ParameterValue(name="Gain", value="1.0", type="float"),
+                        ParameterValue(name="Gamma", value="0.45", type="float"),
                         ParameterValue(
                             name="ExposureAutoControlMax", value="200000", type="float"
                         ),
@@ -152,6 +154,13 @@ DEVICE_INFO: List[DeviceInfo] = [
                         value="Continuous",
                     ),
                 ],
+            ),
+            ParameterInfo(
+                name="Gamma",
+                type="float",
+                min=0.45,
+                max=1.0,
+                source=ParameterInfo.Source.SOURCE,
             ),
             # ParameterInfo(
             #     name="GainAuto",
@@ -183,6 +192,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="30000", type="float"
                         ),
                         ParameterValue(name="Gain", value="1.0", type="float"),
+                        ParameterValue(name="Gamma", value="0.45", type="float"),
                         ParameterValue(
                             name="AcquisitionFrameRate", value="2.0", type="float"
                         ),
@@ -206,6 +216,7 @@ DEVICE_INFO: List[DeviceInfo] = [
                             name="ExposureTime", value="30000", type="float"
                         ),
                         ParameterValue(name="Gain", value="1.0", type="float"),
+                        ParameterValue(name="Gamma", value="0.45", type="float"),
                         ParameterValue(
                             name="ExposureAutoControlMax", value="200000", type="float"
                         ),
@@ -269,6 +280,13 @@ DEVICE_INFO: List[DeviceInfo] = [
                         value="Continuous",
                     ),
                 ],
+            ),
+            ParameterInfo(
+                name="Gamma",
+                type="float",
+                min=0.45,
+                max=1.0,
+                source=ParameterInfo.Source.SOURCE,
             ),
             # ParameterInfo(
             #     name="GainAuto",
@@ -494,6 +512,8 @@ class JaiBridgeNode(Node):
         )
 
     def load_device_info_from_json_file(self):
+        if not os.path.exists("device_info.json"):
+            return
         global DEVICE_INFO
         DEVICE_INFO = []
         with open("device_info.json") as json_file:
@@ -835,8 +855,8 @@ def enable_stereo_storage():
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None
-    if hasattr(depth_node, option):
-        setattr(depth_node, option, value)
+    if hasattr(depth_node.config, option):
+        setattr(depth_node.config, option, value)
     return depth_node.node_status()
 
 

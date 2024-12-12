@@ -16,7 +16,8 @@ class ParamManager {
 
   static PvResult setParam(PvGenParameterArray* params, const char* paramName,
                            const float value);
-
+  static PvResult setParam(PvGenParameterArray* params, const char* paramName,
+                           const double value);
   static PvResult setParamEnum(PvGenParameterArray* params,
                                const char* paramName, const int value);
 
