@@ -40,6 +40,17 @@ PvResult ParamManager::setParam(PvGenParameterArray* params,
   if (!isParamExists(params, paramName)) {
     return PvResult::Code::NOT_FOUND;
   }
+  lResult = params->SetFloatValue(paramName, (double)value);
+  printPvResult(lResult, paramName);
+  return lResult;
+}
+
+PvResult ParamManager::setParam(PvGenParameterArray* params,
+                                const char* paramName, const double value) {
+  PvResult lResult;
+  if (!isParamExists(params, paramName)) {
+    return PvResult::Code::NOT_FOUND;
+  }
   lResult = params->SetFloatValue(paramName, value);
   printPvResult(lResult, paramName);
   return lResult;
