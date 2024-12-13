@@ -39,6 +39,28 @@ const DepthVideoStream = ({ url }: { url: string }) => {
   );
 };
 
+const JaiOptionSwitch = ({
+  option_id,
+  option_name,
+  checked,
+}: {
+  option_id: string;
+  option_name: string;
+  checked: boolean | undefined;
+}) => {
+  return (
+    <HStack>
+      <H3> {option_name}</H3>
+      <Switch
+        isChecked={checked}
+        onChange={(e) => {
+          jaiStore.fetchUpdateStereoOption(option_id, e.target.checked);
+        }}
+      />
+    </HStack>
+  );
+};
+
 const StorageEnableButton = observer(() => {
   return (
     <VStack>
@@ -55,6 +77,42 @@ const StorageEnableButton = observer(() => {
           }}
         />
         <Body3>{jaiStore.stereo_status?.storage_id}</Body3>
+        <VStack
+          style={{
+            width: "20rem",
+          }}
+        >
+          <JaiOptionSwitch
+            option_id="single_frame_mode"
+            option_name="Single Capture"
+            checked={jaiStore.stereo_status?.option_status.single_frame_mode}
+          />
+          <JaiOptionSwitch
+            option_id="reset_on_lidar_error"
+            option_name="Reset on Lidar Error"
+            checked={jaiStore.stereo_status?.option_status.reset_on_lidar_error}
+          />
+        </VStack>
+        <VStack
+          style={{
+            width: "20rem",
+          }}
+        >
+          <JaiOptionSwitch
+            option_id="lidar_collect"
+            option_name="LiDAR"
+            checked={jaiStore.stereo_status?.option_status.lidar_collect}
+          />
+          <JaiOptionSwitch
+            option_id="oakd_collect"
+            option_name="OAK-Depth"
+            checked={jaiStore.stereo_status?.option_status.oakd_collect}
+          />
+          {/**
+           * <JaiOptionSwitch
+           *  option_id="oakd_nir_collect"
+           */}
+        </VStack>
       </HStack>
     </VStack>
   );

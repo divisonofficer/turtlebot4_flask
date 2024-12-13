@@ -38,7 +38,7 @@ import { Btn } from "../../design/button/button";
 import { Color } from "../../design/color";
 import { captureStore } from "../../stores/CaptureStore";
 import { useEffect } from "react";
-import { CalibrateView } from "./CalibrationView";
+import { EditableValue } from "../../design/button/EditableText";
 
 export const SourceDeviceParamSlide = observer(
   (props: { device: DeviceInfo; sourceIndex: number; paramIndex: number }) => {
@@ -67,7 +67,18 @@ export const SourceDeviceParamSlide = observer(
           }}
         >
           <Body3>{paramDefine.name}</Body3>
-          <Body3>{value}</Body3>
+          <EditableValue
+            value={value}
+            onValueChange={(value) => {
+              jaiStore.fetchJaiCameraUpdateParam(
+                deviceName,
+                props.sourceIndex,
+                paramDefine.name,
+                paramDefine.type,
+                value
+              );
+            }}
+          />
         </HStack>
         <Slider
           min={paramDefine.min}
