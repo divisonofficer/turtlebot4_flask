@@ -51,6 +51,12 @@ export interface JaiStereoStatus {
     queue_length: number;
     item_store_time: number;
   };
+  option_status: {
+    single_frame_mode: boolean;
+    reset_on_lidar_error: boolean;
+    lidar_collect: boolean;
+    oakd_collect: boolean;
+  };
 }
 
 class JaiStore {
@@ -268,6 +274,14 @@ class JaiStore {
 
   fetchEnableStereoStorage = () => {
     httpPost(`/jai/stereo/storage/enable`, {})
+      .onSuccess((data: JaiStereoStatus) => {
+        this.stereo_status = data;
+      })
+      .fetch();
+  };
+
+  fetchUpdateStereoOption = (option: string, value: any) => {
+    httpPost(`/jai/stereo/option/${option}`, { value: value })
       .onSuccess((data: JaiStereoStatus) => {
         this.stereo_status = data;
       })
