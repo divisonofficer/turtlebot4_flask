@@ -7,13 +7,14 @@ import tqdm
 
 from oakd_bridge import DepthAICamera, DepthAIData
 from points2depth import Point2Depth
+import rclpy
 
 sys.path.append("instance/jai_bridge/modules/RAFT_Stereo")
 
 import traceback
 
 
-from typing import Optional, Tuple, Union
+from typing import Callable, List, Literal, Optional, Tuple, Union
 from rclpy.node import Node
 from lucid.stereo_queue import StereoItemMerged, StereoQueue
 from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
@@ -23,11 +24,110 @@ from sensor_msgs.msg import CompressedImage, PointCloud2
 import torch
 import threading
 from videostream import VideoStream
-from stereo_storage import StereoCaptureItem, StereoMultiItem, StereoStorage
+from stereo_storage import (
+    HDRCaptureItem,
+    StereoCaptureItem,
+    StereoMultiItem,
+    StereoStorage,
+)
 import time
 from stereo_depth import DISPARITY_MAX, StereoCameraParameters, StereoDepth, COLORMAP
-
+from stereo_hdr_queue import StereoHDRQueue
 from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
+from geometry_msgs.msg import Pose
+from rclpy.action import ActionClient
+from irobot_create_msgs.action import RotateAngle
+
+
+class JaiHDRCaptureAgent:
+    class Config:
+        rotate_angle = 180
+        capture_cnt = 32
+        timeout = 10
+
+    def __init__(
+        self,
+        stereo_hdr_queue: StereoHDRQueue,
+        action_client: ActionClient,
+        config: Config,
+        topic_callback: Callable,
+    ):
+        self.stereo_hdr_queue = stereo_hdr_queue
+        self.config = config
+        self.hdr_thread: Optional[threading.Thread] = None
+        self.topic_callback = topic_callback
+        self.pose_list: List[Pose] = []
+        self.action_client = action_client
+
+    def capture_thread(self):
+        if self.hdr_thread is not None and self.hdr_thread.is_alive():
+            raise Exception("HDR capture is already running")
+        self.hdr_thread = threading.Thread(target=self.capture_hdr, daemon=True)
+        self.hdr_thread.start()
+
+    def capture_hdr(self):
+        """
+        Clear HDR Queue
+        """
+        self.stereo_hdr_queue.clear()
+
+        for i in range(self.config.capture_cnt):
+            # Logger : Turn Right
+
+            # self.turn_right(self.config.rotate_angle / self.config.capture_cnt)
+
+            # get topics from HDR Queue
+
+            self.get_hdr_frame(i)
+
+    def get_hdr_frame(self, idx: int):
+        time_begin = time.time()
+        hdr_frame = None
+        while time.time() - time_begin < self.config.timeout:
+            hdr_frame = self.stereo_hdr_queue.get_item(time_begin)
+            if hdr_frame is not None:
+                break
+            time.sleep(1)
+        if hdr_frame is None:
+            raise Exception("HDR Frame is not received")
+        timestamp = (
+            hdr_frame["hdr_left_rgb"].header.stamp.sec
+            + hdr_frame["hdr_left_rgb"].header.stamp.nanosec * 1e-9
+        )
+        hdr_item = HDRCaptureItem(
+            {
+                "left": {
+                    "rgb": hdr_frame["hdr_left_rgb"],
+                    "nir": hdr_frame["hdr_left_nir"],
+                },
+                "right": {
+                    "rgb": hdr_frame["hdr_right_rgb"],
+                    "nir": hdr_frame["hdr_right_nir"],
+                },
+            },
+            hdr_frame["lidar"],
+            self.pose_list,
+            timestamp,
+        )
+        self.topic_callback(hdr_item)
+
+    def turn_right(self, angle: float):
+        self.pose_list.clear()
+        # Action Call : Turn Right
+        goal = RotateAngle.Goal()
+        goal.angle = angle
+
+        def feedback_callback(feedback):
+            self.pose_list.append(feedback.current_pose)
+
+        future = self.action_client.send_goal_async(
+            goal, feedback_callback=feedback_callback
+        )
+        begin_time = time.time()
+        while not future.done():
+            rclpy.spin_once(self.action_client._node, timeout_sec=0.1)
+            if time.time() - begin_time > self.config.timeout:
+                raise Exception("Action Timeout")
 
 
 class JaiStereoConfig:
@@ -35,6 +135,9 @@ class JaiStereoConfig:
     single_frame_mode = False
     lidar_collect = True
     oakd_collect = True
+    hdr_config = JaiHDRCaptureAgent.Config()
+
+    capture_mode: Literal["stereo", "hdr"] = "hdr"
 
 
 class JaiStereoDepth(Node):
@@ -42,6 +145,11 @@ class JaiStereoDepth(Node):
     def __init__(self, socket: SocketIO):
         super().__init__("jai_stereo_depth")  # type: ignore
         self.config = JaiStereoConfig()
+
+        """
+        Synchronized Queue initialization
+        """
+
         self.stereo_lidar_queue = StereoQueue[
             CompressedImage,
             StereoItemMerged[Optional[OusterLidarData], Optional[DepthAIData]],
@@ -59,7 +167,53 @@ class JaiStereoDepth(Node):
             hold_right=True,
         )
 
+        """
+        HDR lazy queue initialization
+        """
+
+        self.stereo_hdr_queue = StereoHDRQueue()
+        self.source_keys = [["left_rgb", "left_nir"], ["right_rgb", "right_nir"]]
+        self.stereo_hdr_queue.register_key("hdr_left_rgb")
+        self.stereo_hdr_queue.register_key("hdr_right_rgb")
+        self.stereo_hdr_queue.register_key("hdr_left_nir")
+        self.stereo_hdr_queue.register_key("hdr_right_nir")
+        # self.stereo_hdr_queue.register_key("fusion_left_rgb")
+        # self.stereo_hdr_queue.register_key("fusion_right_rgb")
+        # self.stereo_hdr_queue.register_key("fusion_left_nir")
+        # self.stereo_hdr_queue.register_key("fusion_right_nir")
+        self.stereo_hdr_queue.register_key("lidar")
         self.socket = socket
+
+        for c, keys in enumerate(self.source_keys):
+            for s, key in enumerate(keys):
+                setattr(
+                    self,
+                    f"hdr_{key}_subscription",
+                    self.create_subscription(
+                        CompressedImage,
+                        f"/jai_1600_{key.split('_')[0]}/channel_{s}/hdr",
+                        lambda msg, c=c, s=s: self.stereo_hdr_queue.enqueue(
+                            f"hdr_{self.source_keys[c][s]}", msg
+                        ),
+                        10,
+                    ),
+                )
+                # setattr(
+                #     self,
+                #     f"fusion_{key}_subscription",
+                #     self.create_subscription(
+                #         CompressedImage,
+                #         f"/jai_1600_{key.split('_')[0]}/channel_{s}/fusion",
+                #         lambda msg, c=c, s=s: self.stereo_hdr_queue.enqueue(
+                #             f"fusion_{self.source_keys[c][s]}", msg
+                #         ),
+                #         10,
+                #     ),
+                # )
+
+        """
+        DepthAI Sensor (OAK-D) initialization
+        """
 
         try:
             self.oakd_bridge = DepthAICamera(5)
@@ -70,7 +224,9 @@ class JaiStereoDepth(Node):
             ).start()
         except Exception as e:
             print(e)
-
+        """
+        Ouster Lidar initialization
+        """
         try:
             self.lidar_bridge = OusterBridge()
             threading.Thread(
@@ -79,7 +235,9 @@ class JaiStereoDepth(Node):
             ).start()
         except Exception as e:
             print(e)
-
+        """
+        JAI Stereo (synchronized) topic subscription
+        """
         try:
             self.stereo_merged_subscription = self.create_subscription(
                 CompressedImage,
@@ -91,8 +249,16 @@ class JaiStereoDepth(Node):
         except Exception as e:
             print(e)
 
-        self.__init_raft_stereo()
-        self.points2depth = Point2Depth()
+        self.rotate_action_client = ActionClient(self, RotateAngle, "rotate_angle")
+
+        self.hdr_agent = JaiHDRCaptureAgent(
+            self.stereo_hdr_queue,
+            self.rotate_action_client,
+            self.config.hdr_config,
+            self.hdr_storage_callback,
+        )
+
+        # self.__init_raft_stereo()
 
         self.stereo_storage_id: Optional[str] = None
 
@@ -105,20 +271,35 @@ class JaiStereoDepth(Node):
 
         self.timer = self.create_timer(5, self.node_status)
 
-    def callback_sensor_lidar(self, msg: Union[OusterLidarData, Exception]):
-        if isinstance(msg, Exception):
-            print("Lidar error: ", msg)
-            if self.stereo_storage_id is not None and self.config.reset_on_lidar_error:
-                self.enable_stereo_storage()
+    def hdr_storage_callback(self, hdr_item: HDRCaptureItem):
+        if self.stereo_storage_id is None:
             return
+        hdr_item.id = self.stereo_storage_id
+        self.stereo_storage.enqueue(hdr_item)
 
-        # if rgbd is offline, set rgbd body empty
-        if not self.config.oakd_collect:
-            self.stereo_lidar_queue.callback_right(
-                StereoItemMerged(msg, None, msg.header)
-            )
+    def callback_sensor_lidar(self, msg: Union[OusterLidarData, Exception]):
+        if self.config.capture_mode == "stereo":
+            if isinstance(msg, Exception):
+                print("Lidar error: ", msg)
+                if (
+                    self.stereo_storage_id is not None
+                    and self.config.reset_on_lidar_error
+                ):
+                    self.enable_stereo_storage()
+                return
+
+            # if rgbd is offline, set rgbd body empty
+            if not self.config.oakd_collect:
+                self.stereo_lidar_queue.callback_right(
+                    StereoItemMerged(msg, None, msg.header)
+                )
+                return
+            self.rgbd_queue.callback_left(msg)
             return
-        self.rgbd_queue.callback_left(msg)
+        if self.config.capture_mode == "hdr":
+            if isinstance(msg, Exception):
+                return
+            self.stereo_hdr_queue.enqueue("lidar", msg)
 
     def callback_sensor_stereo(self, msg: CompressedImage):
         if self.config.oakd_collect or self.config.lidar_collect:
@@ -289,6 +470,9 @@ class JaiStereoDepth(Node):
         self.stored_frame_cnt = 0
         if id is None:
             self.stereo_storage_id = time.strftime("%m-%d-%H-%M-%S")
+
+        if self.config.capture_mode == "hdr":
+            self.hdr_agent.capture_thread()
 
     def disable_stereo_storage(self):
         self.stereo_storage_id = None
