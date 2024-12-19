@@ -2,11 +2,12 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from weakref import ref
 import cv2
 
+from deprecated import deprecated
 import numpy as np
 import tqdm
 
 from ouster_lidar.ouster_bridge import OusterLidarData
-
+from geometry_msgs.msg import Pose
 import threading
 import os
 import time
@@ -14,6 +15,91 @@ import open3d as o3d
 from PIL import Image
 import h5py
 from io import BytesIO
+
+
+class StorageItem:
+    id: str
+    timestamp: float
+
+    def __init__(self, timestamp: float):
+        self.timestamp = timestamp
+
+
+class HDRCaptureItem(StorageItem):
+    """
+    hdr:
+        left:
+            RGB: np.ndarray
+            NIR: np.ndarray
+        right:
+            RGB: np.ndarray
+            NIR: np.ndarray
+    lidar: OusterLidarData
+    odom: List[Pose]
+    """
+
+    hdr: Dict[str, Dict[str, np.ndarray]]
+
+    lidar: OusterLidarData
+    odom: List[Pose]
+    timestamp: float
+
+    def __init__(
+        self,
+        hdr: Dict[str, Dict[str, np.ndarray]],
+        lidar: OusterLidarData,
+        odom: List[Pose],
+        timestamp: float,
+    ):
+        self.hdr = hdr
+        self.lidar = lidar
+        self.odom = odom
+        self.timestamp = timestamp
+        super().__init__(timestamp)
+
+    def __del__(self):
+        del self.hdr
+        del self.lidar
+        del self.odom
+
+    def h5dict(self):
+        return {
+            "hdr": {
+                "left": {
+                    "rgb": self.hdr["left"]["rgb"],
+                    "nir": self.hdr["left"]["nir"],
+                },
+                "right": {
+                    "rgb": self.hdr["right"]["rgb"],
+                    "nir": self.hdr["right"]["nir"],
+                },
+            },
+            "lidar": {
+                "attrs": self.lidar.meta_dict(),
+                "imu": self.lidar.imu.dict(),
+                "points": self.lidar.points,
+            },
+            "odom": {
+                "position": np.array(
+                    [
+                        [pose.position.x, pose.position.y, pose.position.z]
+                        for pose in self.odom
+                    ]
+                ),
+                "orientation": np.array(
+                    [
+                        [
+                            pose.orientation.x,
+                            pose.orientation.y,
+                            pose.orientation.z,
+                            pose.orientation.w,
+                        ]
+                        for pose in self.odom
+                    ]
+                ),
+            },
+            "timestamp": self.timestamp,
+        }
 
 
 class StereoCaptureItem:
@@ -45,14 +131,12 @@ class StereoCaptureItem:
         del self.disparity_color
 
 
-class StereoMultiItem:
+class StereoMultiItem(StorageItem):
     rgb: StereoCaptureItem
     nir: StereoCaptureItem
     merged: Optional[np.ndarray]
     rgbd_rear: Optional[np.ndarray]
     rgbd_disp: Optional[np.ndarray]
-    timestamp: float
-    id: str
     lidar: Optional[OusterLidarData]
     calibration: dict
 
@@ -75,6 +159,7 @@ class StereoMultiItem:
         self.calibration = calibration
         self.rgbd_disp = rgbd_disp
         self.rgbd_rear = rgbd_rear
+        super().__init__(timestamp)
 
     def __del__(self):
         del self.rgb
@@ -126,10 +211,10 @@ class StereoStorage:
     FOLDER = "tmp/depth"
 
     def __init__(self):
-        self.storage_queue: List[StereoMultiItem] = []
+        self.storage_queue: List[StorageItem] = []
         self.item_store_time = 0.0
 
-    def enqueue(self, item: StereoMultiItem):
+    def enqueue(self, item: StorageItem):
         self.storage_queue.append(item)
 
     def queue_loop(self):
@@ -138,7 +223,10 @@ class StereoStorage:
             if len(self.storage_queue) > 0:
                 print("Storing item, queue length: ", len(self.storage_queue))
                 item = self.storage_queue.pop(0)
-                self.store_item(item.id, item)
+                if isinstance(item, StereoMultiItem):
+                    self.store_item(item.id, item)
+                if isinstance(item, HDRCaptureItem):
+                    self.store_hdr_item(item.id, item)
                 # thread = threading.Thread(
                 #     target=self.store_item, args=(item.id, item), daemon=False
                 # )
@@ -183,6 +271,7 @@ class StereoStorage:
             return list(f["frame"].keys())
 
     def get_scene_h5_file_for_store(self, scene_id: str, root=FOLDER):
+        os.makedirs(os.path.join(root, scene_id), exist_ok=True)
         hdf5_files = [
             f for f in os.listdir(os.path.join(root, scene_id)) if f.endswith(".hdf5")
         ]
@@ -196,6 +285,28 @@ class StereoStorage:
             f.close()
         return h5py.File(os.path.join(root, scene_id, f"{len(hdf5_files)}.hdf5"), "w")
 
+    def write_dict_to_h5(self, h5group: h5py.Group, data_dict):
+        """
+        재귀적으로 딕셔너리를 탐색하여 HDF5 그룹과 데이터셋을 생성합니다.
+
+        Args:
+            h5group: 현재 HDF5 그룹.
+            data_dict: 저장할 데이터가 포함된 딕셔너리.
+        """
+        for key, value in data_dict.items():
+            if value is None:
+                continue
+            if key == "attrs" and isinstance(value, dict):
+                for attr_key, attr_value in value.items():
+                    h5group.attrs[attr_key] = attr_value
+            elif isinstance(value, dict):
+                subgroup = h5group.create_group(key)
+                self.write_dict_to_h5(subgroup, value)
+            else:
+                # Numpy 배열이나 다른 데이터 타입을 데이터셋으로 저장
+                h5group.create_dataset(key, data=value)
+
+    @deprecated(version="0.1.0", reason="Use write_dict_to_h5 instead")
     def store_item_to_h5(
         self,
         id: str,
@@ -270,6 +381,31 @@ class StereoStorage:
 
             f.close()
 
+    def store_hdr_item(self, id: str, item: HDRCaptureItem):
+        time_stamp = time.strftime("%H_%M_%S_", time.localtime(item.timestamp)) + str(
+            int((item.timestamp % 1) * 1000)
+        ).zfill(3)
+        with self.get_scene_h5_file_for_store(id, self.FOLDER) as f:
+            frame = f.create_group(f"frame/{time_stamp}")
+            self.write_dict_to_h5(frame, item.h5dict())
+        print(item.hdr["left"]["rgb"].shape, item.hdr["left"]["rgb"].dtype)
+        threads = [
+            threading.Thread(
+                target=cv2.imwrite,
+                args=(
+                    f"{self.FOLDER}/{id}/{time_stamp}/{side}/{src}_fusion.png",
+                    item.hdr[side][src],
+                ),
+            )
+            for side in item.hdr
+            for src in item.hdr[side]
+        ]
+
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
     def store_item(self, id: str, item: StereoMultiItem):
         time_begin = time.time()
         time_stamp = time.strftime("%H_%M_%S_", time.localtime(item.timestamp)) + str(
@@ -298,22 +434,52 @@ class StereoStorage:
         for thread in threads:
             thread.start()
         if item.lidar is not None:
-            self.store_item_to_h5(
-                id,
-                item.timestamp,
-                item.calibration,
-                item.lidar.meta_dict(),
-                item.lidar.points,
-                None,
-                rgbd_disp=item.rgbd_disp,
-                exposure_times=(
-                    item.rgb.exposure_left,
-                    item.rgb.exposure_right,
-                    item.nir.exposure_left,
-                    item.nir.exposure_right,
-                ),  # type: ignore
-                lidar_imu_data=item.lidar.imu.dict(),
-            )
+            with self.get_scene_h5_file_for_store(id, self.FOLDER) as f:
+                frame = f.create_group(f"frame/{time_stamp}")
+                self.write_dict_to_h5(
+                    frame,
+                    {
+                        "image": {
+                            "attrs": {
+                                "timestamp": item.timestamp,
+                                "rgb_left_path": f"{time_stamp}/rgb/left.png",
+                                "rgb_right_path": f"{time_stamp}/rgb/right.png",
+                                "nir_left_path": f"{time_stamp}/nir/left.png",
+                                "nir_right_path": f"{time_stamp}/nir/right.png",
+                                "rgb_exposure_left": item.rgb.exposure_left,
+                                "rgb_exposure_right": item.rgb.exposure_right,
+                                "nir_exposure_left": item.nir.exposure_left,
+                                "nir_exposure_right": item.nir.exposure_right,
+                            },
+                            "rgbd_disp": item.rgbd_disp,
+                        },
+                        "lidar": {
+                            "attrs": item.lidar.meta_dict(),
+                            "imu": {
+                                "attrs": item.lidar.imu.dict(),
+                            },
+                            "points": item.lidar.points,
+                            "reflectivity": item.lidar.reflectivity,
+                        },
+                    },
+                )
+
+            # self.store_item_to_h5(
+            #     id,
+            #     item.timestamp,
+            #     item.calibration,
+            #     item.lidar.meta_dict(),
+            #     item.lidar.points,
+            #     None,
+            #     rgbd_disp=item.rgbd_disp,
+            #     exposure_times=(
+            #         item.rgb.exposure_left,
+            #         item.rgb.exposure_right,
+            #         item.nir.exposure_left,
+            #         item.nir.exposure_right,
+            #     ),  # type: ignore
+            #     lidar_imu_data=item.lidar.imu.dict(),
+            # )
         for thread in threads:
             thread.join()
 

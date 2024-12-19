@@ -33,7 +33,7 @@ from typing import List, Dict, Any, Optional
 import cv2
 from stereo_calibration import JaiStereoCalibration
 
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 from stereo_node import JaiStereoDepth
 
 from jai_pb2 import (
@@ -569,7 +569,7 @@ import threading
 def spin_node():
 
     def spin_nodes(nodes: List[Node]):
-        executor = SingleThreadedExecutor()
+        executor = MultiThreadedExecutor()
         for node in nodes:
             executor.add_node(node)
         executor.spin()
