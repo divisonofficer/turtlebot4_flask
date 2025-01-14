@@ -77,6 +77,7 @@ void MultiSpectralCamera::configureExposure(int source, float exposure) {
   // // double value;
   // // dualDevice->getDevice(0)->GetParameters()->GetFloatValue("ExposureTime",
   // //                                                          value);
+
   configureSourceRuntime(source, [&](PvGenParameterArray* params) {
     ParamManager::setParam(params, "ExposureTime", exposure);
   });
@@ -152,7 +153,7 @@ void MultiSpectralCamera::configureSourceRuntime(
 }
 
 void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
-  int idx = 0;
+  int idx = 0, nullCnt = 0;
   while (!flagInterrupted) {
     auto buffer = AcquireManager::getInstance()->AcquireBuffer(
         dualDevice->getStream(streamIndex));
@@ -164,11 +165,16 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
           dualDevice->getStream(streamIndex), buffer);
     } else {
       ErrorLog << device_idx << "/" << streamIndex << " BUFFER NULL";
+      nullCnt++;
+      if (nullCnt > 3) {
+        this->openStream();
+        nullCnt = 0;
+      }
     }
-    if (TRIGGER_SYNC) {
+    if (config->TRIGGER_SYNC) {
       idx++;
       if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
-          idx % MULTIFRAME_COUNT == 0) {
+          idx % config->MULTIFRAME_COUNT == 0) {
         triggerCallback();
       }
     }

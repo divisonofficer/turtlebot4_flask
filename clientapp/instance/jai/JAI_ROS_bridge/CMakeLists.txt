@@ -15,6 +15,7 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(Protobuf REQUIRED)
 # OpenCV 찾기
 find_package(OpenCV REQUIRED)
@@ -28,6 +29,7 @@ set(dependencies
   rclcpp
   sensor_msgs
   std_msgs
+  std_srvs
   cv_bridge
   OpenCV
   OpenMP
@@ -38,9 +40,10 @@ link_directories(${JAI_LIB_DIR})
 
 add_executable(jai_node src/jai_node.cpp)
 
-add_library(jai_node_lib src/ros/JAINode.cpp src/ros/HdrFusion.cpp ../src/camera/Camera.cpp ../src/acquire/Acquire.cpp ../src/device/Device.cpp
+add_library(jai_node_lib src/ros/AppConfig.cpp src/ros/JAINode.cpp src/ros/HdrFusion.cpp ../src/camera/Camera.cpp ../src/acquire/Acquire.cpp ../src/device/Device.cpp
 ../src/device/DualDevice.cpp ../src/device/ParamManager.cpp
 ../src/logger/Logger.cpp ../src/stream/Stream.cpp
+src/ros/JAIHDRNode.cpp
 ../../../../public/proto/cpp/jai.pb.cc
 )
 

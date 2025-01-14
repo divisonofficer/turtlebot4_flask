@@ -53,7 +53,7 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     }
   }
 
-  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 5000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 2000);
   ParamManager::setParam(lStreamGEV->GetParameters(), "MaximumResendGroupSize",
                          10);
   ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 0);
@@ -71,9 +71,10 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
 void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
                                         std::vector<PvBuffer*>* aBufferList) {
   // Use BUFFER_COUNT or the maximum number of buffers, whichever is smaller
-  uint32_t lBufferCount = (aStream->GetQueuedBufferMaximum() < BUFFER_COUNT)
-                              ? aStream->GetQueuedBufferMaximum()
-                              : BUFFER_COUNT;
+  uint32_t lBufferCount =
+      (aStream->GetQueuedBufferMaximum() < config->BUFFER_COUNT)
+          ? aStream->GetQueuedBufferMaximum()
+          : config->BUFFER_COUNT;
 
   // Allocate buffers
   for (uint32_t i = 0; i < lBufferCount; i++) {
@@ -81,7 +82,7 @@ void StreamManager::CreateStreamBuffers(PvDevice* aDevice, PvStream* aStream,
     PvBuffer* lBuffer = new PvBuffer;
 
     // Have the new buffer object allocate payload memory
-    lBuffer->Alloc(static_cast<uint32_t>(BUFFER_SIZE));
+    lBuffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
 
     // Add to external list - used to eventually release the buffers
     aBufferList->push_back(lBuffer);

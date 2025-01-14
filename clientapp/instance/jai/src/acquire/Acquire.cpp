@@ -1,4 +1,5 @@
 #include <Acquire.h>
+#include <AppConfig.h>
 #include <Logger.h>
 #include <PvSampleUtils.h>
 
@@ -131,6 +132,9 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     if (lOperationResult.IsPending()) {
       Debug << "Operation result is Pending";
     }
+    if (lOperationResult.GetCode() == PvResult::Code::BUFFER_TOO_SMALL) {
+      Debug << "Buffer too small" << lBuffer->GetPayloadSize();
+    }
     switch (lOperationResult.GetCode()) {
       case PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS:
       case PvResult::Code::TOO_MANY_RESENDS:
@@ -150,6 +154,8 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     // Debug << "Image acquired";
     return lBuffer;
   }
+  // lBuffer->Free();
+  // lBuffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
   queueBuffer(aStream, lBuffer);
   return nullptr;
 }

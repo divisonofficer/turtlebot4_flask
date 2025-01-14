@@ -34,8 +34,9 @@ class HdrScenario {
       hdr_exposure_image;
   HdrFusion hdr_fusion;
 
-  int hdr_exposure_idx[2][2];
-  float hdr_exposures[4];
+  int hdr_exposure_idx[2];
+  int hdr_exposure_count[2][2];
+  std::vector<double> hdr_exp;
   uint64_t hdr_config_timestamp[2][2];
   float hdr_intensity_history[2][2];
   int hdr_intensity_error_count[2][2];
