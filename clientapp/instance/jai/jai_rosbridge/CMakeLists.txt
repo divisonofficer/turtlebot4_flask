@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(JAI_ROS_bridge)
+project(jai_rosbridge)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,6 +11,11 @@ include(FindProtobuf)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+# ros action generator
+find_package(rosidl_default_generators REQUIRED)
+
+
 find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -25,15 +30,9 @@ find_package(OpenMP REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
-set(dependencies
-  rclcpp
-  sensor_msgs
-  std_msgs
-  std_srvs
-  cv_bridge
-  OpenCV
-  OpenMP
-)
+
+
+
 
 set(JAI_LIB_DIR /opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/lib)
 link_directories(${JAI_LIB_DIR})
@@ -48,6 +47,10 @@ src/ros/JAIHDRNode.cpp
 )
 
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "action/HDRTrigger.action"
+  DEPENDENCIES builtin_interfaces action_msgs
+)
 
 
 set(JAI_INCLUDE_DIR /opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include)
@@ -58,30 +61,23 @@ target_link_libraries(jai_node
   ${JAI_LIBS}
   ${Protobuf_LIBRARIES}
   )
-
-
-# Specify the libraries to be linked with jai_node
-# target_link_libraries(jai_node
-#   jai_node_lib
-
-#   ${JAI_INCLUDE_DIR}/PtConvertersLib
-#   ${JAI_INCLUDE_DIR}/PvAppUtils
-#   ${JAI_INCLUDE_DIR}/PvBase
-#   ${JAI_INCLUDE_DIR}/PvBuffer
-#   ${JAI_INCLUDE_DIR}/PvGenICam
-#   ${JAI_INCLUDE_DIR}/PvStream
-#   ${JAI_INCLUDE_DIR}/PvDevice
-#   ${JAI_INCLUDE_DIR}/PvTransmitter
-#   ${JAI_INCLUDE_DIR}/PvVirtualDevice
-#   ${JAI_INCLUDE_DIR}/PvPersistence
-#   ${JAI_INCLUDE_DIR}/PvSerial
-#   ${JAI_INCLUDE_DIR}/PvSystem
-#   ${JAI_INCLUDE_DIR}/PvCameraBridge
-# )
-
-
+set(dependencies
+  rclcpp
+  rclcpp_action
+  sensor_msgs
+  std_msgs
+  std_srvs
+  cv_bridge
+  OpenCV
+  OpenMP
+)
 
 ament_target_dependencies(jai_node_lib ${dependencies})
+ament_target_dependencies(jai_node ${dependencies})
+rosidl_get_typesupport_target(typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+target_link_libraries(jai_node ${typesupport_target})
+target_link_libraries(jai_node_lib ${typesupport_target})
 
 set(JAI_LIB_INCLUDE_DIRS
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -102,7 +98,8 @@ $<INSTALL_INTERFACE:include>
 ${JAI_LIB_INCLUDE_DIRS}
 )
 
-ament_target_dependencies(jai_node ${dependencies})
+
+
 target_include_directories(jai_node PUBLIC
 $<INSTALL_INTERFACE:include>
 ${JAI_LIB_INCLUDE_DIRS}
@@ -117,6 +114,7 @@ target_compile_options(jai_node PUBLIC -D_UNIX_ -D_LINUX_ -DQT_GUI_LIB -fPIC -st
 install(TARGETS jai_node
   DESTINATION lib/${PROJECT_NAME})
 
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -128,5 +126,11 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+
+
+ament_export_dependencies(rosidl_default_runtime)
+ament_export_include_directories(include)
+
 
 ament_package()

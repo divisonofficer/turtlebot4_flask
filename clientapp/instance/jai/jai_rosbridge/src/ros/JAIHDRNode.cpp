@@ -3,6 +3,9 @@
 #include <JAIHDRNode.h>
 #include <Logger.h>
 
+#include <chrono>
+#include <thread>
+
 double systemTimeNano() {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
              std::chrono::time_point_cast<std::chrono::nanoseconds>(
@@ -124,13 +127,23 @@ void JAIHDRNode::initNodeService() {
       [this](const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
              std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
         (void)request;
-        this->collectHdrImages();
+        // this->collectHdrImages();
         response->success = true;
       });
+
+  action_server_hdr_trigger =
+      rclcpp_action::create_server<jai_rosbridge::action::HDRTrigger>(
+          this, "jai_hdr_trigger",
+          std::bind(&JAIHDRNode::action_hdr_trigger_handler, this,
+                    std::placeholders::_1, std::placeholders::_2),
+          std::bind(&JAIHDRNode::action_hdr_trigger_cancel, this,
+                    std::placeholders::_1),
+          std::bind(&JAIHDRNode::action_hdr_trigger_accepted, this,
+                    std::placeholders::_1));
 }
-#include <chrono>
-#include <thread>
-void JAIHDRNode::collectHdrImages() {
+
+void JAIHDRNode::collectHdrImages(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   std::vector<cv::Mat> images;
   std::vector<__uint64_t> timestamps;
   for (float t : config->HDR_EXPOSURE) {
@@ -142,6 +155,9 @@ void JAIHDRNode::collectHdrImages() {
     camera.flushStream();
     camera.openStreamAll();
     Debug << "Collect HDR Images for " << t;
+    auto feedback = std::make_shared<HDRTrigger::Feedback>();
+    feedback->feedback_message = "Collect HDR Images for " + std::to_string(t);
+    goal_handle->publish_feedback(feedback);
     for (int i = 0; i < 2; i++) {
       cv::Mat img, img_nir;
       __uint64_t timestamp;
@@ -193,4 +209,37 @@ void HDRStorage::storeHDRSequence(std::vector<__uint64_t> timestamp,
 
   // Save the combined image
   cv::imwrite("temp/combined_image.png", combined_image);
+}
+
+rclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(
+    const rclcpp_action::GoalUUID& uuid,
+    std::shared_ptr<const HDRTrigger::Goal> goal) {
+  if (this->hdr_trigger_flag.load()) {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+  hdr_trigger_flag.store(true);
+  cancel_flag.store(false);
+
+  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+rclcpp_action::CancelResponse JAIHDRNode::action_hdr_trigger_cancel(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
+  this->cancel_action();
+  return rclcpp_action::CancelResponse::ACCEPT;
+}
+void JAIHDRNode::action_hdr_trigger_accepted(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
+  Debug << "HDR Trigger Accepted";
+  std::thread([this, goal_handle]() {
+    this->collectHdrImages(goal_handle);
+    auto result = std::make_shared<HDRTrigger::Result>();
+    if (this->cancel_flag.load()) {
+      result->success = false;
+      goal_handle->abort(result);
+      return;
+    }
+    result->success = true;
+    result->result_message = "HDR Capture Finished";
+    goal_handle->succeed(result);
+  }).detach();
 }

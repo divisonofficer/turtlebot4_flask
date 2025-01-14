@@ -4,7 +4,12 @@
 #include <Camera.h>
 #include <wrapper.h>
 
+#include <jai_rosbridge/action/hdr_trigger.hpp>
+#include <rclcpp_action/create_server.hpp>
 #include <std_srvs/srv/trigger.hpp>
+
+using HDRTrigger = jai_rosbridge::action::HDRTrigger;
+using GoalHandleHDRTrigger = rclcpp_action::ServerGoalHandle<HDRTrigger>;
 
 class JAIRGBNIRCamera {
  public:
@@ -64,12 +69,25 @@ class JAIHDRNode : public rclcpp::Node {
    *  Acquisition of HDR images
    */
 
-  void collectHdrImages();
+  void collectHdrImages(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
 
   void collectHdrImagesFor(int dn, int sn);
+  void cancel_action() { cancel_flag.store(true); }
 
  private:
   JAIRGBNIRCamera camera;
   HDRStorage storage;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_hdr_trigger;
+  rclcpp_action::Server<HDRTrigger>::SharedPtr action_server_hdr_trigger;
+  rclcpp_action::GoalResponse action_hdr_trigger_handler(
+      const rclcpp_action::GoalUUID& uuid,
+      std::shared_ptr<const HDRTrigger::Goal> goal);
+  rclcpp_action::CancelResponse action_hdr_trigger_cancel(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
+  void action_hdr_trigger_accepted(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
+
+  std::atomic_bool cancel_flag;
+  std::atomic_bool hdr_trigger_flag;
 };

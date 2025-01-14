@@ -1,0 +1,11 @@
+# Goal definition
+string log_message  # 전송할 로그 메시지
+---
+
+# Result definition
+bool success         # 성공 여부
+string result_message
+---
+
+# Feedback definition
+string feedback_message  # 진행 상황에 대한 피드백 메시지
