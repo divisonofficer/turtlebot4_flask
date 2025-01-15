@@ -39,8 +39,11 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParam(rgb_device->GetParameters(), "PulseGeneratorFrequency",
                          config->FRAME_RATE);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSelector", 3);
+
+  ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSource", 19);
   ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerMode", 1);
-  ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSource", 7);
+  // ParamManager::setParamEnum(rgb_device->GetParameters(), "TriggerSource",
+  // 7);
   ParamManager::setParamEnum(rgb_device->GetParameters(),
                              "PulseGeneratorClearSource", 1);
   Info << "Setting Channel 0 Parameters";

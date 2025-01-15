@@ -107,7 +107,7 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   PvResult lOperationResult;
 
   // Retrieve next buffer
-  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 250);
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 2000);
 
   if (!lResult.IsOK()) {
     if (lResult.GetCode() == PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS) {
@@ -154,8 +154,8 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
     // Debug << "Image acquired";
     return lBuffer;
   }
-  // lBuffer->Free();
-  // lBuffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
+  lBuffer->Free();
+  lBuffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
   queueBuffer(aStream, lBuffer);
   return nullptr;
 }

@@ -35,7 +35,7 @@ class JAIRGBNIRCamera {
 
   void configureExposureAll(float exposure);
 
-  int readImage(int dn, cv::Mat& dst, cv::Mat& dst_2, __uint64_t& timestamp);
+  int readImage(std::vector<cv::Mat>& dst, __uint64_t& timestamp);
   double ts_cam_bs;
   double ts_exp_;
 

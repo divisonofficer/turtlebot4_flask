@@ -31,7 +31,7 @@ void JAIRGBNIRCamera::connectCamera() {
 
 void JAIRGBNIRCamera::openStreamAll() {
   for (int i = 0; i < 2; i++) {
-    cameras[i]->openStream();
+    openStream(i);
   }
 }
 
@@ -39,7 +39,10 @@ void JAIRGBNIRCamera::openStream(int dn) {
   // cameras[dn]->getStream(0)->queueBuffer(
 
   // )
-  cameras[dn]->openStream();
+  auto deviceParam = cameras[dn]->dualDevice->getDevice(0)->GetParameters();
+  deviceParam->SetEnumValue("TriggerSelector", 3);
+  deviceParam->ExecuteCommand("AcquisitionStart");
+  deviceParam->ExecuteCommand("TriggerSoftware");
 }
 
 void JAIRGBNIRCamera::configureExposure(int dn, int sn, float exposure) {
@@ -74,43 +77,51 @@ void JAIRGBNIRCamera::flushStream() {
   }
 }
 
-int JAIRGBNIRCamera::readImage(int dn, cv::Mat& dst, cv::Mat& dst_2,
+int JAIRGBNIRCamera::readImage(std::vector<cv::Mat>& dst,
                                __uint64_t& timestamp) {
-  bool rgb_done = false, nir_done = false;
+  bool buffer_done[2][2] = {{false, false}, {false, false}};
   while (true) {
-    for (int s = 0; s < 2; s++) {
-      auto buffer = AcquireManager::getInstance()->AcquireBuffer(
-          cameras[dn]->dualDevice->getStream(s));
-      if (buffer) {
-        if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_) {
-          if (s == 0) {
-            dst =
-                cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer()).clone();
-            rgb_done = true;
-            timestamp = buffer->GetTimestamp() + ts_cam_bs;
+    bool all_done = true;
+    for (int d = 0; d < 2; d++) {
+      for (int s = 0; s < 2; s++) {
+        auto buffer = AcquireManager::getInstance()->AcquireBuffer(
+            cameras[d]->dualDevice->getStream(s));
+        if (buffer) {
+          if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_) {
+            if (!buffer_done[d][s]) {
+              dst[d * 2 + s] =
+                  cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer())
+                      .clone();
+              buffer_done[d][s] = true;
+              if (s + d == 0) timestamp = buffer->GetTimestamp() + ts_cam_bs;
+            }
           } else {
-            dst_2 =
-                cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer()).clone();
-            nir_done = true;
+            Debug << "C" << d << "/S" << s << " : expired buffer" << std::fixed
+                  << std::setprecision(3)
+                  << (buffer->GetTimestamp() + ts_cam_bs - ts_exp_) / 1000000.0;
           }
+          buffer->Free();
+          buffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
+          AcquireManager::getInstance()->queueBuffer(
+              cameras[d]->dualDevice->getStream(s), buffer);
         } else {
-          Debug << "C" << dn << "/S" << s << " : expired buffer"
-                << buffer->GetTimestamp() + ts_cam_bs - ts_exp_;
+          Debug << "C" << d << "/S" << s << " : Buffer is null";
         }
-        buffer->Free();
-        buffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
-        AcquireManager::getInstance()->queueBuffer(
-            cameras[dn]->dualDevice->getStream(s), buffer);
-      } else {
-        Debug << "C" << dn << "/S" << s << " : Buffer is null";
       }
     }
-
-    if (rgb_done && nir_done) {
+    for (int d = 0; d < 2; d++) {
+      if (!(buffer_done[d][0] && buffer_done[d][1])) {
+        openStream(d);
+        all_done = false;
+      }
+    }
+    if (all_done) {
       break;
-    }  // flushStream();
-    openStream(dn);
+    }
+    std::this_thread::sleep_for(
+        std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY * 1000000));
   }
+  return 0;
 }
 
 JAIHDRNode::JAIHDRNode() : Node("jai_hdr_node") {
@@ -148,24 +159,26 @@ void JAIHDRNode::collectHdrImages(
   std::vector<__uint64_t> timestamps;
   for (float t : config->HDR_EXPOSURE) {
     // camera.flushStream();
+    camera.flushStream();
     camera.configureExposureAll(t);
     // camera.flushStream();
-    std::this_thread::sleep_for(
-        std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY));
-    camera.flushStream();
+    // std::this_thread::sleep_for(
+    //     std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY));
+
     camera.openStreamAll();
     Debug << "Collect HDR Images for " << t;
     auto feedback = std::make_shared<HDRTrigger::Feedback>();
     feedback->feedback_message = "Collect HDR Images for " + std::to_string(t);
     goal_handle->publish_feedback(feedback);
-    for (int i = 0; i < 2; i++) {
-      cv::Mat img, img_nir;
-      __uint64_t timestamp;
-      camera.readImage(i, img, img_nir, timestamp);
+
+    std::vector<cv::Mat> imgr;
+    imgr.assign(4, cv::Mat());
+    __uint64_t timestamp;
+    camera.readImage(imgr, timestamp);
+    for (auto img : imgr) {
       images.push_back(img);
-      images.push_back(img_nir);
-      timestamps.push_back(timestamp);
     }
+    timestamps.push_back(timestamp);
   }
   storage.storeHDRSequence(timestamps, images);
 
@@ -225,8 +238,10 @@ rclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(
 rclcpp_action::CancelResponse JAIHDRNode::action_hdr_trigger_cancel(
     const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   this->cancel_action();
+  hdr_trigger_flag.store(false);
   return rclcpp_action::CancelResponse::ACCEPT;
 }
+
 void JAIHDRNode::action_hdr_trigger_accepted(
     const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   Debug << "HDR Trigger Accepted";
@@ -236,10 +251,12 @@ void JAIHDRNode::action_hdr_trigger_accepted(
     if (this->cancel_flag.load()) {
       result->success = false;
       goal_handle->abort(result);
+      hdr_trigger_flag.store(false);
       return;
     }
     result->success = true;
     result->result_message = "HDR Capture Finished";
     goal_handle->succeed(result);
+    hdr_trigger_flag.store(false);
   }).detach();
 }
