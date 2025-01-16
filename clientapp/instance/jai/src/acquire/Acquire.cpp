@@ -107,7 +107,8 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   PvResult lOperationResult;
 
   // Retrieve next buffer
-  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 2000);
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult,
+                                             1000 / config->FRAME_RATE);
 
   if (!lResult.IsOK()) {
     if (lResult.GetCode() == PvResult::Code::TOO_MANY_CONSECUTIVE_RESENDS) {

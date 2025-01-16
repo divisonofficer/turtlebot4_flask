@@ -21,7 +21,7 @@ DualDevice::DualDevice(PvString &connection_ID) {
 
   if (config->HDR_CAPTURE_MODE) {
     ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionMode",
-                               0);
+                               2);
   } else {
     if (config->TRIGGER_SYNC) {
       ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionMode",

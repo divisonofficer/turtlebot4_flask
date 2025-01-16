@@ -31,16 +31,25 @@ class JAIRGBNIRCamera {
 
   void openStream(int dn);
 
+  void triggerFrameCapture(int dn);
+
   void configureExposure(int dn, int sn, float exposure);
 
   void configureExposureAll(float exposure);
 
-  int readImage(std::vector<cv::Mat>& dst, __uint64_t& timestamp);
+  int readImage(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
+                std::vector<cv::Mat>& dst, __uint64_t& timestamp);
   double ts_cam_bs;
   double ts_exp_;
+  void processStream(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
+                     int d, int s, std::vector<cv::Mat>& dst);
 
  private:
+  int retrieveBuffer(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
+                     PvStream* stream, PvBuffer** buffer);
   std::vector<MultiSpectralCamera*> cameras;
+  std::atomic_bool hdr_stream_done_flag[2][2];
+  std::atomic_int hdr_stream_buffer_received[2][2];
 };
 
 class HDRStorage {
@@ -48,6 +57,17 @@ class HDRStorage {
   HDRStorage();
   void storeHDRSequence(std::vector<__uint64_t> timestamp,
                         std::vector<cv::Mat> images);
+};
+
+struct ThreadArgs {
+  int device_idx;
+  int stream_idx;
+  JAIRGBNIRCamera* cameraObj;
+  std::vector<cv::Mat>& dst;
+  __uint64_t& timestamp;
+  std::atomic<bool>& doneFlag;
+  std::mutex& device_mutex;  // 해당 디바이스에 대한 mutex
+                             // 기타 필요한 공유 자원 포인터
 };
 
 class JAIHDRNode : public rclcpp::Node {

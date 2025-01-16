@@ -33,4 +33,7 @@ void AppConfig::load_from_json(const std::string& file_path) {
   HDR_EXPOSURE = j["HDR_EXPOSURE"].get<std::vector<double>>();
   NODE_MODE = j["NODE_MODE"];
   STREAM_BUFFER = j["STREAM_BUFFER"];
+  if (j.find("HDR_TIMEOUT_CNT") != j.end()) {
+    HDR_TIMEOUT_CNT = j["HDR_TIMEOUT_CNT"];
+  }
 }

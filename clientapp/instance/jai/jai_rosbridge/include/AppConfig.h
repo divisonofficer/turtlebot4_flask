@@ -46,6 +46,7 @@ class AppConfig {
   int MIN_DIFFS;
   int HDR_EXPOSURE_DELAY;
 
+  int HDR_TIMEOUT_CNT = 4;
   int NODE_MODE = 0;
   bool STREAM_BUFFER = true;  // buffer list 생성 여부, false면 직접 buffer
                               // 만들어서 queue해줘야됨
