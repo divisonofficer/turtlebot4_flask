@@ -1,9 +1,9 @@
 
-
 #include <JAIHDRNode.h>
 #include <Logger.h>
 
 #include <chrono>
+#include <filesystem>
 #include <thread>
 
 void sendFeedback(std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
@@ -99,27 +99,13 @@ void JAIRGBNIRCamera::flushStream() {
           stream->QueueBuffer(buffer);
         }
       });
-      // PvStreamGEV* stream =
-      // (PvStreamGEV*)cameras[i]->dualDevice->getStream(s); stream =
-      // (PvStreamGEV*)cameras[i]->dualDevice->getStream(1);
-      // stream->FlushPacketQueue();
-      // stream->AbortQueuedBuffers();
-      // std::vector<PvBuffer*> buffers;
-      // while (stream->GetQueuedBufferCount()) {
-      //   PvBuffer* buffer;
-      //   PvResult result;
-      //   auto bresult = stream->RetrieveBuffer(&buffer, &result, 10);
-      //   if (buffer) buffers.push_back(buffer);
-      // }
-      // for (auto buffer : buffers) {
-      //   buffer->Reset();
-      //   stream->QueueBuffer(buffer);
-      // }
     }
   }
   for (auto& thread : threads) {
     thread.join();
   }
+
+  openStreamAll();
 }
 
 int JAIRGBNIRCamera::retrieveBuffer(
@@ -133,7 +119,10 @@ int JAIRGBNIRCamera::retrieveBuffer(
     *buffer = lBuffer;
     return 0;
   }
-  sendFeedbackPrintf(goal_handle, "Failed to retrieve buffer: %s %s",
+
+  sendFeedbackPrintf(goal_handle,
+                     "{\"type\":\"error_retrieve_buffer\",\"data\":{"
+                     "\"lResult\" : \"%s\", \"aResult\" : \"%s\"}}",
                      lResult.GetCodeString().GetAscii(),
                      aResult.GetCodeString().GetAscii());
   if (lBuffer) {
@@ -166,8 +155,10 @@ void JAIRGBNIRCamera::processStream(
 
       } else {
         sendFeedbackPrintf(
-            goal_handle, "C%d/S%d : expired buffer %.3f", d, s,
-            (buffer->GetTimestamp() + ts_cam_bs - ts_exp_) / 1000000.0);
+            goal_handle,
+            "{\"type\":\"error_process_stream_expire\",\"data\":{\"device\" : "
+            "%d, \"stream\" : %d, \"expired_time\" : %.3f }}",
+            d, s, (buffer->GetTimestamp() + ts_cam_bs - ts_exp_) / 1000000.0);
       }
     }
   }
@@ -179,10 +170,10 @@ void JAIRGBNIRCamera::processStream(
         cameras[d]->dualDevice->getStream(s), buffer);
   }
   if (ret) {
-    sendFeedbackPrintf(goal_handle, "C%d/S%d : %s", d, s,
-                       ret == 1   ? "Buffer is not complete"
-                       : ret == 2 ? "Buffer is null but not timeout"
-                                  : "Buffer is null");
+    sendFeedbackPrintf(goal_handle,
+                       "{\"type\":\"error_process_stream\",\"data\":{"
+                       "\"device\" : %d, \"stream\" : %d, \"code\" : %d,}}",
+                       d, s, ret);
   }
   if (ret == -1 || ret == 2) {
     hdr_stream_buffer_received[d][s] -= 1;
@@ -242,6 +233,7 @@ int JAIRGBNIRCamera::readImage(
     // std::this_thread::sleep_for(
     //     std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY * 1000000));
   }
+  timestamp = systemTimeNano();
 
   return 0;
 }
@@ -275,12 +267,17 @@ void JAIHDRNode::initNodeService() {
                     std::placeholders::_1));
 }
 
+void JAIRGBNIRCamera::closeStreamAll() {
+  for (int i = 0; i < 2; i++) cameras[i]->closeStream();
+}
+
 void JAIHDRNode::collectHdrImages(
     const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   std::vector<cv::Mat> images;
   std::vector<__uint64_t> timestamps;
 
-  for (float t : config->HDR_EXPOSURE) {
+  for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
+    int t = config->HDR_EXPOSURE[t_idx];
     camera.configureExposureAll(t);
     camera.openStreamAll();
     camera.flushStream();
@@ -292,9 +289,12 @@ void JAIHDRNode::collectHdrImages(
     camera.triggerFrameCapture(0);
     camera.triggerFrameCapture(1);
     Debug << "Collect HDR Images for " << t;
-    auto feedback = std::make_shared<HDRTrigger::Feedback>();
-    feedback->feedback_message = "Collect HDR Images for " + std::to_string(t);
-    goal_handle->publish_feedback(feedback);
+
+    sendFeedbackPrintf(goal_handle,
+                       "{\"type\" : \"info_collect_hdr_images\", \"data\" : { "
+                       "\"exposure\" : %d,"
+                       "\"exp_idx\" : %d}}",
+                       t, t_idx);
 
     std::vector<cv::Mat> imgr;
     imgr.assign(4, cv::Mat());
@@ -305,7 +305,9 @@ void JAIHDRNode::collectHdrImages(
     }
     timestamps.push_back(timestamp);
   }
-  storage.storeHDRSequence(timestamps, images);
+  camera.closeStreamAll();
+  storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                           images);
 
   camera.flushStream();
   for (auto img : images) {
@@ -316,7 +318,8 @@ void JAIHDRNode::collectHdrImages(
 
 HDRStorage::HDRStorage() {}
 
-void HDRStorage::storeHDRSequence(std::vector<__uint64_t> timestamp,
+void HDRStorage::storeHDRSequence(std::string space_id,
+                                  std::vector<__uint64_t> timestamp,
                                   std::vector<cv::Mat> images) {
   // Store HDR images
   //   Debug << "Store HDR images" << images.size();
@@ -346,7 +349,12 @@ void HDRStorage::storeHDRSequence(std::vector<__uint64_t> timestamp,
   }
 
   // Save the combined image
-  cv::imwrite("temp/combined_image.png", combined_image);
+  char path[256];
+
+  snprintf(path, 256, "%s/%lld.png", space_id.c_str(), timestamp[0]);
+  std::string dir_path = space_id;
+  std::filesystem::create_directories(dir_path);
+  cv::imwrite(path, combined_image);
 }
 
 rclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(

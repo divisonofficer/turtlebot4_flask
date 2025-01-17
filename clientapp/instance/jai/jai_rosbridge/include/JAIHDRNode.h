@@ -37,6 +37,8 @@ class JAIRGBNIRCamera {
 
   void configureExposureAll(float exposure);
 
+  void closeStreamAll();
+
   int readImage(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
                 std::vector<cv::Mat>& dst, __uint64_t& timestamp);
   double ts_cam_bs;
@@ -55,19 +57,8 @@ class JAIRGBNIRCamera {
 class HDRStorage {
  public:
   HDRStorage();
-  void storeHDRSequence(std::vector<__uint64_t> timestamp,
+  void storeHDRSequence(std::string space_id, std::vector<__uint64_t> timestamp,
                         std::vector<cv::Mat> images);
-};
-
-struct ThreadArgs {
-  int device_idx;
-  int stream_idx;
-  JAIRGBNIRCamera* cameraObj;
-  std::vector<cv::Mat>& dst;
-  __uint64_t& timestamp;
-  std::atomic<bool>& doneFlag;
-  std::mutex& device_mutex;  // 해당 디바이스에 대한 mutex
-                             // 기타 필요한 공유 자원 포인터
 };
 
 class JAIHDRNode : public rclcpp::Node {

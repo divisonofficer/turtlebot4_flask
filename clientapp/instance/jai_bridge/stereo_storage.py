@@ -8,6 +8,7 @@ import tqdm
 
 from ouster_lidar.ouster_bridge import OusterLidarData
 from geometry_msgs.msg import Pose
+from sensor_msgs.msg import CompressedImage
 import threading
 import os
 import time
@@ -38,7 +39,7 @@ class HDRCaptureItem(StorageItem):
     odom: List[Pose]
     """
 
-    hdr: Dict[str, Dict[str, np.ndarray]]
+    hdr: Dict[str, Dict[str, List[Tuple[np.ndarray, float]]]]
 
     lidar: OusterLidarData
     odom: List[Pose]
@@ -46,7 +47,7 @@ class HDRCaptureItem(StorageItem):
 
     def __init__(
         self,
-        hdr: Dict[str, Dict[str, np.ndarray]],
+        hdr: Dict[str, Dict[str, List[Tuple[np.ndarray, float]]]],
         lidar: OusterLidarData,
         odom: List[Pose],
         timestamp: float,
@@ -63,17 +64,8 @@ class HDRCaptureItem(StorageItem):
         del self.odom
 
     def h5dict(self):
+
         return {
-            "hdr": {
-                "left": {
-                    "rgb": self.hdr["left"]["rgb"],
-                    "nir": self.hdr["left"]["nir"],
-                },
-                "right": {
-                    "rgb": self.hdr["right"]["rgb"],
-                    "nir": self.hdr["right"]["nir"],
-                },
-            },
             "lidar": {
                 "attrs": self.lidar.meta_dict(),
                 "imu": self.lidar.imu.dict(),
@@ -208,7 +200,7 @@ class StereoStorageFrame:
 
 
 class StereoStorage:
-    FOLDER = "tmp/depth"
+    FOLDER: str = "tmp/depth"
 
     def __init__(self):
         self.storage_queue: List[StorageItem] = []
@@ -388,17 +380,18 @@ class StereoStorage:
         with self.get_scene_h5_file_for_store(id, self.FOLDER) as f:
             frame = f.create_group(f"frame/{time_stamp}")
             self.write_dict_to_h5(frame, item.h5dict())
-        print(item.hdr["left"]["rgb"].shape, item.hdr["left"]["rgb"].dtype)
+        os.makedirs(f"{self.FOLDER}/{id}/{time_stamp}")
         threads = [
             threading.Thread(
                 target=cv2.imwrite,
                 args=(
-                    f"{self.FOLDER}/{id}/{time_stamp}/{side}/{src}_fusion.png",
-                    item.hdr[side][src],
+                    f"{self.FOLDER}/{id}/{time_stamp}/{side}_{src}_{exposure}_raw.png",
+                    image,
                 ),
             )
             for side in item.hdr
             for src in item.hdr[side]
+            for image, exposure in item.hdr[side][src]
         ]
 
         for thread in threads:

@@ -43,6 +43,7 @@ class JaiStereoCalibration(Node):
         self.socket = socket
         self.stop_signal = threading.Event()
         self.start_signal = threading.Event()
+        self.start_signal.set()
         self.lidar_points: Optional[PointCloud2] = None
 
         self.create_timer(3, self.timer_signal_callback)

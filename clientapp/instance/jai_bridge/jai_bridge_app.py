@@ -852,6 +852,12 @@ def enable_stereo_storage():
     return depth_node.node_status()
 
 
+@app.route("/stereo/hdr/trigger", methods=["POST"])
+def trigger_stereo_hdr():
+    depth_node.trigger_hdr_action()
+    return depth_node.node_status()
+
+
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None
