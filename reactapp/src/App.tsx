@@ -22,6 +22,7 @@ import { CalibrationPage } from "./page/jaibridge/CalibrationView";
 import { DepthViewPage } from "./page/jaibridge/DepthPage";
 import { LucidCaptureView } from "./page/lucid/LucidCaptureView";
 import { DepthStoragePage } from "./page/jaibridge/DepthStoragePage";
+import { HDRPage } from "./page/jaibridge/HDRPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -49,6 +50,7 @@ function App() {
         <Route path="/jaibridge/depth/storage" element={<DepthStoragePage />} />
 
         <Route path="/lucid" element={<LucidCaptureView />} />
+        <Route path="/jaibridge/hdr" element={<HDRPage />} />
       </Routes>
     );
   };
