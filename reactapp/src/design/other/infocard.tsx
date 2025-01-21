@@ -1,13 +1,13 @@
 import { HStack, Icon, VStack } from "@chakra-ui/react";
 import { Body1, H3 } from "../text/textsystem";
 import { ElementType, ReactElement, ReactNode, useState } from "react";
-import { JsxElement } from "typescript";
 
 const InfoCard = (props: {
   title: string;
   icon?: string | ElementType;
   value?: string | number;
   color?: string;
+  progressBar?: ReactNode;
 }) => {
   const Icon = props.icon;
   return (
@@ -55,6 +55,7 @@ const InfoCard = (props: {
         }}
       >
         <H3>{props.value}</H3>
+        {props.progressBar && props.progressBar}
       </HStack>
     </VStack>
   );
