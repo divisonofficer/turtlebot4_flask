@@ -158,6 +158,7 @@ PvBuffer* AcquireManager::AcquireBuffer(PvStream* aStream) {
   lBuffer->Free();
   lBuffer->Alloc(static_cast<uint32_t>(config->BUFFER_SIZE));
   queueBuffer(aStream, lBuffer);
+
   return nullptr;
 }
 
@@ -213,7 +214,7 @@ void AcquireManager::bufferProcess(PvDevice* aDevice, PvStream* aStream,
   PvResult lOperationResult;
 
   // Retrieve next buffer
-  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 1000);
+  PvResult lResult = aStream->RetrieveBuffer(&lBuffer, &lOperationResult, 200);
 
   if (!lResult.IsOK()) {
     Debug << monitor.lDoodle[monitor.lDoodleIndex] << " "

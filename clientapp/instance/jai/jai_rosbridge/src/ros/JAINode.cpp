@@ -472,8 +472,16 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
 
       // cameras[0]->openStream();
       // cameras[1]->openStream();
-      // cameras[0]->closeStream();
-      // cameras[1]->closeStream();
+      // // cameras[0]->closeStream();
+      // // cameras[1]->closeStream();
+
+      // auto deviceParam =
+      // cameras[0]->dualDevice->getDevice(0)->GetParameters();
+      // deviceParam->SetEnumValue("TriggerSelector", 3);
+      // deviceParam->ExecuteCommand("TriggerSoftware");
+      // deviceParam = cameras[1]->dualDevice->getDevice(0)->GetParameters();
+      // deviceParam->SetEnumValue("TriggerSelector", 3);
+      // deviceParam->ExecuteCommand("TriggerSoftware");
     };
   }
 

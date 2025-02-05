@@ -69,11 +69,11 @@ void JAIRGBNIRCamera::configureExposure(int dn, int sn, float exposure) {
   cameras[dn]->configureExposure(sn, exposure);
 }
 
-void JAIRGBNIRCamera::configureExposureAll(float exposure) {
+void JAIRGBNIRCamera::configureExposureAll(float exposure, float nir_exposure) {
   configureExposure(0, 0, exposure);
-  configureExposure(0, 1, exposure);
+  configureExposure(0, 1, nir_exposure);
   configureExposure(1, 0, exposure);
-  configureExposure(1, 1, exposure);
+  configureExposure(1, 1, nir_exposure);
   ts_exp_ = systemTimeNano();  //+ config->HDR_EXPOSURE_DELAY * 1000000;
 }
 
@@ -278,7 +278,8 @@ void JAIHDRNode::collectHdrImages(
 
   for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
     int t = config->HDR_EXPOSURE[t_idx];
-    camera.configureExposureAll(t);
+    int t2 = config->HDR_EXPOSURE_NIR[t_idx];
+    camera.configureExposureAll(t, t2);
     camera.openStreamAll();
     camera.flushStream();
 

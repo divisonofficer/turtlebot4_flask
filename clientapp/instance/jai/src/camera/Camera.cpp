@@ -173,6 +173,7 @@ void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {
     }
     if (config->TRIGGER_SYNC) {
       idx++;
+
       if (device_idx == 0 && streamIndex == 0 && triggerCallback &&
           idx % config->MULTIFRAME_COUNT == 0) {
         triggerCallback();
