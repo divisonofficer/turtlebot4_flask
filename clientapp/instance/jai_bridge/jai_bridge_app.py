@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import json
 from operator import is_
 from flask import Flask, Response, request, send_file
@@ -8,6 +9,7 @@ import os
 
 import numpy as np
 from sympy import root
+from tapo_switch import RosTapoNode
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 import sys
@@ -562,11 +564,12 @@ class JaiBridgeNode(Node):
 node: JaiBridgeNode
 calibration_node: JaiStereoCalibration
 depth_node: JaiStereoDepth
+tapo_node: RosTapoNode
 
 import threading
 
 
-def spin_node():
+def spin_node(nodes: list):
 
     def spin_nodes(nodes: List[Node]):
         executor = MultiThreadedExecutor()
@@ -576,7 +579,7 @@ def spin_node():
 
     thread = threading.Thread(
         target=spin_nodes,
-        args=([node, calibration_node, depth_node],),
+        args=(nodes,),
         daemon=True,
     )
     thread.start()
@@ -620,6 +623,7 @@ def configure_camera(device_name, channel_id):
 
 from json import JSONDecoder
 from google.protobuf.json_format import ParseDict
+import sys
 
 
 @app.route("/device")
@@ -858,6 +862,21 @@ def trigger_stereo_hdr():
     return depth_node.node_status()
 
 
+@app.route("/stereo/hdr/config", methods=["GET"])
+def get_stereo_hdr_config():
+    print(asdict(depth_node.hdr_agent.config))
+    print(depth_node.hdr_agent.config)
+    return asdict(depth_node.hdr_agent.config)
+
+
+@app.route("/stereo/hdr/config", methods=["POST"])
+def update_stereo_hdr_config():
+    config = request.json.get("config") if request.json else None
+    if config:
+        return depth_node.hdr_agent.update_config(config)
+    return asdict(depth_node.hdr_agent.config)
+
+
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None
@@ -991,12 +1010,19 @@ def enable_lucid_calibration():
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
+
+    capture_mode = sys.argv[1] if len(sys.argv) > 1 else "hdr"
+
     calibration_node = JaiStereoCalibration(socketio)
-    depth_node = JaiStereoDepth(socketio)
-    spin_thread = spin_node()
+    depth_node = JaiStereoDepth(socketio, capture_mode)
+    tapo_node = RosTapoNode()
+    nodes = [node, calibration_node, depth_node]
+    if capture_mode == "hdr":
+        nodes.append(tapo_node)
+    spin_thread = spin_node(nodes)
 
     node.initialize_camera_config()
 
 
 if __name__ == "__main__":
-    socketio.run(app, port="5015")  # type: ignore
+    socketio.run(app, port="5015", allow_unsafe_werkzeug=True)  # type: ignore

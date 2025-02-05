@@ -44,6 +44,7 @@ class HDRCaptureItem(StorageItem):
     lidar: OusterLidarData
     odom: List[Pose]
     timestamp: float
+    frame_id: Optional[str]
 
     def __init__(
         self,
@@ -51,11 +52,13 @@ class HDRCaptureItem(StorageItem):
         lidar: OusterLidarData,
         odom: List[Pose],
         timestamp: float,
+        frame_id=None,
     ):
         self.hdr = hdr
         self.lidar = lidar
         self.odom = odom
         self.timestamp = timestamp
+        self.frame_id = frame_id
         super().__init__(timestamp)
 
     def __del__(self):
@@ -205,6 +208,7 @@ class StereoStorage:
     def __init__(self):
         self.storage_queue: List[StorageItem] = []
         self.item_store_time = 0.0
+        self.flag_kill = threading.Event()
 
     def enqueue(self, item: StorageItem):
         self.storage_queue.append(item)
@@ -224,6 +228,8 @@ class StereoStorage:
                 # )
                 # thread.start()
             # time.sleep(0.01)
+            if self.flag_kill.is_set():
+                break
 
     def store_stereo_item(
         self, id: str, timestamp: str, channel: str, item: StereoCaptureItem
@@ -374,13 +380,16 @@ class StereoStorage:
             f.close()
 
     def store_hdr_item(self, id: str, item: HDRCaptureItem):
-        time_stamp = time.strftime("%H_%M_%S_", time.localtime(item.timestamp)) + str(
-            int((item.timestamp % 1) * 1000)
-        ).zfill(3)
+        if item.frame_id is None:
+            time_stamp = time.strftime(
+                "%H_%M_%S_", time.localtime(item.timestamp)
+            ) + str(int((item.timestamp % 1) * 1000)).zfill(3)
+        else:
+            time_stamp = item.frame_id.split("/")[-1]
         with self.get_scene_h5_file_for_store(id, self.FOLDER) as f:
             frame = f.create_group(f"frame/{time_stamp}")
             self.write_dict_to_h5(frame, item.h5dict())
-        os.makedirs(f"{self.FOLDER}/{id}/{time_stamp}")
+        os.makedirs(f"{self.FOLDER}/{id}/{time_stamp}", exist_ok=True)
         threads = [
             threading.Thread(
                 target=cv2.imwrite,

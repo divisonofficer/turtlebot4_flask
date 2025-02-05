@@ -36,8 +36,9 @@ from stereo_depth import StereoCameraParameters, StereoDepth
 from stereo_hdr_queue import StereoHDRQueue
 from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
 from rclpy.action import ActionClient
-from irobot_create_msgs.action import RotateAngle
+from irobot_create_msgs.action import RotateAngle, DriveDistance
 from stereo_hdr_agent import JaiHDRCaptureAgent
+from std_srvs.srv import Trigger
 
 
 class JaiStereoConfig:
@@ -52,9 +53,10 @@ class JaiStereoConfig:
 
 class JaiStereoDepth(Node):
 
-    def __init__(self, socket: SocketIO):
+    def __init__(self, socket: SocketIO, mode: Literal["stereo", "hdr"] = "hdr"):
         super().__init__("jai_stereo_depth")  # type: ignore
         self.config = JaiStereoConfig()
+        self.config.capture_mode = mode
 
         """
         Synchronized Queue initialization
@@ -91,10 +93,12 @@ class JaiStereoDepth(Node):
         try:
             self.oakd_bridge = DepthAICamera(5)
             self.oakd_bridge.set_frame_callback(self.callback_sensor_oakd)
-            threading.Thread(
+
+            self.oakd_thread = threading.Thread(
                 target=self.oakd_bridge.start,
                 args=(),
-            ).start()
+            )
+            self.oakd_thread.start()
         except Exception as e:
             print(e)
         """
@@ -102,10 +106,12 @@ class JaiStereoDepth(Node):
         """
         try:
             self.lidar_bridge = OusterBridge()
-            threading.Thread(
+
+            self.lidar_thread = threading.Thread(
                 target=self.lidar_bridge.collect_data,
                 args=(self.callback_sensor_lidar,),
-            ).start()
+            )
+            self.lidar_thread.start()
         except Exception as e:
             print(e)
         """
@@ -126,11 +132,18 @@ class JaiStereoDepth(Node):
         self.hdr_trigger_action_client = ActionClient(
             self, HDRTrigger, "jai_hdr_trigger"
         )
+        self.drive_action_client = ActionClient(
+            self, DriveDistance, "drive_distance_side"
+        )
+        self.tapo_on_service_client = self.create_client(Trigger, "/tapo/on")
+        self.tapo_off_service_client = self.create_client(Trigger, "/tapo/off")
 
         self.hdr_agent = JaiHDRCaptureAgent(
             self.stereo_hdr_queue,
             self.rotate_action_client,
             self.hdr_trigger_action_client,
+            self.drive_action_client,
+            (self.tapo_on_service_client, self.tapo_off_service_client),
             self.config.hdr_config,
             self.hdr_storage_callback,
             self.hdr_publish_log,
@@ -148,10 +161,13 @@ class JaiStereoDepth(Node):
         if self.config.capture_mode == "hdr":
             self.stereo_storage.FOLDER = self.hdr_agent.config.ROOT
 
-        threading.Thread(target=self.stereo_storage.queue_loop).start()
+        self.queue_thread = threading.Thread(target=self.stereo_storage.queue_loop)
+        self.queue_thread.start()
         self.signal_merged = threading.Event()
 
         self.timer = self.create_timer(5, self.node_status)
+
+        self.stream_disparity_viz = VideoStream()
 
     def hdr_publish_log(self, log):
         self.socket.emit("hdr_log", log)
@@ -234,13 +250,19 @@ class JaiStereoDepth(Node):
             return
         self.stereo_lidar_queue.callback_right(StereoItemMerged(lidar, depth, header))
 
+    def compute_dimension(self, buffer_size: int):
+        if buffer_size == 1440 * 1080:
+            return 1440, 1080
+        else:
+            return 720, 540
+
     def unpack_stereo_msg(self, msg: CompressedImage) -> Tuple[
         StereoItemMerged[Tuple[np.ndarray, float], Tuple[np.ndarray, float]],
         StereoItemMerged[Tuple[np.ndarray, float], Tuple[np.ndarray, float]],
     ]:
 
         buffer_np = np.frombuffer(msg.data, np.uint8)
-        width, height = self.stereo_depth_nir.compute_dimension(buffer_np.shape[0] / 8)
+        width, height = self.compute_dimension(buffer_np.shape[0] / 8)
         buffer_np = buffer_np.reshape(8, height, width)
         exposure_times = [
             float(x) for x in msg.header.frame_id.split("stereo_")[-1].split("_")
@@ -272,12 +294,8 @@ class JaiStereoDepth(Node):
                 raise Exception("stereoMergedCallback is already running")
             self.signal_merged.set()
             timestamp = rgb.header.stamp.sec + rgb.header.stamp.nanosec / 1e9
-            if disparity_matching:
-                result_viz = self.stereo_callback(rgb.left[0], rgb.right[0], "viz")
-                result_nir = self.stereo_callback(nir.left[0], nir.right[0], "nir")
-            else:
-                result_viz = rgb.left[0], rgb.right[0]
-                result_nir = nir.left[0], nir.right[0]
+            result_viz = rgb.left[0], rgb.right[0]
+            result_nir = nir.left[0], nir.right[0]
             stereo_multi_item = self.wrap_stereo_multi_item(
                 timestamp, result_viz, result_nir, lidar, rgbd=rgbd
             )
@@ -343,8 +361,6 @@ class JaiStereoDepth(Node):
 
     def load_calibration(self, id: str):
         path = f"tmp/calibration/{id}/calibration.npz"
-        self.stereo_depth_viz.parameter = StereoCameraParameters(path)
-        self.stereo_depth_nir.parameter = StereoCameraParameters(path)
 
     def trigger_hdr_action(self):
         if self.config.capture_mode != "hdr":
@@ -383,9 +399,7 @@ class JaiStereoDepth(Node):
             result_viz,
             result_nir,
             None,
-            self.stereo_depth_nir.parameter.get_scaled_calibration_dict(
-                result_viz.left.shape[0]
-            ),
+            {},
             lidar,
             *rgbd if rgbd is not None else (None, None),
         )
@@ -440,8 +454,6 @@ class JaiStereoDepth(Node):
 
         self.stream_disparity_viz = VideoStream()
         self.stream_disparity_nir = VideoStream()
-        self.stereo_depth_viz.stream_disparity_viz = self.stream_disparity_viz
-        self.stereo_depth_nir.stream_disparity_viz = self.stream_disparity_nir
 
     def decoding_msg(self, msg: CompressedImage, channel):
         msg_np = np.frombuffer(msg.data, np.uint8)
@@ -493,17 +505,21 @@ class JaiStereoDepth(Node):
                 os.path.join(frame_folder, "nir/disparity_color.png"), disparity_color
             )
 
-    def stereo_callback(
-        self,
-        msg_left: Union[CompressedImage, np.ndarray],
-        msg_right: Union[CompressedImage, np.ndarray],
-        channel,
-    ):
-        if isinstance(msg_left, CompressedImage):
-            msg_left = self.decoding_msg(msg_left, channel)
-        if isinstance(msg_right, CompressedImage):
-            msg_right = self.decoding_msg(msg_right, channel)
-        if channel == "nir":
-            return self.stereo_depth_nir.raft_stereo(msg_left, msg_right, channel)
-        else:
-            return self.stereo_depth_viz.raft_stereo(msg_left, msg_right, channel)
+    def __del__(self):
+        self.stop_background_threads()
+
+    def stop_background_threads(self):
+        if hasattr(self, "oakd_thread") and self.oakd_thread.is_alive():
+            self.oakd_bridge.stop()
+            self.oakd_thread.join()
+
+        if hasattr(self, "lidar_thread") and self.lidar_thread.is_alive():
+            self.lidar_bridge.stop()
+            self.lidar_thread.join()
+
+        if hasattr(self, "queue_thread") and self.queue_thread.is_alive():
+            self.stereo_storage.flag_kill.set()
+            self.queue_thread.join()
+
+        if hasattr(self, "npzh5_thread") and self.npzh5_thread.is_alive():
+            self.npzh5_thread.join()
