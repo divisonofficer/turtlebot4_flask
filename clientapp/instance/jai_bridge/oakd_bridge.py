@@ -1,3 +1,4 @@
+import threading
 import cv2
 import numpy as np
 import depthai as dai
@@ -47,6 +48,8 @@ class DepthAICamera:
 
         # Set up the pipeline
         self._setup_pipeline()
+
+        self.flag_kill = threading.Event()
 
     def _setup_pipeline(self) -> None:
         # Define sources and outputs
@@ -146,7 +149,7 @@ class DepthAICamera:
                 if (
                     self.frame_callback is not None
                     and frameDisp is not None
-                    #and frameRgb is not None
+                    # and frameRgb is not None
                 ):
                     data = DepthAIData(
                         frameRgb=frameRgb,
@@ -159,3 +162,9 @@ class DepthAICamera:
 
                 if cv2.waitKey(1) == ord("q"):
                     break
+                if self.flag_kill.is_set():
+                    break
+
+    def stop(self) -> None:
+        self.flag_kill.set()
+        self.device.close()

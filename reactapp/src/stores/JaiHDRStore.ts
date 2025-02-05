@@ -27,6 +27,9 @@ export namespace JaiHDRLog {
   export interface Config {
     rotate_angle: number;
     capture_cnt: number;
+    lidar: boolean;
+    side_move_cnt: number;
+    side_move_distance: number;
   }
 }
 
@@ -35,6 +38,9 @@ class JaiHDRStore {
   hdr_config: JaiHDRLog.Config = {
     rotate_angle: 0,
     capture_cnt: 0,
+    lidar: true,
+    side_move_cnt: 0,
+    side_move_distance: 0,
   };
   constructor() {
     makeAutoObservable(this);

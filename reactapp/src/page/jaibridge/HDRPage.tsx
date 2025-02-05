@@ -50,6 +50,10 @@ const ErrorCard = ({ error }: { error: JaiHDRLog.Error }) => {
     );
   }
 
+  if (error.type === "error_crash") {
+    return <InfoCard title={"Crash"} value={error.data.cause} color={"red"} />;
+  }
+
   return (
     <InfoCard
       title={error.type}
@@ -71,7 +75,12 @@ const JaiOptionSwitch = ({
   return (
     <HStack>
       <H3> {option_name}</H3>
-      <Switch isChecked={checked} onChange={(e) => {}} />
+      <Switch
+        isChecked={checked}
+        onChange={(e) => {
+          jaiHDRStore.fetchUpdateConfig(option_id, e.target.checked);
+        }}
+      />
     </HStack>
   );
 };
@@ -105,10 +114,22 @@ const HDRProgressView = observer(() => {
             value: jaiHDRStore.hdr_config.rotate_angle,
           },
           {
-            range: [5, 20],
+            range: [1, 20],
             step: 1,
             name: "capture_cnt",
             value: jaiHDRStore.hdr_config.capture_cnt,
+          },
+          {
+            range: [1, 10],
+            step: 1,
+            name: "side_move_cnt",
+            value: jaiHDRStore.hdr_config.side_move_cnt,
+          },
+          {
+            range: [-0.2, 0.2],
+            step: 0.01,
+            name: "side_move_distance",
+            value: jaiHDRStore.hdr_config.side_move_distance,
           },
         ].map((param) => (
           <>
@@ -138,6 +159,11 @@ const HDRProgressView = observer(() => {
             </HStack>
           </>
         ))}
+        <JaiOptionSwitch
+          option_id="lidar"
+          option_name="Enable LiDAR acquire"
+          checked={jaiHDRStore.hdr_config.lidar}
+        />
       </VStack>
 
       {jaiHDRStore.hdr_log?.progress_root.status !== "running" && (
@@ -155,7 +181,12 @@ const HDRProgressView = observer(() => {
         value={pr.idx}
         progressBar={
           <CircularProgress
-            value={(pr.idx / jaiHDRStore.hdr_config.capture_cnt) * 100}
+            value={
+              (pr.idx /
+                (jaiHDRStore.hdr_config.capture_cnt *
+                  jaiHDRStore.hdr_config.side_move_cnt)) *
+              100
+            }
           />
         }
       />
