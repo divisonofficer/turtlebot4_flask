@@ -331,7 +331,7 @@ void HDRStorage::storeHDRSequence(std::string space_id,
   //     cv::imwrite(ss.str(), images[i]);
   //   }
   // // Combine images into a single image
-  int rows = 4;
+  int rows = config->HDR_EXPOSURE.size();
   int cols = 4;
   int img_height = 1080;
   int img_width = 1440;

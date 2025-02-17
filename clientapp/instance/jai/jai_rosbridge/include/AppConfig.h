@@ -51,10 +51,11 @@ class AppConfig {
   bool STREAM_BUFFER = true;  // buffer list 생성 여부, false면 직접 buffer
                               // 만들어서 queue해줘야됨
   std::vector<double> HDR_EXPOSURE;
+  std::vector<double> HDR_EXPOSURE_NIR;
   void load_from_json(const std::string& file_path);
 
- private:                                // 생성자를 private으로
-  AppConfig(const AppConfig&) = delete;  // 복사 금지
+ private:                                           // 생성자를 private으로
+  AppConfig(const AppConfig&) = delete;             // 복사 금지
   AppConfig& operator=(const AppConfig&) = delete;  // 할당 금지
 };
 

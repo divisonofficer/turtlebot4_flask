@@ -35,7 +35,7 @@ class JAIRGBNIRCamera {
 
   void configureExposure(int dn, int sn, float exposure);
 
-  void configureExposureAll(float exposure);
+  void configureExposureAll(float exposure, float nir_exposure);
 
   void closeStreamAll();
 
