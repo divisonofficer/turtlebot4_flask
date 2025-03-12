@@ -1,5 +1,6 @@
+import os
 import time
-from typing import Callable, Iterator, List, Union, cast
+from typing import Callable, Iterator, List, Tuple, Union, cast
 from ouster.sdk import client
 from ouster.sdk.client import (
     SensorInfo,
@@ -19,16 +20,18 @@ from std_msgs.msg import Header
 
 import numpy as np
 
+import threading
+
 HOSTNAME = "os-122107000458.local"
-LIDAR_MODE = LidarMode.MODE_1024x20
+LIDAR_MODE = LidarMode.MODE_1024x10
 
 
 class OusterImuData:
     def __init__(
         self,
-        timestamp_ns: int,
-        la: np.ndarray,
+        timestamp_ns: np.ndarray,
         av: np.ndarray,
+        la: np.ndarray,
         av_cov: np.ndarray,
         la_cov: np.ndarray,
     ):
@@ -90,15 +93,20 @@ class OusterLidarData:
 
     """
 
+    def __dict__(self):
+        return {
+            "points": self.points,
+        }
+
     def meta_dict(self):
         return {
             "lidar_timestamp_ns": self.timestamp_ns,
-            "beam_altitude_angles": self.metadata.beam_altitude_angles,
-            "beam_azimuth_angles": self.metadata.beam_azimuth_angles,
-            "imu_to_sensor_transform": self.metadata.imu_to_sensor_transform,
-            "lidar_to_sensor_transform": self.metadata.lidar_to_sensor_transform,
-            "lidar_origin_to_beam_origin_mm": self.metadata.lidar_origin_to_beam_origin_mm,
-            "beam_to_lidar_transform": self.metadata.beam_to_lidar_transform,
+            # "beam_altitude_angles": self.metadata.beam_altitude_angles,
+            # "beam_azimuth_angles": self.metadata.beam_azimuth_angles,
+            # "imu_to_sensor_transform": self.metadata.imu_to_sensor_transform,
+            # "lidar_to_sensor_transform": self.metadata.lidar_to_sensor_transform,
+            # "lidar_origin_to_beam_origin_mm": self.metadata.lidar_origin_to_beam_origin_mm,
+            # "beam_to_lidar_transform": self.metadata.beam_to_lidar_transform,
         }
 
     def __del__(self):
@@ -175,24 +183,77 @@ class ScanWithImu(client.Scans):
                 yield packet  # type: ignore
 
 
+IMU_STORAGE = "tmp/ouster_imu"
+
+
 class OusterBridge:
-    def __init__(self):
+    def __init__(self, multi_signal_enhance=None):
         self.base_time = 0
         config = SensorConfig()
         config.udp_port_lidar = 7502
         config.udp_port_imu = 7503
         config.operating_mode = OperatingMode.OPERATING_NORMAL
         config.lidar_mode = LIDAR_MODE
+
+        if multi_signal_enhance is not None:
+            config.signal_multiplier = 3.0
+            config.azimuth_window = multi_signal_enhance
+
         client.set_config(HOSTNAME, config, persist=True, udp_dest_auto=True)
 
         self.imu_sensor = client.Sensor(HOSTNAME, 7502, 7503, buf_size=640)
 
         # self.sensor = client.Scans.stream(HOSTNAME, 7502, complete=False)
         self.sensor = ScanWithImu(self.imu_sensor, complete=False, _max_latency=2)
+
         self.packet_format = PacketFormat(self.sensor.metadata)
         self.xyzlut = client.XYZLut(self.sensor.metadata)
 
         self.imu_packet_queue: list[ImuPacket] = []
+        self.imu_value_queue: list[Tuple[int, np.ndarray, np.ndarray]] = []
+        self.imu_value_queue_storage: list[Tuple[int, np.ndarray, np.ndarray]] = []
+
+        self.flag_kill = threading.Event()
+
+    def store_imu_value_queue_storage(self):
+        """
+        imu_value: Tuple[timestamp, la, av]
+        store as numpy array on npz file
+        """
+        timestamp_np = np.array([x[0] for x in self.imu_value_queue_storage])
+        la_np = np.array([x[1] for x in self.imu_value_queue_storage])
+        av_np = np.array([x[2] for x in self.imu_value_queue_storage])
+        filename = str(self.imu_value_queue[0][0]) + ".npz"
+        np.savez(
+            os.path.join(IMU_STORAGE, filename),
+            timestamp=timestamp_np,
+            la=la_np,
+            av=av_np,
+        )
+        self.imu_value_queue_storage = []
+
+    def stop(self):
+        self.flag_kill.set()
+        self.store_imu_value_queue_storage()
+
+    def get_imu_value_queue_until_time(self, time_ns: int):
+        """
+        time, av, la
+        """
+        timestamp = []
+        av = []
+        la = []
+        while self.imu_value_queue and self.imu_value_queue[0][0] <= time_ns:
+            imu_value = self.imu_value_queue.pop(0)
+            timestamp.append(imu_value[0])
+            av.append(imu_value[1])
+            la.append(imu_value[2])
+
+        av_cov = self.calculate_covariance(av)
+        la_cov = self.calculate_covariance(la)
+        return OusterImuData(
+            np.array(timestamp), np.array(av), np.array(la), av_cov, la_cov
+        )
 
     def calculate_covariance(self, data: List) -> np.ndarray:
         """
@@ -219,12 +280,14 @@ class OusterBridge:
         # 여기서는 이미 add_imu_packet을 통해 데이터 버퍼가 업데이트 되었다고 가정
 
         # 최근 패킷의 타임스탬프를 사용 (또는 필요한 다른 타임스탬프 기준으로 설정)
-        latest_packet = self.imu_packet_queue[-1]
-        timestamp = self.packet_format.imu_sys_ts(latest_packet.buf) + self.base_time
 
+        timestamp_data = [
+            self.packet_format.imu_sys_ts(packet.buf) + self.base_time
+            for packet in self.imu_packet_queue
+        ]
         # 가속도 평균값 계산
 
-        accel_data = [
+        av_data = [
             [
                 self.packet_format.imu_av_x(packet.buf),
                 self.packet_format.imu_av_y(packet.buf),
@@ -233,7 +296,7 @@ class OusterBridge:
             for packet in self.imu_packet_queue
         ]
 
-        gyro_data = [
+        la_data = [
             [
                 self.packet_format.imu_la_x(packet.buf),
                 self.packet_format.imu_la_y(packet.buf),
@@ -242,23 +305,26 @@ class OusterBridge:
             for packet in self.imu_packet_queue
         ]
 
-        accel_array = np.array(accel_data)
-        accel_mean = np.mean(accel_array, axis=0)
+        av_array = np.array(av_data)
+        av_mean = np.mean(av_array, axis=0)
 
         # 자이로 평균값 계산
-        gyro_array = np.array(gyro_data)
-        gyro_mean = np.mean(gyro_array, axis=0)
+        la_data = np.array(la_data)
+        la_mean = np.mean(la_data, axis=0)
 
         # 공분산 계산
-        accel_covariance = self.calculate_covariance(accel_data)
-        gyro_covariance = self.calculate_covariance(gyro_data)
+        av_covariance = self.calculate_covariance(av_data)
+        la_covariance = self.calculate_covariance(la_data)
+
+        for i in range(len(self.imu_packet_queue)):
+            self.imu_value_queue.append((timestamp_data[i], av_array[i], la_data[i]))
 
         imu = OusterImuData(
-            timestamp,
-            accel_mean,
-            gyro_mean,
-            accel_covariance,
-            gyro_covariance,
+            np.asarray(timestamp_data),
+            av_mean,
+            la_mean,
+            av_covariance,
+            la_covariance,
         )
         while self.imu_packet_queue:
             self.imu_packet_queue.pop(0)
@@ -283,17 +349,15 @@ class OusterBridge:
                                     time.time_ns()
                                     - self.packet_format.imu_sys_ts(packet.buf)
                                 )
-                            if len(self.imu_packet_queue) > 100:
+                            if len(self.imu_packet_queue) > 3000:
                                 self.imu_packet_queue.pop(0)
                             self.imu_packet_queue.append(packet)
 
                         if isinstance(packet, LidarScan):
                             if self.base_time == 0:
                                 self.base_time = time.time_ns() - packet.timestamp[-1]
-
                             if not packet.complete():
-                                print("Incomplete packet!")
-                                continue
+                                timestamp = time.time_ns() - self.base_time
 
                             reflectivity = client.destagger(
                                 stream.metadata,
@@ -303,7 +367,9 @@ class OusterBridge:
                                 stream.metadata, packet.field(client.ChanField.RANGE)
                             )
                             xyz = self.xyzlut(packet)
-                            timestamp = packet.timestamp[-1]
+
+                            # timestamp = packet.timestamp[-1]
+                            # print(xyz.shape, timestamp)
                             pose = packet.pose
                             callback(
                                 OusterLidarData(
@@ -319,6 +385,9 @@ class OusterBridge:
                 except client.ClientTimeout as e:
                     print("Lidar Timeout!")
                     callback(e)
+                if self.flag_kill.is_set():
+                    print("LiDAR kill flag is set")
+                    break
 
     def __del__(self):
         if hasattr(self, "sensor"):

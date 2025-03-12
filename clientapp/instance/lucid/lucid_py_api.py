@@ -26,6 +26,7 @@ class LucidImage:
         timestamp_sec = timestamp_sec % 2147483647
         self.header.stamp.sec = timestamp_sec
         self.header.stamp.nanosec = timestamp_ns % 1_000_000_000
+        self.timestamp_ns = timestamp_ns
 
     def __repr__(self):
         return f"LucidImage(buffer_np_list={self.buffer_np})"
@@ -92,9 +93,9 @@ class LucidPyAPI:
         trigger_ex_left = self.devices[0].nodemap.get_node("TriggerSoftware")
         trigger_ex_right = self.devices[1].nodemap.get_node("TriggerSoftware")
 
-        trigger_ac_left = self.devices[0].nodemap.get_node("AcquisitionStart")
-        trigger_ac_right = self.devices[1].nodemap.get_node("AcquisitionStart")
-        trigger_time = time.time()
+        # trigger_ac_left = self.devices[0].nodemap.get_node("AcquisitionStart")
+        # trigger_ac_right = self.devices[1].nodemap.get_node("AcquisitionStart")
+        # trigger_time = time.time()
         count = 0
         while True:
             try:
@@ -114,7 +115,7 @@ class LucidPyAPI:
                 count += 1
             # print(f"Armed {trigger_left.value} {trigger_right.value}")
             # print(f"OnAcquisitoin {self.devices[0].nodemap['AcquisitionControl']}")
-            # time.sleep(0.05)
+            time.sleep(0.03)
 
     def open_stream(self):
         if self.trigger_thread is not None:
@@ -213,37 +214,47 @@ class LucidPyAPI:
         device.stop_stream()
         resetTimestamp: NodeCommand = nodemap.get_node("TimestampReset")
         resetTimestamp.execute()
-        print(
-            nodemap.get_node("AcquisitionStartMode"),
-            nodemap.get_node("TriggerLatency"),
-            nodemap.get_node("TriggerActivation"),
-            nodemap.get_node("TriggerSource"),
-            nodemap.get_node("TriggerMode"),
-            nodemap.get_node("TriggerSelector"),
-            nodemap.get_node("AcquisitionFrameRate"),
-            nodemap.get_node("Width"),
-            nodemap.get_node("Height"),
-            nodemap.get_node("TriggerOverlap"),
-            nodemap["TriggerLatency"],
-            nodemap["PayloadSize"],
-            nodemap["ExposureTime"],
-            nodemap["ExposureAuto"],
-        )
+
+        # node_report_keys = [
+        #     "AcquisitionStartMode",
+        #     # "TriggerLatency",
+        #     "TriggerActivation",
+        #     "TriggerSource",
+        #     "TriggerMode",
+        #     "TriggerSelector",
+        #     "AcquisitionFrameRate",
+        #     "Width",
+        #     "Height",
+        #     "TriggerOverlap",
+        #     "PayloadSize",
+        #     "ExposureTime",
+        #     "ExposureAuto",
+        #     "ColorTransformationEnable",
+        #     "BlackLevel",
+        #     "BalanceWhiteEnable",
+        #     "BalanceWhiteAuto",
+        #     "HDROutput",
+        #     "HDRTuningEnable",
+        #     "LUTEnable",
+        #     "LUTToneMapping",
+        # ]
+
+        # for node_key in node_report_keys:
+        #     print(f"{TAB1}{node_key}: ")
+        #     print({nodemap.get_node(node_key).value})
+
+        # nodemap.get_node("Width").value = 2880
+        # nodemap.get_node("Height").value = 1856
 
         nodemap.get_node("AcquisitionBurstFrameCount").value = 1
         nodemap.get_node("OffsetX").value = int(0)
         nodemap.get_node("OffsetY").value = int(0)
         nodemap.get_node("AcquisitionFrameRateEnable").value = True
-        nodemap.get_node("Width").value = (
-            RESOLUTION[0] // nodemap.get_node("BinningHorizontal").value
-        )
-        nodemap.get_node("Height").value = (
-            RESOLUTION[1] // nodemap.get_node("BinningVertical").value
-        )
+        nodemap.get_node("Width").value = RESOLUTION[0] // 2
+        nodemap.get_node("Height").value = RESOLUTION[1] // 2
         nodemap.get_node("BinningSelector").value = "Sensor"
         nodemap.get_node("BinningHorizontalMode").value = "Average"
         nodemap.get_node("BinningVerticalMode").value = "Average"
-
         nodemap.get_node("BinningHorizontal").value = int(2)
         nodemap.get_node("BinningVertical").value = int(2)
 
@@ -257,6 +268,17 @@ class LucidPyAPI:
         nodemap["TriggerOverlap"].value = "PreviousFrame"
         nodemap["TriggerMode"].value = "On"
         nodemap["TriggerSource"].value = "Software"
+
+        nodemap["ExposureTime"].value = 30000.0
+        nodemap["ExposureAuto"].value = "Off"
+
+        nodemap["LUTEnable"].value = False
+        nodemap["HDRTuningEnable"].value = False
+        nodemap["ColorTransformationEnable"].value = False
+
+        nodemap["GainAuto"].value = "Off"
+        nodemap["Gain"].value = 1.0
+        nodemap["BalanceWhiteEnable"].value = False
 
         tl_stream_nodemap = device.tl_stream_nodemap
         tl_stream_nodemap["StreamAutoNegotiatePacketSize"].value = True

@@ -1,7 +1,9 @@
-from typing import List, Literal
+from typing import Dict, List, Literal
 import cv2
-from cv2.typing import MatLike
+
 import numpy as np
+from synchronized_queue import SQueue
+from sensors.sensor import Sensor
 from ouster_lidar.ouster_bridge import OusterLidarData
 from lucid_py_api import LucidImage
 
@@ -69,7 +71,8 @@ class StereoStorage:
             if len(self.storage_queue) > 0:
                 print("Storing item, queue length: ", len(self.storage_queue))
                 item = self.storage_queue.pop(0)
-                self.store_item(item.id, item)
+                self.store_queue_item(*item)
+                # self.store_item(item.id, item)
                 # thread = threading.Thread(
                 #     target=self.store_item, args=(item.id, item), daemon=False
                 # )
@@ -145,6 +148,32 @@ class StereoStorage:
         cv2.imwrite(f"{folder}/lidar_range.png", lidar_range_uint8)
         Image.fromarray(item.reflectivity).save(f"{folder}/lidar_reflectivity.tiff")
         Image.fromarray(item.ranges).save(f"{folder}/lidar_range.tiff")
+
+    key_dict = {
+        "lucid_stereo_left": "left",
+        "lucid_stereo_right": "right",
+        "ouster_points": "points",
+    }
+
+    def store_queue_item(
+        self, storage_id: str, timestamp: float, item: Dict[str, SQueue.Item]
+    ):
+        time_stamp = time.strftime("%H_%M_%S_", time.localtime(timestamp)) + str(
+            int((timestamp % 1) * 1000)
+        ).zfill(3)
+        os.makedirs(f"{self.FOLDER}/{storage_id}/{time_stamp}", exist_ok=True)
+        for key, data in item.items():
+            frame: Sensor.Frame = data.data
+            for src, data in frame.data.items():
+                id = f"{key}_{src}"
+                if id in self.key_dict:
+                    id = self.key_dict[id]
+                if frame.file_format[src] == "npy":
+                    np.save(f"{self.FOLDER}/{storage_id}/{time_stamp}/{id}.npy", data)
+                if frame.file_format[src] == "png":
+                    cv2.imwrite(
+                        f"{self.FOLDER}/{storage_id}/{time_stamp}/{id}.png", data
+                    )
 
     def store_item(self, id: str, item: StereoMultiItem):
 
