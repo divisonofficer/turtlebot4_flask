@@ -41,7 +41,7 @@ class HDRCaptureItem(StorageItem):
 
     hdr: Dict[str, Dict[str, List[Tuple[np.ndarray, float]]]]
 
-    lidar: OusterLidarData
+    lidar: Optional[OusterLidarData]
     odom: List[Pose]
     timestamp: float
     frame_id: Optional[str]
@@ -49,7 +49,7 @@ class HDRCaptureItem(StorageItem):
     def __init__(
         self,
         hdr: Dict[str, Dict[str, List[Tuple[np.ndarray, float]]]],
-        lidar: OusterLidarData,
+        lidar: Optional[OusterLidarData],
         odom: List[Pose],
         timestamp: float,
         frame_id=None,
@@ -69,29 +69,35 @@ class HDRCaptureItem(StorageItem):
     def h5dict(self):
 
         return {
-            "lidar": {
-                "attrs": self.lidar.meta_dict(),
-                "imu": self.lidar.imu.dict(),
-                "points": self.lidar.points,
-            },
+            "lidar": (
+                {
+                    "attrs": self.lidar.meta_dict(),
+                    "imu": self.lidar.imu.dict(),
+                    "points": self.lidar.points,
+                }
+                if self.lidar is not None
+                else None
+            ),
             "odom": {
-                "position": np.array(
-                    [
-                        [pose.position.x, pose.position.y, pose.position.z]
-                        for pose in self.odom
-                    ]
-                ),
-                "orientation": np.array(
-                    [
+                "attrs": {
+                    "position": np.asarray(
                         [
-                            pose.orientation.x,
-                            pose.orientation.y,
-                            pose.orientation.z,
-                            pose.orientation.w,
+                            [pose.position.x, pose.position.y, pose.position.z]
+                            for pose in self.odom
                         ]
-                        for pose in self.odom
-                    ]
-                ),
+                    ),
+                    "orientation": np.asarray(
+                        [
+                            [
+                                pose.orientation.x,
+                                pose.orientation.y,
+                                pose.orientation.z,
+                                pose.orientation.w,
+                            ]
+                            for pose in self.odom
+                        ]
+                    ),
+                }
             },
             "timestamp": self.timestamp,
         }

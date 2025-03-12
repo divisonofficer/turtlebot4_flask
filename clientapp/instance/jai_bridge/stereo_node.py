@@ -22,6 +22,7 @@ from modules.RAFT_Stereo.core.raft_stereo import RAFTStereo
 import numpy as np
 import cv2
 from sensor_msgs.msg import CompressedImage
+from nav_msgs.msg import Odometry
 import torch
 import threading
 from videostream import VideoStream
@@ -128,21 +129,30 @@ class JaiStereoDepth(Node):
         except Exception as e:
             print(e)
 
+        self.ranger_odom_subscription = self.create_subscription(
+            Odometry, "/odom", self.odom_callback, 10
+        )
         self.rotate_action_client = ActionClient(self, RotateAngle, "rotate_angle")
         self.hdr_trigger_action_client = ActionClient(
             self, HDRTrigger, "jai_hdr_trigger"
         )
-        self.drive_action_client = ActionClient(
+        self.drive_side_action_client = ActionClient(
             self, DriveDistance, "drive_distance_side"
+        )
+        self.drive_forward_action_client = ActionClient(
+            self, DriveDistance, "drive_distance_forward"
         )
         self.tapo_on_service_client = self.create_client(Trigger, "/tapo/on")
         self.tapo_off_service_client = self.create_client(Trigger, "/tapo/off")
 
         self.hdr_agent = JaiHDRCaptureAgent(
             self.stereo_hdr_queue,
-            self.rotate_action_client,
-            self.hdr_trigger_action_client,
-            self.drive_action_client,
+            [
+                self.rotate_action_client,
+                self.hdr_trigger_action_client,
+                self.drive_side_action_client,
+                self.drive_forward_action_client,
+            ],
             (self.tapo_on_service_client, self.tapo_off_service_client),
             self.config.hdr_config,
             self.hdr_storage_callback,
@@ -168,6 +178,9 @@ class JaiStereoDepth(Node):
         self.timer = self.create_timer(5, self.node_status)
 
         self.stream_disparity_viz = VideoStream()
+
+    def odom_callback(self, msg: Odometry):
+        self.hdr_agent.pose_list = [msg.pose.pose]
 
     def hdr_publish_log(self, log):
         self.socket.emit("hdr_log", log)

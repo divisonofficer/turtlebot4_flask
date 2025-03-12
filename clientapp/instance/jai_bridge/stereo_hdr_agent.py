@@ -14,6 +14,8 @@ from stereo_hdr_queue import StereoHDRQueue
 from geometry_msgs.msg import Pose
 from rclpy.action import ActionClient
 from irobot_create_msgs.action import RotateAngle, DriveDistance
+from irobot_create_msgs.action._rotate_angle import RotateAngle_GetResult_Response
+from irobot_create_msgs.action._drive_distance import DriveDistance_GetResult_Response
 import rclpy
 from rclpy.client import Client
 from jai_rosbridge.action import HDRTrigger
@@ -52,17 +54,40 @@ class JaiHDRCaptureAgent:
         capture_cnt: int = 6
         side_move_cnt: int = 1
         side_move_distance: float = 0.1
-        timeout: int = 10
-        timeout_hdr: int = 10
+        drive_forward: bool = False
+        timeout: int = 20
+        timeout_hdr: int = 20
         ROOT: str = "/home/cglab/project/turtlebot4_flask/clientapp/tmp/stereo/hdr/"
         lidar: bool = True
+
+    @dataclass
+    class GraphItem:
+        pass
+
+    @dataclass
+    class CaptureGraphItem(GraphItem):
+        space_id: str
+        frame_idx: int
+
+    @dataclass
+    class RotateGraphItem(GraphItem):
+        rotate_angle: float
+
+    @dataclass
+    class RotateBackGraphItem(GraphItem):
+        pass
+
+    @dataclass
+    class DriveGraphItem(GraphItem):
+        distance: float
+        direction: Literal["forward", "left"]
 
     @dataclass
     class Log:
         @dataclass
         class ProgressRoot:
             idx: int
-            status: Literal["ready", "running", "done", "error"]
+            status: Literal["ready", "running", "done", "error", "pause", "abort"]
             task: Literal["rotate", "hdr", "ambient"] = "rotate"
 
         progress_root: ProgressRoot = field(
@@ -81,9 +106,7 @@ class JaiHDRCaptureAgent:
     def __init__(
         self,
         stereo_hdr_queue: StereoHDRQueue,
-        action_client_rotate: ActionClient,
-        action_client_hdr_trigger: ActionClient,
-        action_client_drive: ActionClient,
+        action_clients: List[ActionClient],
         service_client_tapo_trigger: tuple[Client, Client],
         config: Config,
         topic_callback: Callable,
@@ -95,13 +118,20 @@ class JaiHDRCaptureAgent:
         self.topic_callback = topic_callback
         self.log_callback = log_callback
         self.pose_list: List[Pose] = []
-        self.action_client = action_client_rotate
-        self.action_client_hdr_trigger = action_client_hdr_trigger
+        (
+            self.action_client_rotate,
+            self.action_client_hdr_trigger,
+            self.action_client_drive_side,
+            self.action_client_drive_forward,
+        ) = action_clients
         self.service_client_tapo_on, self.service_client_tapo_off = (
             service_client_tapo_trigger
         )
-        self.action_client_drive = action_client_drive
+
         self.log = self.Log()
+        self.sig_stop = threading.Event()
+        self.sig_pause = threading.Event()
+        self.sig_stop.clear()
 
     def capture_thread(self, space_id: str):
         if self.hdr_thread is not None and self.hdr_thread.is_alive():
@@ -111,6 +141,50 @@ class JaiHDRCaptureAgent:
         )
         self.hdr_thread.start()
 
+    def run_graph_item(self, item: GraphItem):
+        if isinstance(item, self.CaptureGraphItem):
+            self.log.progress_root.idx = item.frame_idx
+            frame_id = time.strftime("%H_%M_%S_", time.localtime()) + str(
+                int((time.time() % 1) * 1000)
+            ).zfill(3)
+            self.get_hdr_frame(f"{item.space_id}/{frame_id}", item.frame_idx)
+        elif isinstance(item, self.RotateGraphItem):
+            try:
+                self.turn_right(item.rotate_angle)
+            except PoseNoDataError as e:
+                self.log.hdr_error_msgs.append(
+                    {
+                        "type": "error_no_pose",
+                        "data": {"cause": type(e).__name__, "msg": str(e)},
+                    }
+                )
+                self.publish_log()
+            finally:
+                self.angle_current += item.rotate_angle
+        elif isinstance(item, self.DriveGraphItem):
+            if item.direction == "forward":
+                self.drive_side(
+                    item.distance,
+                    self.action_client_drive_forward,
+                )
+            else:
+                self.drive_side(item.distance, self.action_client_drive_side)
+        elif isinstance(item, self.RotateBackGraphItem):
+            self.turn_right(-self.angle_current)
+            self.angle_current = 0
+
+    def pause(self):
+        self.sig_pause.set()
+        self.log.progress_root.status = "pause"
+
+    def resume(self):
+        self.sig_pause.clear()
+        self.log.progress_root.status = "running"
+
+    def abort(self):
+        self.sig_stop.set()
+        self.log.progress_root.status = "abort"
+
     def capture_hdr(self, space_id: str):
         """
         Clear HDR Queue
@@ -118,48 +192,92 @@ class JaiHDRCaptureAgent:
         self.trigger_tapo(True)
         self.stereo_hdr_queue.clear()
         self.log.progress_root.status = "running"
-        angle_current = 0
+        self.publish_log()
+        self.angle_current = 0.0
 
+        graph_items: List[JaiHDRCaptureAgent.GraphItem] = []
         for side_idx in range(self.config.side_move_cnt):
-            if self.config.capture_cnt > 1:
-                try:
-                    self.turn_right(-self.config.rotate_angle / 2)
-                except PoseNoDataError as e:
-                    self.log.hdr_error_msgs.append(
-                        {
-                            "type": "error_no_pose",
-                            "data": {"cause": type(e).__name__, "msg": str(e)},
-                        }
-                    )
-                    self.publish_log()
+            if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
+                graph_items.append(self.RotateGraphItem(-self.config.rotate_angle / 2))
+            for i in range(self.config.capture_cnt):
 
-            try:
-
-                for i in range(self.config.capture_cnt):
-                    frame_id = time.strftime("%H_%M_%S_", time.localtime()) + str(
-                        int((time.time() % 1) * 1000)
-                    ).zfill(3)
-                    # Logger : Turn Right
-                    self.log.progress_root.idx = i + side_idx * self.config.capture_cnt
-                    self.log.progress_root.task = "rotate"
-                    self.publish_log()
-                    try:
-                        if i != 0:
-                            angle_current += 1
-                            self.turn_right(
-                                self.config.rotate_angle / (self.config.capture_cnt - 1)
-                            )
-                    except PoseNoDataError as e:
-                        self.log.hdr_error_msgs.append(
-                            {
-                                "type": "error_no_pose",
-                                "data": {"cause": type(e).__name__, "msg": str(e)},
-                            }
+                if i != 0:
+                    graph_items.append(
+                        self.RotateGraphItem(
+                            self.config.rotate_angle / (self.config.capture_cnt - 1)
                         )
-                        self.publish_log()
-                    # get topics from HDR Queue
+                    )
+                graph_items.append(
+                    self.CaptureGraphItem(
+                        f"{space_id}", i + side_idx * self.config.capture_cnt
+                    )
+                )
+                if (
+                    self.config.capture_cnt - 1 == i
+                    and self.config.side_move_cnt > 1
+                    and i > 0
+                ):
+                    graph_items.append(self.RotateBackGraphItem())
+            if side_idx != self.config.side_move_cnt - 1:
+                if self.config.drive_forward:
+                    graph_items.append(
+                        self.DriveGraphItem(self.config.side_move_distance, "forward")
+                    )
+                else:
+                    graph_items.append(
+                        self.DriveGraphItem(self.config.side_move_distance, "left")
+                    )
 
-                    self.get_hdr_frame(f"{space_id}/{frame_id}", i)
+        # for side_idx in range(self.config.side_move_cnt):
+        #     if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
+        #         try:
+        #             self.turn_right(-self.config.rotate_angle / 2)
+        #         except PoseNoDataError as e:
+        #             self.log.hdr_error_msgs.append(
+        #                 {
+        #                     "type": "error_no_pose",
+        #                     "data": {"cause": type(e).__name__, "msg": str(e)},
+        #                 }
+        #             )
+        #             self.publish_log()
+
+        #     try:
+
+        #         for i in range(self.config.capture_cnt):
+        #             frame_id = time.strftime("%H_%M_%S_", time.localtime()) + str(
+        #                 int((time.time() % 1) * 1000)
+        #             ).zfill(3)
+        #             # Logger : Turn Right
+        #             self.log.progress_root.idx = i + side_idx * self.config.capture_cnt
+        #             self.log.progress_root.task = "rotate"
+        #             self.publish_log()
+        #             try:
+        #                 if i != 0:
+        #                     angle_current += 1
+        #                     self.turn_right(
+        #                         self.config.rotate_angle / (self.config.capture_cnt - 1)
+        #                     )
+        #             except PoseNoDataError as e:
+        #                 self.log.hdr_error_msgs.append(
+        #                     {
+        #                         "type": "error_no_pose",
+        #                         "data": {"cause": type(e).__name__, "msg": str(e)},
+        #                     }
+        #                 )
+        #                 self.publish_log()
+        #             # get topics from HDR Queue
+
+        #             self.get_hdr_frame(f"{space_id}/{frame_id}", i)
+        for item in graph_items:
+            try:
+                while self.sig_pause.is_set():
+                    time.sleep(1)
+
+                if self.sig_stop.is_set():
+                    self.sig_stop.clear()
+                    raise GoalRejectedError("Manually Stopped")
+
+                self.run_graph_item(item)
 
             except (
                 JaiTimeoutError,
@@ -174,36 +292,53 @@ class JaiHDRCaptureAgent:
                         "data": {"cause": type(e).__name__, "msg": str(e)},
                     }
                 )
+                self.log.progress_root.status = "error"
                 self.publish_log()
+                if (
+                    self.config.side_move_cnt > 1
+                    and self.config.capture_cnt > 1
+                    and self.angle_current != 0
+                ):
+                    self.run_graph_item(self.RotateBackGraphItem())
 
-            except Exception as e:
-                self.log.hdr_error_msgs.append({"msg": str(e)})
-                self.publish_log()
+                break
 
-            if self.config.capture_cnt > 1:
-                try:
-                    self.turn_right(
-                        -(
-                            angle_current
-                            * self.config.rotate_angle
-                            / (self.config.capture_cnt - 1)
-                            - self.config.rotate_angle / 2
-                        )
-                    )
-                except PoseNoDataError as e:
-                    self.log.hdr_error_msgs.append(
-                        {
-                            "type": "error_no_pose",
-                            "data": {"cause": type(e).__name__, "msg": str(e)},
-                        }
-                    )
-                    self.publish_log()
+            # except Exception as e:
+            #     self.log.hdr_error_msgs.append({"msg": str(e)})
+            #     self.publish_log()
 
-            angle_current = (
-                0  # Reset angle to 0 after returning to the original position
-            )
-            if side_idx != self.config.side_move_cnt - 1:
-                self.drive_side(self.config.side_move_distance)
+            # if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
+            #     try:
+            #         self.turn_right(
+            #             -(
+            #                 angle_current
+            #                 * self.config.rotate_angle
+            #                 / (self.config.capture_cnt - 1)
+            #                 - self.config.rotate_angle / 2
+            #             )
+            #         )
+            #     except PoseNoDataError as e:
+            #         self.log.hdr_error_msgs.append(
+            #             {
+            #                 "type": "error_no_pose",
+            #                 "data": {"cause": type(e).__name__, "msg": str(e)},
+            #             }
+            #         )
+            #         self.publish_log()
+
+            # angle_current = (
+            #     0  # Reset angle to 0 after returning to the original position
+            # )
+            # if side_idx != self.config.side_move_cnt - 1:
+            #     if self.config.drive_forward:
+            #         self.drive_side(
+            #             self.config.side_move_distance,
+            #             self.action_client_drive_forward,
+            #         )
+            #     else:
+            #         self.drive_side(
+            #             self.config.side_move_distance, self.action_client_drive_side
+            #         )
 
         self.log.progress_root.status = "done"
         self.publish_log()
@@ -217,16 +352,16 @@ class JaiHDRCaptureAgent:
         self.log.progress_root.task = "hdr"
 
         self.publish_log()
-        self.trigger_hdr_action(frame_id + "/hdr")
-        """
-        Get Ambient Frame
-        """
-        self.trigger_tapo(False)
-        time.sleep(1)
-        self.log.progress_root.task = "ambient"
-        self.publish_log()
-        self.trigger_hdr_action(frame_id + "/ambient")
-        self.trigger_tapo(True)
+        self.trigger_hdr_action(frame_id)
+        # """
+        # Get Ambient Frame
+        # """
+        # self.trigger_tapo(False)
+        # time.sleep(1)
+        # self.log.progress_root.task = "ambient"
+        # self.publish_log()
+        # self.trigger_hdr_action(frame_id + "/ambient")
+        # self.trigger_tapo(True)
         """
         Get LiDAR Frame
         """
@@ -242,11 +377,14 @@ class JaiHDRCaptureAgent:
                 hdr_frame["lidar"].header.stamp.sec
                 + hdr_frame["lidar"].header.stamp.nanosec * 1e-9
             )
-
-            hdr_item = HDRCaptureItem(
-                {}, hdr_frame["lidar"], self.pose_list, timestamp, frame_id=frame_id
-            )
-            self.topic_callback(hdr_item)
+            lidar = hdr_frame["lidar"]
+        else:
+            lidar = None
+            timestamp = time.time()
+        hdr_item = HDRCaptureItem(
+            {}, lidar, self.pose_list, timestamp, frame_id=frame_id
+        )
+        self.topic_callback(hdr_item)
 
     def publish_log(self):
         if len(self.log.hdr_error_msgs) > 10:
@@ -258,7 +396,7 @@ class JaiHDRCaptureAgent:
         request = Trigger.Request()
         future = client.call_async(request)
         rclpy.spin_until_future_complete(
-            self.action_client._node, future, timeout_sec=1
+            self.action_client_rotate._node, future, timeout_sec=1
         )
         response: Trigger.Response = future.result()
         if response is None or not response.success:
@@ -309,7 +447,7 @@ class JaiHDRCaptureAgent:
                 raise JaiTimeoutError("Action Timeout")
 
     def turn_right(self, angle: float):
-        self.pose_list.clear()
+        # self.pose_list.clear()
         # Action Call : Turn Right
         goal = RotateAngle.Goal()
         goal.angle = angle
@@ -318,12 +456,12 @@ class JaiHDRCaptureAgent:
             pass
             # self.pose_list.append(feedback)
 
-        future: Future[ClientGoalHandle] = self.action_client.send_goal_async(
+        future: Future[ClientGoalHandle] = self.action_client_rotate.send_goal_async(
             goal, feedback_callback=feedback_callback
         )
         begin_time = time.time()
         while not future.done():
-            rclpy.spin_once(self.action_client._node, timeout_sec=0.1)
+            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
         goal_handle = future.result()  # goal이 accepted 되었는지 확인
@@ -331,44 +469,43 @@ class JaiHDRCaptureAgent:
             raise GoalRejectedError("Goal Rejected")
 
         # result를 비동기적으로 받기 위해 get_result_async 호출
-        result_future: Future[RotateAngle.Result] = goal_handle.get_result_async()
+        result_future: Future[RotateAngle_GetResult_Response] = (
+            goal_handle.get_result_async()
+        )
 
         # result를 받을 때까지 루프
         while not result_future.done():
             rclpy.spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
-        try:
-            pose = result_future.result().pose.pose
-            if pose is not None:
-                self.pose_list.append(pose)
-            else:
-                raise PoseNoDataError("Ranger: No Pose Data")
-        except Exception as e:
-            raise PoseNoDataError("Ranger: No Pose Data")
 
-    def drive_side(self, distance: float):
+    def drive_side(self, distance: float, client: ActionClient):
         goal = DriveDistance.Goal()
         goal.distance = distance
+        # self.pose_list.clear()
 
         def feedback_callback(feedback: DriveDistance.Feedback):
             pass
             # self.pose_list.append(feedback)
 
-        future: Future[ClientGoalHandle] = self.action_client_drive.send_goal_async(
+        future: Future[ClientGoalHandle] = client.send_goal_async(
             goal, feedback_callback=feedback_callback
         )
         begin_time = time.time()
         while not future.done():
-            rclpy.spin_once(self.action_client._node, timeout_sec=0.1)
+            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
         goal_handle = future.result()
         if not goal_handle.accepted:
             raise GoalRejectedError("Goal Rejected")
 
-        result_future = goal_handle.get_result_async()
+        result_future: Future[DriveDistance_GetResult_Response] = (
+            goal_handle.get_result_async()
+        )
         while not result_future.done():
-            rclpy.spin_once(self.action_client._node, timeout_sec=0.1)
+            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
+        time.sleep(0.3)
+        result = result_future.result().result

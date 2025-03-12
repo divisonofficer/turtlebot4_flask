@@ -877,6 +877,24 @@ def update_stereo_hdr_config():
     return asdict(depth_node.hdr_agent.config)
 
 
+@app.route("/stereo/hdr/trigger/pause", methods=["POST"])
+def pause_stereo_hdr():
+    depth_node.hdr_agent.pause()
+    return depth_node.node_status()
+
+
+@app.route("/stereo/hdr/trigger/resume", methods=["POST"])
+def resume_stereo_hdr():
+    depth_node.hdr_agent.resume()
+    return depth_node.node_status()
+
+
+@app.route("/stereo/hdr/trigger/stop", methods=["POST"])
+def stop_stereo_hdr():
+    depth_node.hdr_agent.abort()
+    return depth_node.node_status()
+
+
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None
