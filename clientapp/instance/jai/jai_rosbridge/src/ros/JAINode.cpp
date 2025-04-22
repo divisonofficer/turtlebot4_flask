@@ -462,11 +462,13 @@ void JAINode::initMultispectralCamera(int camera_num, std::string deviceName,
       if (config->STEREO_EXPOSURE_SYNC) {
         float exposure_left = cameras[0]->getExposure(0);
         // float gain_left = cameras[0]->getGain(0);
-        cameras[1]->configureExposure(0, exposure_left);
+        cameras[1]->configureExposure(
+            0, exposure_left * config->STEREO_EXPOSURE_SYNC_RATIO);
         // cameras[1]->configureGain(0, gain_left);
         exposure_left = cameras[0]->getExposure(1);
         // gain_left = cameras[0]->getGain(1);
-        cameras[1]->configureExposure(1, exposure_left);
+        cameras[1]->configureExposure(
+            1, exposure_left * config->STEREO_EXPOSURE_SYNC_RATIO);
         // cameras[1]->configureGain(1, gain_left);
       }
 

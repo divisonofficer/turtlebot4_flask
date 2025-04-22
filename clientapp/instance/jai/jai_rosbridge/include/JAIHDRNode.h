@@ -5,6 +5,7 @@
 #include <wrapper.h>
 
 #include <jai_rosbridge/action/hdr_trigger.hpp>
+#include <rclcpp/client.hpp>
 #include <rclcpp_action/create_server.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
@@ -70,6 +71,8 @@ class JAIHDRNode : public rclcpp::Node {
    */
   void connectCamera();
 
+  void tapoTrigger(bool on);
+
   /**
    * ROS2 node initialization
    *
@@ -101,4 +104,7 @@ class JAIHDRNode : public rclcpp::Node {
 
   std::atomic_bool cancel_flag;
   std::atomic_bool hdr_trigger_flag;
+
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_tapo_on,
+      client_tapo_off;
 };

@@ -6,7 +6,7 @@ import { alertStore } from "./AlertStore";
 export namespace JaiHDRLog {
   export interface ProgressRoot {
     idx: number;
-    status: "ready" | "running" | "done" | "error";
+    status: "ready" | "running" | "done" | "error" | "pause" | "abort";
     task: "rotate" | "hdr" | "ambient";
   }
   export interface ProgressSub {
@@ -30,6 +30,7 @@ export namespace JaiHDRLog {
     lidar: boolean;
     side_move_cnt: number;
     side_move_distance: number;
+    drive_forward: boolean;
   }
 }
 
@@ -41,6 +42,16 @@ class JaiHDRStore {
     lidar: true,
     side_move_cnt: 0,
     side_move_distance: 0,
+    drive_forward: false,
+  };
+  hdr_latest_capture: {
+    space_id: string;
+    frame_count: number;
+    image?: string;
+  } = {
+    space_id: "",
+    image: undefined,
+    frame_count: 0,
   };
   constructor() {
     makeAutoObservable(this);
@@ -49,12 +60,38 @@ class JaiHDRStore {
       console.log("hdr_log", data);
       this.hdr_log = data;
     });
+    jaiSocket.subscribe(
+      "hdr/latest_capture",
+      (data: { space_id: string; image: string; frame_count: number }) => {
+        /**
+       * "hdr/latest_capture",
+            {
+                "space_id": space_id,
+                "image": cv2.imencode(".bmp", img_col_concat)[1].tobytes(),
+            },
+       * 
+       */
+        this.hdr_latest_capture = data;
+      }
+    );
 
     this.fetchGetConfig();
   }
 
   triggerHDR = () => {
     httpPost("/jai/stereo/hdr/trigger").fetch();
+  };
+
+  triggerPause = () => {
+    httpPost("/jai/stereo/hdr/trigger/pause").fetch();
+  };
+
+  triggerResume = () => {
+    httpPost("/jai/stereo/hdr/trigger/resume").fetch();
+  };
+
+  triggerStop = () => {
+    httpPost("/jai/stereo/hdr/trigger/stop").fetch();
   };
 
   fetchGetConfig = () => {
@@ -64,6 +101,11 @@ class JaiHDRStore {
       })
       .fetch();
   };
+
+  fetchGetLatestCapture = () => {
+    httpPost("/jai/stereo/hdr/emit_latest_capture").fetch();
+  };
+
   fetchUpdateConfig = (key: string, value: any) => {
     const configUpdate = { [key]: value };
     httpPost("/jai/stereo/hdr/config", { config: configUpdate })

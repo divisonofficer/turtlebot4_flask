@@ -1,3 +1,4 @@
+import base64
 import os
 from random import randint
 import sys
@@ -380,7 +381,58 @@ class JaiStereoDepth(Node):
             return
         if self.stereo_storage_id is None:
             self.enable_stereo_storage()
-        self.hdr_agent.capture_thread(self.stereo_storage_id)
+        self.hdr_agent.capture_thread(
+            self.stereo_storage_id,
+            lambda: self.emit_latest_capture_hdr(self.stereo_storage_id),
+        )
+
+    def emit_latest_capture_hdr(self, space_id=None):
+        """
+        For HDR node, return latest capture through socket
+        """
+        if space_id == None:
+            space_id = self.stereo_storage.get_latest_scene_id(root="tmp/stereo/hdr")
+        if space_id == None:
+            return
+        frame_latest = [
+            x
+            for x in os.listdir(f"tmp/stereo/hdr/{space_id}")
+            if x.split("_")[-1].isdigit()
+        ]
+        frame_latest.sort()
+        frame_count = len(frame_latest)
+        frame_latest = frame_latest[-1]
+        frame_folder = os.path.join(f"tmp/stereo/hdr/{space_id}", frame_latest)
+
+        imgs = os.listdir(frame_folder)
+        img_col0 = [x for x in imgs if "_col0" in x][0]
+        img_col1 = [x for x in imgs if "_col1" in x][0]
+        img_col0 = cv2.imread(
+            os.path.join(frame_folder, img_col0), cv2.IMREAD_UNCHANGED
+        )
+        img_col1 = (
+            cv2.imread(os.path.join(frame_folder, img_col1), cv2.IMREAD_UNCHANGED) // 16
+        ).astype(np.uint8)
+        print(img_col0.shape, img_col1.shape)
+        img_col1 = cv2.cvtColor(img_col1, cv2.COLOR_GRAY2BGR)
+        img_col0 = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
+        img_col_concat = np.concatenate([img_col0, img_col1], axis=1)
+        img_col_concat = cv2.resize(
+            img_col_concat,
+            (int(img_col_concat.shape[1] / 4), int(img_col_concat.shape[0] / 4)),
+        )
+
+        _, buffer = cv2.imencode(".jpg", img_col_concat)
+        encoded_img = base64.b64encode(buffer).decode("utf-8")
+
+        self.socket.emit(
+            "hdr/latest_capture",
+            {
+                "space_id": space_id,
+                "frame_count": frame_count,
+                "image": encoded_img,
+            },
+        )
 
     def enable_stereo_storage(self, id: Optional[str] = None):
         if hasattr(self, "stereo_storage_id_cache") and id is None:

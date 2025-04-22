@@ -895,6 +895,12 @@ def stop_stereo_hdr():
     return depth_node.node_status()
 
 
+@app.route("/stereo/hdr/emit_latest_capture", methods=["POST"])
+def emit_latest_capture():
+    depth_node.emit_latest_capture_hdr()
+    return depth_node.node_status()
+
+
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None

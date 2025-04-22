@@ -1,9 +1,52 @@
-import { HStack, VStack, useMediaQuery } from "@chakra-ui/react";
+import { HStack, Text, VStack, useMediaQuery } from "@chakra-ui/react";
 import React, { useState } from "react";
-import { H3, H4 } from "../design/text/textsystem";
+import { Body3, H3, H4 } from "../design/text/textsystem";
 
 import { useNavigate } from "react-router-dom";
-import { MenuItem, menuList } from "../static/MenuList";
+import { MenuItem, menuList, mobileMenuList } from "../static/MenuList";
+
+const MenuButtonMobile = ({ menu }: { menu: MenuItem }) => {
+  const naviate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
+  const isPresentPage =
+    menu.destination && window.location.pathname === "/#" + menu.destination;
+  return (
+    <VStack
+      style={{
+        width: `$6rem`,
+        height: "5rem",
+        padding: "0rem 1rem",
+        justifyContent: "flex-start",
+        borderRadius: "1rem",
+        background: isHovered || isPresentPage ? "#1C1C1C1A" : "transparent",
+      }}
+      onClick={() => {
+        if (menu.destination) naviate(menu.destination);
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {typeof menu.icon === "string" ? (
+        <img
+          src={menu.icon}
+          style={{
+            width: "2rem",
+            height: "2rem",
+          }}
+          alt=""
+        />
+      ) : (
+        <menu.icon
+          style={{
+            width: "2rem",
+            height: "2rem",
+          }}
+        />
+      )}
+      <Text>{menu.name}</Text>
+    </VStack>
+  );
+};
 
 const MenuButton = ({ menu, level }: { menu: MenuItem; level: number }) => {
   const naviate = useNavigate();
@@ -65,8 +108,30 @@ const MenuButton = ({ menu, level }: { menu: MenuItem; level: number }) => {
   );
 };
 
+const MobileMenus = () => {
+  return (
+    <HStack
+      style={{
+        width: "100%",
+        height: "6rem",
+        overflowX: "scroll",
+        overflowY: "hidden",
+        boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)",
+      }}
+    >
+      {mobileMenuList.map((menu, idx) => (
+        <MenuButtonMobile menu={menu} key={idx} />
+      ))}
+    </HStack>
+  );
+};
+
 const Menus = () => {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
+
+  if (isMobile) {
+    return <MobileMenus />;
+  }
 
   return (
     <HStack>

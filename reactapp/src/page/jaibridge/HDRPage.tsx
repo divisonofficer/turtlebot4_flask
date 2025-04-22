@@ -8,17 +8,30 @@ import {
   SliderTrack,
   SliderFilledTrack,
   SliderThumb,
+  IconButton,
+  Grid,
+  Box,
+  Image,
+  Text,
 } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 
-import { H3, H4 } from "../../design/text/textsystem";
+import { Body2, H3, H4 } from "../../design/text/textsystem";
 import { observer } from "mobx-react";
 
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import { InfoCard, InfoCardBtn } from "../../design/other/infocard";
 import { jaiHDRStore, JaiHDRLog } from "../../stores/JaiHDRStore";
 import { Camera } from "@phosphor-icons/react/dist/ssr";
-import { Log, Steps } from "@phosphor-icons/react";
+import {
+  CameraRotate,
+  GooglePhotosLogo,
+  Log,
+  Pause,
+  Play,
+  Steps,
+  Stop,
+} from "@phosphor-icons/react";
 import { Color } from "../../design/color";
 
 const ErrorCard = ({ error }: { error: JaiHDRLog.Error }) => {
@@ -72,9 +85,11 @@ const JaiOptionSwitch = ({
   option_name: string;
   checked: boolean | undefined;
 }) => {
+  const isMobile = window.innerWidth < 768;
   return (
     <HStack>
-      <H3> {option_name}</H3>
+      {isMobile ? <Body2>{option_name}</Body2> : <H4>{option_name}</H4>}
+
       <Switch
         isChecked={checked}
         onChange={(e) => {
@@ -82,6 +97,104 @@ const JaiOptionSwitch = ({
         }}
       />
     </HStack>
+  );
+};
+
+const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
+  const params = [
+    {
+      range: [15, 180],
+      step: 1,
+      name: "rotate_angle",
+      value: jaiHDRStore.hdr_config.rotate_angle,
+    },
+    {
+      range: [1, 20],
+      step: 1,
+      name: "capture_cnt",
+      value: jaiHDRStore.hdr_config.capture_cnt,
+    },
+    {
+      range: [1, 10],
+      step: 1,
+      name: "side_move_cnt",
+      value: jaiHDRStore.hdr_config.side_move_cnt,
+    },
+    {
+      range: [-0.2, 0.2],
+      step: 0.01,
+      name: "side_move_distance",
+      value: jaiHDRStore.hdr_config.side_move_distance,
+    },
+  ];
+
+  const renderSliders = () =>
+    params.map((param) => (
+      <VStack key={param.name} width="100%">
+        <Slider
+          min={param.range[0]}
+          max={param.range[1]}
+          size="md"
+          width="80%"
+          height="1rem"
+          step={param.step}
+          value={param.value}
+          onChange={(value) => {
+            jaiHDRStore.fetchUpdateConfig(param.name, value);
+          }}
+        >
+          <SliderTrack>
+            <SliderFilledTrack />
+          </SliderTrack>
+          <SliderThumb />
+        </Slider>
+        <HStack justifyContent="space-between" width="100%">
+          {isMobile ? (
+            <Body2>
+              {param.name} : {param.value}
+            </Body2>
+          ) : (
+            <>
+              <H4>{param.name}</H4>
+              <H4>{param.value}</H4>
+            </>
+          )}
+        </HStack>
+      </VStack>
+    ));
+
+  return (
+    <>
+      {isMobile ? (
+        <Grid templateColumns="repeat(2, 1fr)" gap={4} width="100%">
+          {renderSliders()}
+          <JaiOptionSwitch
+            option_id="lidar"
+            option_name="Enable LiDAR acquire"
+            checked={jaiHDRStore.hdr_config.lidar}
+          />
+          <JaiOptionSwitch
+            option_id="drive_forward"
+            option_name="Drive forward/Side"
+            checked={jaiHDRStore.hdr_config.drive_forward}
+          />
+        </Grid>
+      ) : (
+        <VStack width="15rem" spacing={4}>
+          {renderSliders()}
+          <JaiOptionSwitch
+            option_id="lidar"
+            option_name="Enable LiDAR acquire"
+            checked={jaiHDRStore.hdr_config.lidar}
+          />
+          <JaiOptionSwitch
+            option_id="drive_forward"
+            option_name="Drive forward/Side"
+            checked={jaiHDRStore.hdr_config.drive_forward}
+          />
+        </VStack>
+      )}
+    </>
   );
 };
 
@@ -103,70 +216,25 @@ const HDRProgressView = observer(() => {
     hdr_error_msgs: [],
   };
 
+  const isMobile = window.innerWidth < 768;
+
   return (
     <Flex width="100%" justifyContent="space-between" wrap="wrap">
-      <VStack width="20rem">
-        {[
-          {
-            range: [15, 180],
-            step: 1,
-            name: "rotate_angle",
-            value: jaiHDRStore.hdr_config.rotate_angle,
-          },
-          {
-            range: [1, 20],
-            step: 1,
-            name: "capture_cnt",
-            value: jaiHDRStore.hdr_config.capture_cnt,
-          },
-          {
-            range: [1, 10],
-            step: 1,
-            name: "side_move_cnt",
-            value: jaiHDRStore.hdr_config.side_move_cnt,
-          },
-          {
-            range: [-0.2, 0.2],
-            step: 0.01,
-            name: "side_move_distance",
-            value: jaiHDRStore.hdr_config.side_move_distance,
-          },
-        ].map((param) => (
-          <>
-            <Slider
-              min={param.range[0]}
-              max={param.range[1]}
-              size={"md"}
-              style={{
-                width: "100%",
+      {isMobile ? (
+        <VStack>
+          <JaiHDRControls isMobile={isMobile} />
+          <HDRPreview />
+        </VStack>
+      ) : (
+        <HStack width="100%" justifyContent="space-between">
+          <JaiHDRControls isMobile={isMobile} />
+          <HDRPreview />
+        </HStack>
+      )}
 
-                height: "1rem",
-              }}
-              step={param.step}
-              value={param.value}
-              onChange={(value) => {
-                jaiHDRStore.fetchUpdateConfig(param.name, value);
-              }}
-            >
-              <SliderTrack>
-                <SliderFilledTrack />
-              </SliderTrack>
-              <SliderThumb />
-            </Slider>
-            <HStack justifyContent="space-between" width="100%">
-              <H4>{param.name}</H4>
-              <H4>{param.value}</H4>
-            </HStack>
-          </>
-        ))}
-        <JaiOptionSwitch
-          option_id="lidar"
-          option_name="Enable LiDAR acquire"
-          checked={jaiHDRStore.hdr_config.lidar}
-        />
-      </VStack>
-
-      {jaiHDRStore.hdr_log?.progress_root.status !== "running" && (
+      {!["running", "pause", "abort"].includes(
+        jaiHDRStore.hdr_log?.progress_root.status ?? ""
+      ) && (
         <InfoCardBtn
           title="Capture"
           Icon={Camera}
@@ -176,6 +244,36 @@ const HDRProgressView = observer(() => {
       {jaiHDRStore.hdr_log?.progress_root.status === "running" && (
         <InfoCardBtn title={pr.task} Icon={Steps} color={Color.Cyan} />
       )}
+      {jaiHDRStore.hdr_log?.progress_root.status === "running" && (
+        <InfoCardBtn
+          title={"Pause"}
+          Icon={Pause}
+          onClick={() => jaiHDRStore.triggerPause()}
+          color={Color.Green}
+        />
+      )}
+      {jaiHDRStore.hdr_log?.progress_root.status === "pause" && (
+        <InfoCardBtn
+          title={"Resume"}
+          Icon={Play}
+          onClick={() => jaiHDRStore.triggerResume()}
+          color={Color.Yellow}
+        />
+      )}
+      {jaiHDRStore.hdr_log?.progress_root.status === "running" && (
+        <InfoCardBtn
+          title={"Abort"}
+          Icon={Stop}
+          onClick={() => jaiHDRStore.triggerStop()}
+          color={Color.Red}
+        />
+      )}
+      <InfoCardBtn
+        title={jaiHDRStore.hdr_latest_capture.frame_count.toString()}
+        Icon={GooglePhotosLogo}
+        color={Color.Indigo}
+      />
+
       <InfoCard
         title={pr.status}
         value={pr.idx}
@@ -202,6 +300,55 @@ const HDRProgressView = observer(() => {
       {hdr_error_msgs.length > 0 &&
         hdr_error_msgs.map((error) => <ErrorCard error={error} />)}
     </Flex>
+  );
+});
+
+const HDRPreview = observer(() => {
+  const { space_id, image } = jaiHDRStore.hdr_latest_capture;
+
+  return (
+    <VStack width="100%" height="auto">
+      <Box
+        position="relative"
+        width="50%"
+        // 원하는 고정 높이가 있으면 지정하거나, aspectRatio 사용 가능
+        // height="auto"
+      >
+        {image ? (
+          <Image
+            src={`data:image/bmp;base64,${image}`}
+            alt="HDR capture"
+            objectFit="contain"
+            transform="rotate(270deg)" /* CSS transform 사용 */
+            width="100%"
+          />
+        ) : (
+          <Box
+            width="100%"
+            height="200px" /* placeholder 높이 지정 */
+            bg="gray.100"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text color="gray.500">No Image Available</Text>
+          </Box>
+        )}
+
+        <IconButton
+          icon={<CameraRotate />}
+          aria-label="Refresh Capture"
+          onClick={() => {
+            jaiHDRStore.fetchGetLatestCapture();
+          }}
+          position="absolute"
+          top="2"
+          left="2"
+          size="sm"
+          zIndex="overlay" /* overlay 레이어 보장 */
+        />
+      </Box>
+    </VStack>
   );
 });
 

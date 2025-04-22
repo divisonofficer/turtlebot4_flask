@@ -555,6 +555,13 @@ class StereoStorage:
                     root=root,
                 )
 
+    def get_latest_scene_id(self, root=FOLDER):
+        scenes = os.listdir(root)
+        scenes.sort()
+        if len(scenes) == 0:
+            return None
+        return scenes[-1].split("/")[-1]
+
     def read_frame_property(
         self,
         scene_id: str,

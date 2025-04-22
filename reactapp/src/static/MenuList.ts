@@ -18,7 +18,37 @@ import {
   RocketLaunch,
   VideoCameraSlash,
 } from "@phosphor-icons/react";
+import { Toolbox } from "@phosphor-icons/react/dist/ssr";
 import { ElementType } from "react";
+
+export const mobileMenuList: MenuItem[] = [
+  // dashboard, jaibridge, calibration, hdr, lucid
+  {
+    icon: InfoIcon,
+    name: "Dashboard",
+    destination: "/",
+  },
+  {
+    icon: CameraSlash,
+    name: "JaiBridge",
+    destination: "/jaibridge",
+  },
+  {
+    icon: Angle,
+    name: "Lucid",
+    destination: "/lucid",
+  },
+  {
+    icon: CameraRotate,
+    name: "Calibration",
+    destination: "/jaibridge/calibration",
+  },
+  {
+    icon: DeviceMobileCamera,
+    name: "HDR",
+    destination: "/jaibridge/hdr",
+  },
+];
 
 export const menuList: MenuItem[] = [
   {
@@ -122,6 +152,11 @@ export const menuList: MenuItem[] = [
     icon: Angle,
     name: "Polarization",
     destination: "/polarization",
+  },
+  {
+    icon: Toolbox,
+    name: "Sensors",
+    destination: "/sensors",
   },
 ];
 

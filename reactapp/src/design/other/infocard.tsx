@@ -10,10 +10,11 @@ const InfoCard = (props: {
   progressBar?: ReactNode;
 }) => {
   const Icon = props.icon;
+  const isMobile = window.innerWidth < 600;
   return (
     <VStack
       style={{
-        width: "15rem",
+        width: isMobile ? "8rem" : "15rem",
         height: "8rem",
         padding: "1.5rem 1.2rem",
         background: props.color || "#E3F5FF",

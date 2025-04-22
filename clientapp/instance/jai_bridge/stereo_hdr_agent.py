@@ -133,11 +133,16 @@ class JaiHDRCaptureAgent:
         self.sig_pause = threading.Event()
         self.sig_stop.clear()
 
-    def capture_thread(self, space_id: str):
+    def capture_thread(self, space_id: str, callback: Callable):
         if self.hdr_thread is not None and self.hdr_thread.is_alive():
             raise Exception("HDR capture is already running")
         self.hdr_thread = threading.Thread(
-            target=self.capture_hdr, args=(space_id,), daemon=True
+            target=self.capture_hdr,
+            args=(
+                space_id,
+                callback,
+            ),
+            daemon=True,
         )
         self.hdr_thread.start()
 
@@ -185,7 +190,7 @@ class JaiHDRCaptureAgent:
         self.sig_stop.set()
         self.log.progress_root.status = "abort"
 
-    def capture_hdr(self, space_id: str):
+    def capture_hdr(self, space_id: str, callback: Optional[Callable] = None):
         """
         Clear HDR Queue
         """
@@ -342,6 +347,8 @@ class JaiHDRCaptureAgent:
 
         self.log.progress_root.status = "done"
         self.publish_log()
+        if callback is not None:
+            callback()
 
     def get_hdr_frame(self, frame_id, idx: int):
         time_begin = time.time()

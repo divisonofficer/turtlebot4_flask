@@ -4,6 +4,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <rclcpp/executor.hpp>
+#include <rclcpp/utilities.hpp>
 #include <thread>
 
 void sendFeedback(std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
@@ -35,8 +37,9 @@ JAIRGBNIRCamera::JAIRGBNIRCamera() {}
 
 void JAIRGBNIRCamera::connectCamera() {
   if (!cameras.size()) {
-    cameras.push_back(new MultiSpectralCamera(config->DEVICE_LEFT_NAME,
-                                              config->DEVICE_LEFT_ADDRESS));
+    if (!config->HDR_CAPTURE_SINGLE)
+      cameras.push_back(new MultiSpectralCamera(config->DEVICE_LEFT_NAME,
+                                                config->DEVICE_LEFT_ADDRESS));
 
     cameras.push_back(new MultiSpectralCamera(config->DEVICE_RIGHT_NAME,
                                               config->DEVICE_RIGHT_ADDRESS));
@@ -47,7 +50,7 @@ void JAIRGBNIRCamera::connectCamera() {
 }
 
 void JAIRGBNIRCamera::openStreamAll() {
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < cameras.size(); i++) {
     openStream(i);
   }
 }
@@ -70,17 +73,17 @@ void JAIRGBNIRCamera::configureExposure(int dn, int sn, float exposure) {
 }
 
 void JAIRGBNIRCamera::configureExposureAll(float exposure, float nir_exposure) {
-  configureExposure(0, 0, exposure);
-  configureExposure(0, 1, nir_exposure);
-  configureExposure(1, 0, exposure);
-  configureExposure(1, 1, nir_exposure);
+  for (int i = 0; i < cameras.size(); i++) {
+    configureExposure(i, 0, exposure);
+    configureExposure(i, 1, nir_exposure);
+  }
   ts_exp_ = systemTimeNano();  //+ config->HDR_EXPOSURE_DELAY * 1000000;
 }
 
 void JAIRGBNIRCamera::flushStream() {
   std::vector<std::thread> threads;
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < cameras.size(); i++) {
     for (int s = 0; s < 2; s++) {
       threads.emplace_back([this, i, s]() {
         PvStreamGEV* stream =
@@ -149,8 +152,14 @@ void JAIRGBNIRCamera::processStream(
   if (!(hdr_stream_done_flag[d][s]) && buffer) {
     if (ret == 0) {
       if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_) {
-        dst[d * 2 + s] =
-            cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer()).clone();
+        if (s == 0) {
+          dst[d * 2 + s] =
+              cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer()).clone();
+        } else {
+          dst[d * 2 + s] =
+              cv::Mat(1080, 1440, CV_16UC1, buffer->GetDataPointer(), 2880)
+                  .clone();
+        }
         hdr_stream_done_flag[d][s] = true;
 
       } else {
@@ -191,7 +200,7 @@ int JAIRGBNIRCamera::readImage(
     bool all_done = true;
     std::vector<std::thread> threads;
 
-    for (int d = 0; d < 2; d++) {
+    for (int d = 0; d < cameras.size(); d++) {
       hdr_stream_buffer_received[d][0] = config->HDR_TIMEOUT_CNT;
       hdr_stream_buffer_received[d][1] = config->HDR_TIMEOUT_CNT;
       if (!(hdr_stream_done_flag[d][0]) || !(hdr_stream_done_flag[d][1])) {
@@ -206,7 +215,7 @@ int JAIRGBNIRCamera::readImage(
       thread.join();
     }
 
-    for (int d = 0; d < 2; d++) {
+    for (int d = 0; d < cameras.size(); d++) {
       if (!(hdr_stream_done_flag[d][0] && hdr_stream_done_flag[d][1])) {
         // if (hdr_stream_buffer_received[d][0] > 0 ||
         //     hdr_stream_buffer_received[d][1] > 0) {
@@ -241,6 +250,10 @@ int JAIRGBNIRCamera::readImage(
 JAIHDRNode::JAIHDRNode() : Node("jai_hdr_node") {
   connectCamera();
   initNodeService();
+
+  this->client_tapo_on = this->create_client<std_srvs::srv::Trigger>("tapo/on");
+  this->client_tapo_off =
+      this->create_client<std_srvs::srv::Trigger>("tapo/off");
 }
 
 void JAIHDRNode::connectCamera() { camera.connectCamera(); }
@@ -268,7 +281,40 @@ void JAIHDRNode::initNodeService() {
 }
 
 void JAIRGBNIRCamera::closeStreamAll() {
-  for (int i = 0; i < 2; i++) cameras[i]->closeStream();
+  for (int i = 0; i < cameras.size(); i++) cameras[i]->closeStream();
+}
+
+void JAIHDRNode::tapoTrigger(bool on) {
+  auto client = on ? client_tapo_on : client_tapo_off;
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+
+  // 서비스가 준비될 때까지 최대 1초 대기
+  if (!client->wait_for_service(std::chrono::seconds(1))) {
+    throw std::runtime_error("Service is not available");
+  }
+  // 비동기적으로 서비스 호출
+  auto future_result = client->async_send_request(request);
+
+  // 1초 내에 future의 완료를 체크하기 위한 시작 시각 기록
+  auto start_time = std::chrono::steady_clock::now();
+
+  // 이미 Executor에 등록된 상태이므로 spin_until_future_complete 대신 custom
+  // spin loop 사용
+  while (rclcpp::ok() && future_result.wait_for(std::chrono::seconds(0)) !=
+                             std::future_status::ready) {
+    // 1초 이상 대기 시 타임아웃 처리
+    if (std::chrono::steady_clock::now() - start_time >
+        std::chrono::seconds(1)) {
+      throw std::runtime_error("Service call timed out");
+    }
+  }
+
+  // future가 완료되었으므로 응답을 추출
+  auto response = future_result.get();
+  if (!response || !response->success) {
+    throw std::runtime_error(response ? response->message
+                                      : "No response received");
+  }
 }
 
 void JAIHDRNode::collectHdrImages(
@@ -278,7 +324,7 @@ void JAIHDRNode::collectHdrImages(
 
   for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
     int t = config->HDR_EXPOSURE[t_idx];
-    int t2 = config->HDR_EXPOSURE_NIR[t_idx];
+    int t2 = config->HDR_EXPOSURE_NIR[t_idx % config->HDR_EXPOSURE_NIR.size()];
     camera.configureExposureAll(t, t2);
     camera.openStreamAll();
     camera.flushStream();
@@ -288,7 +334,7 @@ void JAIHDRNode::collectHdrImages(
 
     // camera.openStreamAll();
     camera.triggerFrameCapture(0);
-    camera.triggerFrameCapture(1);
+    if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
     Debug << "Collect HDR Images for " << t;
 
     sendFeedbackPrintf(goal_handle,
@@ -301,9 +347,19 @@ void JAIHDRNode::collectHdrImages(
     imgr.assign(4, cv::Mat());
     __uint64_t timestamp;
     camera.readImage(goal_handle, imgr, timestamp);
+    Debug << "Image Read Done";
+    if (t_idx + 1 == config->HDR_EXPOSURE_NIR.size()) {
+      Debug << "NIR Image Read Done";
+      tapoTrigger(false);
+    }
+    if (t_idx + 1 == config->HDR_EXPOSURE.size()) {
+      tapoTrigger(true);
+    }
+    Debug << "Prepare pushing data";
     for (auto img : imgr) {
       images.push_back(img);
     }
+    Debug << "push image done";
     timestamps.push_back(timestamp);
   }
   camera.closeStreamAll();
@@ -322,40 +378,37 @@ HDRStorage::HDRStorage() {}
 void HDRStorage::storeHDRSequence(std::string space_id,
                                   std::vector<__uint64_t> timestamp,
                                   std::vector<cv::Mat> images) {
-  // Store HDR images
-  //   Debug << "Store HDR images" << images.size();
-
-  //   for (size_t i = 0; i < images.size(); ++i) {
-  //     std::stringstream ss;
-  //     ss << "temp/image_" << i << ".png";
-  //     cv::imwrite(ss.str(), images[i]);
-  //   }
-  // // Combine images into a single image
   int rows = config->HDR_EXPOSURE.size();
   int cols = 4;
   int img_height = 1080;
   int img_width = 1440;
-  cv::Mat combined_image =
-      cv::Mat::zeros(rows * img_height, cols * img_width, images[0].type());
+  for (int j = 0; j < cols; ++j) {
+    cv::Mat combined_image;
+    if (j % 2 == 0) {
+      combined_image = cv::Mat::zeros(rows * img_height, img_width, CV_8UC1);
+    } else {
+      combined_image = cv::Mat::zeros(rows * img_height, img_width, CV_16UC1);
+    }
 
-  for (int i = 0; i < rows; ++i) {
-    for (int j = 0; j < cols; ++j) {
+    for (int i = 0; i < rows; ++i) {
       int index = i * cols + j;
       if (index < images.size()) {
-        cv::Mat roi = combined_image(
-            cv::Rect(j * img_width, i * img_height, img_width, img_height));
+        cv::Mat roi =
+            combined_image(cv::Rect(0, i * img_height, img_width, img_height));
         images[index].copyTo(roi);
+        images[index].release();
       }
     }
+
+    // Save the combined image
+    char path[256];
+    snprintf(path, 256, "%s/%lld_col%d.png", space_id.c_str(), timestamp[0], j);
+    std::string dir_path = space_id;
+    std::filesystem::create_directories(dir_path);
+    cv::imwrite(path, combined_image);
+
+    combined_image.release();
   }
-
-  // Save the combined image
-  char path[256];
-
-  snprintf(path, 256, "%s/%lld.png", space_id.c_str(), timestamp[0]);
-  std::string dir_path = space_id;
-  std::filesystem::create_directories(dir_path);
-  cv::imwrite(path, combined_image);
 }
 
 rclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(
