@@ -1,6 +1,5 @@
 from dataclasses import asdict
 import json
-from operator import is_
 from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -8,8 +7,9 @@ from flask_socketio import SocketIO
 import os
 
 import numpy as np
-from sympy import root
+
 from tapo_switch import RosTapoNode
+
 from rclpy.publisher import Publisher
 from rclpy.subscription import Subscription
 import sys
@@ -37,6 +37,7 @@ from stereo_calibration import JaiStereoCalibration
 
 from rclpy.executors import MultiThreadedExecutor
 from stereo_node import JaiStereoDepth
+from demo_node import JaiDemoNode
 
 from jai_pb2 import (
     DeviceInfo,
@@ -1025,6 +1026,19 @@ def post_npzh5(id):
     return Response(status=200)
 
 
+@app.route("/demo/config/<config_name>", methods=["POST"])
+def set_demo_config(config_name):
+    value = request.json.get("value") if request.json else None
+    if hasattr(depth_node.config, config_name):
+        setattr(depth_node.config, config_name, value)
+    return depth_node.node_status()
+
+
+@app.route("/demo/config", methods=["GET"])
+def get_demo_config():
+    return depth_node.node_status()
+
+
 @app.route("/calibrate/lucid/enable", methods=["POST"])
 def enable_lucid_calibration():
     calibration_node.enable_lucid_camera()
@@ -1038,7 +1052,10 @@ with app.app_context():
     capture_mode = sys.argv[1] if len(sys.argv) > 1 else "hdr"
 
     calibration_node = JaiStereoCalibration(socketio)
-    depth_node = JaiStereoDepth(socketio, capture_mode)
+    if capture_mode in ["hdr", "stereo"]:
+        depth_node = JaiStereoDepth(socketio, capture_mode)
+    if capture_mode == "demo":
+        depth_node = JaiDemoNode(socketio)
     tapo_node = RosTapoNode()
     nodes = [node, calibration_node, depth_node]
     if capture_mode == "hdr":

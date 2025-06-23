@@ -16,6 +16,7 @@ class Calibration:
         self.storage = CalibrationStorage()
 
         self.calibration_id = self.storage.get_new_id()
+        self.MAX_CNT = 200
 
     def init_calibration_points(self):
         self.CHESS_CELL_WIDTH = 21.9
@@ -49,7 +50,7 @@ class Calibration:
         self.imgpoints_right.append(corners_right)
         self.chessboard_images.append((im_left_corner, im_right_corner))
         self.chessboard_image_origins.append((im_left, im_right))
-        if len(self.objpoints) > 50:
+        if len(self.objpoints) > self.MAX_CNT:
             max_error, max_error_idx = 0.0, -1
             for i in range(len(self.reprojection_errors)):
                 error_left, error_right = self.reprojection_errors[i]

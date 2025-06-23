@@ -21,6 +21,7 @@ from rclpy.client import Client
 from jai_rosbridge.action import HDRTrigger
 from std_srvs.srv import Trigger
 from rclpy.action.client import ClientGoalHandle
+import math
 
 
 class JaiTimeoutError(Exception):
@@ -54,7 +55,12 @@ class JaiHDRCaptureAgent:
         capture_cnt: int = 6
         side_move_cnt: int = 1
         side_move_distance: float = 0.1
+        drive_mode: Literal["side", "forward", "arc"] = "side"
+        arc_radius: float = 1
+        arc_angle: float = 10
+
         drive_forward: bool = False
+
         timeout: int = 20
         timeout_hdr: int = 20
         ROOT: str = "/home/cglab/project/turtlebot4_flask/clientapp/tmp/stereo/hdr/"
@@ -81,6 +87,11 @@ class JaiHDRCaptureAgent:
     class DriveGraphItem(GraphItem):
         distance: float
         direction: Literal["forward", "left"]
+
+    @dataclass
+    class DriveArcGraphItem(GraphItem):
+        radius: float
+        angle: float
 
     @dataclass
     class Log:
@@ -177,6 +188,14 @@ class JaiHDRCaptureAgent:
         elif isinstance(item, self.RotateBackGraphItem):
             self.turn_right(-self.angle_current)
             self.angle_current = 0
+        elif isinstance(item, self.DriveArcGraphItem):
+
+            self.drive_arc(
+                item.radius,
+                item.angle,
+                self.action_client_drive_side,
+                self.action_client_rotate,
+            )
 
     def pause(self):
         self.sig_pause.set()
@@ -201,78 +220,51 @@ class JaiHDRCaptureAgent:
         self.angle_current = 0.0
 
         graph_items: List[JaiHDRCaptureAgent.GraphItem] = []
-        for side_idx in range(self.config.side_move_cnt):
-            if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
-                graph_items.append(self.RotateGraphItem(-self.config.rotate_angle / 2))
-            for i in range(self.config.capture_cnt):
-
-                if i != 0:
-                    graph_items.append(
-                        self.RotateGraphItem(
-                            self.config.rotate_angle / (self.config.capture_cnt - 1)
-                        )
-                    )
+        if self.config.drive_mode == "arc":
+            for idx in range(self.config.capture_cnt):
+                graph_items.append(self.CaptureGraphItem(f"{space_id}", idx))
                 graph_items.append(
-                    self.CaptureGraphItem(
-                        f"{space_id}", i + side_idx * self.config.capture_cnt
+                    self.DriveArcGraphItem(
+                        self.config.arc_radius, self.config.arc_angle
                     )
                 )
-                if (
-                    self.config.capture_cnt - 1 == i
-                    and self.config.side_move_cnt > 1
-                    and i > 0
-                ):
-                    graph_items.append(self.RotateBackGraphItem())
-            if side_idx != self.config.side_move_cnt - 1:
-                if self.config.drive_forward:
+        else:
+            for side_idx in range(self.config.side_move_cnt):
+                if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
                     graph_items.append(
-                        self.DriveGraphItem(self.config.side_move_distance, "forward")
+                        self.RotateGraphItem(-self.config.rotate_angle / 2)
                     )
-                else:
+                for i in range(self.config.capture_cnt):
+
+                    if i != 0:
+                        graph_items.append(
+                            self.RotateGraphItem(
+                                self.config.rotate_angle / (self.config.capture_cnt - 1)
+                            )
+                        )
                     graph_items.append(
-                        self.DriveGraphItem(self.config.side_move_distance, "left")
+                        self.CaptureGraphItem(
+                            f"{space_id}", i + side_idx * self.config.capture_cnt
+                        )
                     )
+                    if (
+                        self.config.capture_cnt - 1 == i
+                        and self.config.side_move_cnt > 1
+                        and i > 0
+                    ):
+                        graph_items.append(self.RotateBackGraphItem())
+                if side_idx != self.config.side_move_cnt - 1:
+                    if self.config.drive_forward:
+                        graph_items.append(
+                            self.DriveGraphItem(
+                                self.config.side_move_distance, "forward"
+                            )
+                        )
+                    else:
+                        graph_items.append(
+                            self.DriveGraphItem(self.config.side_move_distance, "left")
+                        )
 
-        # for side_idx in range(self.config.side_move_cnt):
-        #     if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
-        #         try:
-        #             self.turn_right(-self.config.rotate_angle / 2)
-        #         except PoseNoDataError as e:
-        #             self.log.hdr_error_msgs.append(
-        #                 {
-        #                     "type": "error_no_pose",
-        #                     "data": {"cause": type(e).__name__, "msg": str(e)},
-        #                 }
-        #             )
-        #             self.publish_log()
-
-        #     try:
-
-        #         for i in range(self.config.capture_cnt):
-        #             frame_id = time.strftime("%H_%M_%S_", time.localtime()) + str(
-        #                 int((time.time() % 1) * 1000)
-        #             ).zfill(3)
-        #             # Logger : Turn Right
-        #             self.log.progress_root.idx = i + side_idx * self.config.capture_cnt
-        #             self.log.progress_root.task = "rotate"
-        #             self.publish_log()
-        #             try:
-        #                 if i != 0:
-        #                     angle_current += 1
-        #                     self.turn_right(
-        #                         self.config.rotate_angle / (self.config.capture_cnt - 1)
-        #                     )
-        #             except PoseNoDataError as e:
-        #                 self.log.hdr_error_msgs.append(
-        #                     {
-        #                         "type": "error_no_pose",
-        #                         "data": {"cause": type(e).__name__, "msg": str(e)},
-        #                     }
-        #                 )
-        #                 self.publish_log()
-        #             # get topics from HDR Queue
-
-        #             self.get_hdr_frame(f"{space_id}/{frame_id}", i)
         for item in graph_items:
             try:
                 while self.sig_pause.is_set():
@@ -307,43 +299,6 @@ class JaiHDRCaptureAgent:
                     self.run_graph_item(self.RotateBackGraphItem())
 
                 break
-
-            # except Exception as e:
-            #     self.log.hdr_error_msgs.append({"msg": str(e)})
-            #     self.publish_log()
-
-            # if self.config.capture_cnt > 1 and self.config.side_move_cnt > 1:
-            #     try:
-            #         self.turn_right(
-            #             -(
-            #                 angle_current
-            #                 * self.config.rotate_angle
-            #                 / (self.config.capture_cnt - 1)
-            #                 - self.config.rotate_angle / 2
-            #             )
-            #         )
-            #     except PoseNoDataError as e:
-            #         self.log.hdr_error_msgs.append(
-            #             {
-            #                 "type": "error_no_pose",
-            #                 "data": {"cause": type(e).__name__, "msg": str(e)},
-            #             }
-            #         )
-            #         self.publish_log()
-
-            # angle_current = (
-            #     0  # Reset angle to 0 after returning to the original position
-            # )
-            # if side_idx != self.config.side_move_cnt - 1:
-            #     if self.config.drive_forward:
-            #         self.drive_side(
-            #             self.config.side_move_distance,
-            #             self.action_client_drive_forward,
-            #         )
-            #     else:
-            #         self.drive_side(
-            #             self.config.side_move_distance, self.action_client_drive_side
-            #         )
 
         self.log.progress_root.status = "done"
         self.publish_log()
@@ -516,3 +471,17 @@ class JaiHDRCaptureAgent:
                 raise RangerTimeoutError("Action Timeout")
         time.sleep(0.3)
         result = result_future.result().result
+
+    def drive_arc(
+        self,
+        radius: float,
+        angle: float,
+        drive_client: ActionClient,
+        rotate_client: ActionClient,
+    ):
+        print(radius, angle)
+        self.turn_right(float(angle) / 2)
+        angle_radian = math.radians(angle)
+        chord = 2.0 * radius * np.sin(angle_radian / 2.0)
+        self.drive_side(chord, drive_client)
+        self.turn_right(float(angle) / 2)
