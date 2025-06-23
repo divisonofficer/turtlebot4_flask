@@ -3,6 +3,66 @@ import numpy as np
 
 
 class LucidPostProcess:
+    def load_calibration(self, path: str):
+
+        self.wb = [
+            2.0841475322429894,
+            1.0,
+            1.9215893014341496,
+        ]
+
+        calibration = np.load(path)
+
+        k_left = calibration["mtx_left"]
+        k_right = calibration["mtx_right"]
+        T = calibration["T"]
+        R = calibration["R"]
+        d_left = calibration["dist_left"]
+        d_right = calibration["dist_right"]
+        resolution = (1440, 926)
+        rectify_left, rectify_right, proj_left, proj_right, Q, roi_left, roi_right = (
+            cv2.stereoRectify(
+                k_left,
+                d_left,
+                k_right,
+                d_right,
+                resolution,
+                R,
+                T,
+            )
+        )
+        self.map_left_x, self.map_left_y = cv2.initUndistortRectifyMap(
+            k_left,
+            d_left,
+            rectify_left,
+            proj_left,
+            resolution,
+            cv2.CV_32FC1,
+        )
+        self.map_right_x, self.map_right_y = cv2.initUndistortRectifyMap(
+            k_right,
+            d_right,
+            rectify_right,
+            proj_right,
+            resolution,
+            cv2.CV_32FC1,
+        )
+
+    def rectify_stereo(self, hdr_left, hdr_right):
+
+        hdr_left_rectify = cv2.remap(
+            hdr_left,
+            self.map_left_x,
+            self.map_left_y,
+            cv2.INTER_LINEAR,
+        )
+        hdr_right_rectify = cv2.remap(
+            hdr_right,
+            self.map_right_x,
+            self.map_right_y,
+            cv2.INTER_LINEAR,
+        )
+        return hdr_left_rectify, hdr_right_rectify
 
     def rawUint8ToTonemappedBgr(self, raw: np.ndarray) -> np.ndarray:
         raw = self.rawUint8ToUint32(raw)
@@ -17,6 +77,26 @@ class LucidPostProcess:
 
     def bayerToBgr(self, bayer_img: np.ndarray) -> np.ndarray:
         height, width = bayer_img.shape
+
+        bayer_img_16 = bayer_img & 0xFFFF0000
+        bayer_img_16 = bayer_img_16 >> 16
+        bayer_img_0 = bayer_img & 0x0000FFFF
+        bayer_img_16 = bayer_img_16.astype(np.uint16)
+        bayer_img_0 = bayer_img_0.astype(np.uint16)
+
+        rgb_img = cv2.cvtColor(bayer_img_16, cv2.COLOR_BAYER_RGGB2BGR).astype(
+            np.float32
+        ) / (256)
+        rgb_img_0 = cv2.cvtColor(bayer_img_0, cv2.COLOR_BAYER_RGGB2BGR).astype(
+            np.float32
+        ) / (65536 * 256)
+
+        rgb_img = rgb_img + rgb_img_0
+        # Apply white balance
+        rgb_img[:, :, 0] *= self.wb[0]
+        rgb_img[:, :, 1] *= self.wb[1]
+        rgb_img[:, :, 2] *= self.wb[2]
+        return rgb_img
 
         # Initialize the BGR channels
         red_channel = np.zeros((height, width), dtype=np.float32)
@@ -70,7 +150,7 @@ class LucidPostProcess:
 
         # Merge the channels into a BGR image
         bgr_image = np.stack((blue_channel, green_channel, red_channel), axis=-1)
-        bgr_image = (bgr_image / (2 << 24)).astype(np.float32)
+        bgr_image = (bgr_image / (1 << 24)).astype(np.float32)
         return bgr_image
 
     def hdr_tonemap_to_8bit(self, hdr_image: np.ndarray, tonemap):

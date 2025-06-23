@@ -1,4 +1,3 @@
-from curses import raw
 import os
 from typing import Optional
 from PIL import Image
