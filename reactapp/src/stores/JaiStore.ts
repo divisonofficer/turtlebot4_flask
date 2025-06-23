@@ -59,6 +59,11 @@ export interface JaiStereoStatus {
   };
 }
 
+export interface DemoStatus {
+  mode: "RGB" | "NIR" | "IF" | "FF";
+  max_disp: number;
+}
+
 class JaiStore {
   jaiCameraParams: {
     [key: string]: {
@@ -82,6 +87,10 @@ class JaiStore {
   ];
 
   stereo_status: JaiStereoStatus | undefined = undefined;
+  demo_status: DemoStatus = {
+    mode: "RGB",
+    max_disp: 100,
+  };
 
   constructor() {
     makeAutoObservable(this);
@@ -292,6 +301,21 @@ class JaiStore {
     httpPost(`/jai/stereo/storage/disable`)
       .onSuccess((data: JaiStereoStatus) => {
         this.stereo_status = data;
+      })
+      .fetch();
+  };
+
+  fetchUpdateDemoConfig = (option: string, value: any) => {
+    httpPost(`/jai/demo/config/${option}`, { value: value })
+      .onSuccess((data: { config: DemoStatus }) => {
+        this.demo_status = data.config;
+      })
+      .fetch();
+  };
+  fetchGetDemoConfig = () => {
+    httpGet(`/jai/demo/config`)
+      .onSuccess((data: { config: DemoStatus }) => {
+        this.demo_status = data.config;
       })
       .fetch();
   };

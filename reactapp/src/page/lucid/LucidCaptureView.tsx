@@ -4,6 +4,7 @@ import { lucidStore } from "../../stores/LucidStore";
 import { Btn } from "../../design/button/button";
 import { Body3 } from "../../design/text/textsystem";
 import { Switch, VStack } from "@chakra-ui/react";
+import { VideoStream } from "../../design/other/video";
 
 export const LucidCaptureView = observer(() => {
   return (
@@ -40,6 +41,10 @@ export const LucidCaptureView = observer(() => {
             {"," + v}
           </Body3>
         ))}
+        <VideoStream
+          url={"/lucid/stream/preview"}
+          style={{ width: "100%", height: "auto" }}
+        />
       </VStack>
     </PageRoot>
   );

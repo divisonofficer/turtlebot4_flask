@@ -100,8 +100,38 @@ const JaiOptionSwitch = ({
   );
 };
 
+const OptionEnum = ({
+  option_id,
+  option_name,
+  value,
+  value_list,
+}: {
+  option_id: string;
+  option_name: string;
+  value: string;
+  value_list: string[];
+}) => {
+  return (
+    <HStack>
+      <H4>{option_name}</H4>
+      <select
+        value={value}
+        onChange={(e) => {
+          jaiHDRStore.fetchUpdateConfig(option_id, e.target.value);
+        }}
+      >
+        {value_list.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+    </HStack>
+  );
+};
+
 const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
-  const params = [
+  const params_drive = [
     {
       range: [15, 180],
       step: 1,
@@ -126,6 +156,25 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
       name: "side_move_distance",
       value: jaiHDRStore.hdr_config.side_move_distance,
     },
+  ];
+
+  const params_arc = [
+    {
+      range: [0, 90],
+      step: 1,
+      name: "arc_angle",
+      value: jaiHDRStore.hdr_config.arc_angle,
+    },
+    {
+      range: [0, 2.5],
+      step: 0.05,
+      name: "arc_radius",
+      value: jaiHDRStore.hdr_config.arc_radius,
+    },
+  ];
+  const params = [
+    ...(jaiHDRStore.hdr_config.drive_mode === "arc" ? params_arc : []),
+    ...(jaiHDRStore.hdr_config.drive_mode !== "arc" ? params_drive : []),
   ];
 
   const renderSliders = () =>
@@ -181,6 +230,12 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
         </Grid>
       ) : (
         <VStack width="15rem" spacing={4}>
+          <OptionEnum
+            option_id="drive_mode"
+            option_name="Drive mode"
+            value={jaiHDRStore.hdr_config.drive_mode}
+            value_list={["forward", "side", "arc"]}
+          />
           {renderSliders()}
           <JaiOptionSwitch
             option_id="lidar"

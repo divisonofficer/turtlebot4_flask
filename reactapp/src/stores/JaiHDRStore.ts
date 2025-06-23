@@ -31,6 +31,9 @@ export namespace JaiHDRLog {
     side_move_cnt: number;
     side_move_distance: number;
     drive_forward: boolean;
+    drive_mode: "forward" | "side" | "arc";
+    arc_radius: number;
+    arc_angle: number;
   }
 }
 
@@ -43,6 +46,9 @@ class JaiHDRStore {
     side_move_cnt: 0,
     side_move_distance: 0,
     drive_forward: false,
+    drive_mode: "forward",
+    arc_radius: 0,
+    arc_angle: 0,
   };
   hdr_latest_capture: {
     space_id: string;

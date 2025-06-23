@@ -23,6 +23,8 @@ import { DepthViewPage } from "./page/jaibridge/DepthPage";
 import { LucidCaptureView } from "./page/lucid/LucidCaptureView";
 import { DepthStoragePage } from "./page/jaibridge/DepthStoragePage";
 import { HDRPage } from "./page/jaibridge/HDRPage";
+import { SensorsPage } from "./page/sensors/SensorsPage";
+import { DemoPage } from "./page/DemoPage";
 
 function App() {
   const isMobile = useMediaQuery("(max-width: 600px)")[0];
@@ -51,6 +53,8 @@ function App() {
 
         <Route path="/lucid" element={<LucidCaptureView />} />
         <Route path="/jaibridge/hdr" element={<HDRPage />} />
+        <Route path="/sensors" element={<SensorsPage />} />
+        <Route path="/jaibridge/demo" element={<DemoPage />} />
       </Routes>
     );
   };
@@ -66,8 +70,8 @@ function App() {
                 height: "100vh",
               }}
             >
-              <MenuToggle />
               <RouteTable />
+              <Menus />
             </VStack>
           ) : (
             <HStack
