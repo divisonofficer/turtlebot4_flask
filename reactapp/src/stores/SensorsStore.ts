@@ -7,6 +7,7 @@ export namespace Sensor {
       name: string;
       type: "int" | "float" | "bool" | "string" | "enum";
       hidden?: boolean;
+      value: any;
     }
     export interface EnumParam extends Param {
       type: "enum";
@@ -66,7 +67,9 @@ export namespace Sensor {
     const: Const;
     state: State;
     type: "camera" | "lidar";
-    params?: Param.Param[];
+    config?: {
+      [key: string]: Param.Param;
+    };
   }
 
   export interface Camera extends Sensor {
@@ -74,6 +77,17 @@ export namespace Sensor {
     state: CameraState;
     camera_info: {};
   }
+}
+
+export interface SensorGroupEntity {
+  name: string;
+}
+export interface SensorGroup {
+  name: string;
+  sensors: SensorGroupEntity[];
+  state: {
+    trigger_loop_on: boolean;
+  };
 }
 
 class SensorsStore {
@@ -143,6 +157,8 @@ class SensorsStore {
     // },
   ];
 
+  sensorGroups: SensorGroup[] = [];
+
   constructor() {
     makeAutoObservable(this);
   }
@@ -155,6 +171,36 @@ class SensorsStore {
     httpGet("/lucid/sensors").onSuccess(this._updateSensorList).fetch();
   };
 
+  fetchGetGroupsList = () => {
+    httpGet("/lucid/sensors/groups")
+      .onSuccess((data: any) => {
+        this.sensorGroups = data as Array<SensorGroup>;
+      })
+      .fetch();
+  };
+
+  _updateSensorGroupList = (data: any) => {
+    this.sensorGroups = data as Array<SensorGroup>;
+  };
+
+  fetchGroupTrigger(group: SensorGroup) {
+    httpPost(`/lucid/sensors/group/${group.name}/trigger`)
+      .onSuccess(this._updateSensorGroupList)
+      .fetch();
+  }
+
+  fetchGroupTriggerLoopOn(group: SensorGroup) {
+    httpPost(`/lucid/sensors/group/${group.name}/trigger/loop/start`)
+      .onSuccess(this._updateSensorGroupList)
+      .fetch();
+  }
+
+  fetchGroupTriggerLoopOff(group: SensorGroup) {
+    httpPost(`/lucid/sensors/group/${group.name}/trigger/loop/stop`)
+      .onSuccess(this._updateSensorGroupList)
+      .fetch();
+  }
+
   fetchPostPreviewOn = (sensor: Sensor.Sensor) => {
     httpPost(`/lucid/sensors/${sensor.name}/preview/on`)
       .onSuccess(this._updateSensorList)
@@ -162,6 +208,21 @@ class SensorsStore {
   };
   fetchPostPreviewOff = (sensor: Sensor.Sensor) => {
     httpPost(`/lucid/sensors/${sensor.name}/preview/off`)
+      .onSuccess(this._updateSensorList)
+      .fetch();
+  };
+  stream_start = (sensor: Sensor.Sensor) => {
+    httpPost(`/lucid/sensors/${sensor.name}/stream/start`)
+      .onSuccess(this._updateSensorList)
+      .fetch();
+  };
+  stream_stop = (sensor: Sensor.Sensor) => {
+    httpPost(`/lucid/sensors/${sensor.name}/stream/stop`)
+      .onSuccess(this._updateSensorList)
+      .fetch();
+  };
+  updateSensorConfig = (sensor: Sensor.Sensor, param: string, value: any) => {
+    httpPost(`/lucid/sensors/${sensor.name}/config/${param}`, { value })
       .onSuccess(this._updateSensorList)
       .fetch();
   };

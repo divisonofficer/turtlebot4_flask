@@ -1,5 +1,5 @@
 import os
-from typing import List, Literal
+from typing import Callable, List, Literal
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -15,8 +15,19 @@ from core.raft_stereo import RAFTStereo
 import open3d as o3d
 
 
-class LucidCalibration:
+def get_raw_np(folder: str):
+    if os.path.exists(folder + "/raw.npz"):
+        return np.load(folder + "/raw.npz")
+    keys = [
+        "left",
+        "right",
+        "points",
+        "timestamp_ns",
+    ]
+    return {key: np.load(folder + f"/{key}.npy") for key in keys}
 
+
+class LucidCalibration:
     def __init__(self, args):
         self.args = args
         self.sift = cv2.SIFT.create()
@@ -71,7 +82,8 @@ class LucidCalibration:
         return k_left, d_left, k_right, d_right, R, T
 
     def read_image_pair(self, folder: str):
-        raw = np.load(folder + "/raw.npz")
+
+        raw = get_raw_np(folder)
         left = raw["left"]
         right = raw["right"]
         toned = self.postprocess.rawUint8ToTonemappedBgr(
@@ -159,6 +171,7 @@ class LucidCalibration:
 
 
 class StereoDepth:
+
     def __init__(self):
         class Args:
             def __init__(self):
@@ -205,7 +218,7 @@ class LidarCalibration:
         self.calibration = np.load(calibration_path)
         self.k_left = self.calibration["mtx_left"]
         self.dist_left = self.calibration["dist_left"]
-        self.baseline = np.linalg.norm(self.calibration["T"][0])
+        self.baseline = np.linalg.norm(self.calibration["T"])
         self.postprocess = LucidPostProcess()
 
         self.trans_init = np.array(
@@ -217,22 +230,8 @@ class LidarCalibration:
             ]
         )
 
-    def get_raw_np(self, folder: str):
-        if os.path.exists(folder + "/raw.npz"):
-            return np.load(folder + "/raw.npz")
-        keys = [
-            "left",
-            "right",
-            "points",
-            "ranges",
-            "timestamp_ns",
-            "lidar_timestamp_ns",
-            "reflectivity",
-        ]
-        return {key: np.load(folder + f"/{key}.npy") for key in keys}
-
     def calibrate_frame_chessboard(self, folder: str):
-        raw_np = np.load(folder + "/raw.npz")
+        raw_np = get_raw_np(folder)
         left = self.image_get_tonemapped(folder, "left")
         right = self.image_get_tonemapped(folder, "right")
         left_gray = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
@@ -269,7 +268,7 @@ class LidarCalibration:
     def image_get_tonemapped(self, folder: str, side: Literal["left", "right"]):
         if not self.args.overlap and os.path.exists(folder + f"/{side}_tonemapped.png"):
             return cv2.imread(folder + f"/{side}_tonemapped.png")
-        raw_np = self.get_raw_np(folder)
+        raw_np = get_raw_np(folder)
         raw = np.concatenate((raw_np["left"], raw_np["right"]), axis=1)
         tonemapped = self.postprocess.rawUint8ToTonemappedBgr(raw)
         tonemapped = (
@@ -282,14 +281,13 @@ class LidarCalibration:
 
     def calibrate_frame(self, folder: str):
         print(folder)
-        raw_np = self.get_raw_np(folder)
+        raw_np = get_raw_np(folder)
         left = self.image_get_tonemapped(folder, "left")
         right = self.image_get_tonemapped(folder, "right")
-        ranges = raw_np["ranges"]
 
         if not hasattr(self, "Q"):
-            imageSize = (left.shape[1], left.shape[0])
-            # imageSize = (1440, 928)
+            # imageSize = (left.shape[1], left.shape[0])
+            imageSize = (800, 600)
             # imageSize = (left.shape[1], left.shape[0])
             R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(
                 self.k_left,
@@ -330,9 +328,6 @@ class LidarCalibration:
         right = right[:image_height, :image_width]
         disparity = self.stereo_depth.disparity_matching(left, right)
         depth = self.disparity_to_depth(disparity)
-        # remap_mask_left = self.remap_mask_left[:image_height, :image_width]
-        # disparity[remap_mask_left == 0] = 0
-        # depth[remap_mask_left == 0] = 0
 
         cv2.imwrite(folder + "/left_rectified.png", left)
         cv2.imwrite(folder + "/right_rectified.png", right)
@@ -365,15 +360,17 @@ class LidarCalibration:
             return None
 
         # points_camera = cv2.reprojectImageTo3D(disparity, self.Q).reshape(-1, 3)
-        points_camera = self.depth_to_points(depth)
-        points_lidar = self.lidar_depth_project(ranges)
 
-        points_lidar = points_lidar.reshape(-1, 3)
         if self.args.save_depth:
+            points_camera = self.depth_to_points(depth)
+            points_lidar = self.lidar_depth_project(ranges)
+
+            points_lidar = points_lidar.reshape(-1, 3)
             self.plot(points_camera, points_lidar, folder + "/points_plot.png")
 
-        transform = self.compute_matches(points_camera, points_lidar)
-        return transform
+            transform = self.compute_matches(points_camera, points_lidar)
+            return transform
+        return None
 
     def disparity_to_depth(self, disparity: np.ndarray):
         depth = self.baseline * self.k_left[0, 0] / disparity

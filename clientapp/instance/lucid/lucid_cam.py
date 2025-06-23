@@ -1,7 +1,7 @@
 from platform import node
 import threading
 from arena_api.system import system
-from numpy import tri
+from numpy import isin, tri
 
 
 TAB1 = "  "
@@ -35,14 +35,17 @@ class LucidImage:
         del self.buffer_np
 
 
-class LucidPyAPI:
-    def __init__(self):
-        self.SERIAL = ["224201564", "224201585"]
-        self.timestamp_base = [0, 0]
+class LucidCamera:
+    def __init__(self, serial: str = "224201564"):
+        # self.SERIAL = ["224201564", "224201585"]
+        self.SERIAL = serial
+        self.timestamp_base = 0
         self.FRAME_RATE = 10.0
-        self.BUFFER_COUNT = 6
-        self.buffers_device: List[List[_Buffer]] = [[], []]
+        self.BUFFER_COUNT = 1
+        self.buffers_device: List[_Buffer] = []
         self.trigger_thread: Optional[threading.Thread] = None
+        self.trigger_thread_stop = threading.Event()
+        self.device: Optional[Device] = None
 
     def create_devices_with_tries(self):
         """
@@ -77,84 +80,77 @@ class LucidPyAPI:
                 f"the example again."
             )
 
-    def device_collect_buffers(self, device: Device, idx: int, trigger=False):
+    def device_collect_buffers(self, device: Device, trigger=False):
         begin_time = time.time()
         device.nodemap.get_node("AcquisitionStart").execute()
+        self.buffers_device = []
+        try:
+            buffers = device.get_buffer(1, timeout=300)
+        except Exception as e:
+            print(f"{TAB1}Error getting buffer: {e}")
+            return
 
-        buffers = device.get_buffer(self.BUFFER_COUNT)
-
-        self.buffers_device[idx] = buffers
+        if isinstance(buffers, _Buffer):
+            self.buffers_device = [buffers]
 
     def trigger_loop(self):
         trigger_armed = False
-        trigger_left = self.devices[0].nodemap.get_node("TriggerArmed")
-        trigger_right = self.devices[1].nodemap.get_node("TriggerArmed")
-
-        trigger_ex_left = self.devices[0].nodemap.get_node("TriggerSoftware")
-        trigger_ex_right = self.devices[1].nodemap.get_node("TriggerSoftware")
-
-        # trigger_ac_left = self.devices[0].nodemap.get_node("AcquisitionStart")
-        # trigger_ac_right = self.devices[1].nodemap.get_node("AcquisitionStart")
-        # trigger_time = time.time()
-        count = 0
+        trigger_armed_node = self.device.nodemap.get_node("TriggerArmed")
         while True:
+            if self.trigger_thread_stop.is_set():
+                self.trigger_thread_stop.clear()
+                break
             try:
-                trigger_armed = trigger_left.value and trigger_right.value
+                trigger_armed = trigger_armed_node.value
             except Exception as e:
                 trigger_armed = False
             if trigger_armed:
-                # print(f"Triggering took {time.time() - trigger_time} seconds")
-                trigger_time = time.time()
-
-                trigger_ex_left.execute()
-                trigger_ex_right.execute()
-                # if count == self.FRAME_RATE:
-                #     trigger_ac_left.execute()
-                #     trigger_ac_right.execute()
-                #     count = 0
-                count += 1
-            # print(f"Armed {trigger_left.value} {trigger_right.value}")
-            # print(f"OnAcquisitoin {self.devices[0].nodemap['AcquisitionControl']}")
+                self.trigger_capture()
             time.sleep(0.03)
 
+    def trigger_capture(self):
+        trigger_sw_node = self.device.nodemap.get_node("TriggerSoftware")
+        trigger_sw_node.execute()
+
     def open_stream(self):
+        if self.device is None:
+            self.connect_device()
+            self.device.start_stream()
+
         if self.trigger_thread is not None:
             if self.trigger_thread.is_alive():
+                print(f"{TAB1} {self.SERIAL} : Trigger thread already started")
                 return
         self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
         self.trigger_thread.start()
 
-        for idx, device in enumerate(self.devices):
-            device.start_stream()
-
     def collect_images(self):
+        if self.device is None:
+            raise Exception("Device not connected")
         threads = []
-
-        for idx, device in enumerate(self.devices):
-            thread = threading.Thread(
-                target=self.device_collect_buffers, args=(device, idx), daemon=True
-            )
-            threads.append(thread)
-            thread.start()
+        thread = threading.Thread(
+            target=self.device_collect_buffers, args=(self.device,), daemon=True
+        )
+        threads.append(thread)
+        thread.start()
         for thread in threads:
             thread.join()
-        buffer_np_list: List[List[LucidImage]] = [[], []]
-        for idx, device in enumerate(self.devices):
-            for buffer in self.buffers_device[idx]:
-                time_begin = time.time()
-                buffer_np = self.buffer_to_image(buffer)
-                if buffer_np is not None:
-                    timestamp_ns = buffer.timestamp_ns + self.timestamp_base[idx]
-                    buffer_np_list[idx].append(LucidImage(buffer_np, timestamp_ns))
-                device.requeue_buffer(buffer)
+        buffer_np_list: List[LucidImage] = []
+        for buffer in self.buffers_device:
+            time_begin = time.time()
+            buffer_np = self.buffer_to_image(buffer)
+            if buffer_np is not None:
+                timestamp_ns = buffer.timestamp_ns + self.timestamp_base
+                buffer_np_list.append(LucidImage(buffer_np, timestamp_ns))
+            self.device.requeue_buffer(buffer)
 
         return buffer_np_list
 
-    def collect_image_loop(self, callback: Callable[[LucidImage, LucidImage], None]):
+    def collect_image_loop(self, callback: Callable[[LucidImage], None]):
         while True:
             images = self.collect_images()
-            for left, right in zip(images[0], images[1]):
-                callback(left, right)
+            for raw_img in images:
+                callback(raw_img)
 
     def buffer_to_image(self, buffer: _Buffer) -> Optional[np.ndarray]:
         if buffer.is_incomplete:
@@ -180,26 +176,35 @@ class LucidPyAPI:
         return data_np
 
     def connect_device(self):
-        devices = self.create_devices_with_tries()
-        print("Device List : ", devices)
-        self.devices: List[Device] = []
-        for serial in self.SERIAL:
+        try:
+            if self.device is not None:
+                print(f"{TAB1}Device already connected")
+                return True
+            devices = self.create_devices_with_tries()
+            print("Device List : ", devices)
+
             for device in devices:
-                if device.nodemap.get_node("DeviceSerialNumber").value == serial:
-                    self.devices.append(device)
+                if device.nodemap.get_node("DeviceSerialNumber").value == self.SERIAL:
+                    self.device = device
                     break
 
-        print(f"{TAB1}Connected to {len(self.devices)} device(s)")
-
-        for idx, device in enumerate(self.devices):
+            print(
+                f"{TAB1}Connected to device {self.device.nodemap.get_node('DeviceModelName').value}"
+            )
+            if self.device is None:
+                print(
+                    f"{TAB1}Device with serial {self.SERIAL} not found. "
+                    f"Please check the connection."
+                )
+                return False
+            device = self.device
             timestamp_ns = device.nodemap.get_node("PtpDataSet").value
-            self.timestamp_base[idx] = time.time_ns() - timestamp_ns
+            self.timestamp_base = time.time_ns() - timestamp_ns
 
             print(f"{TAB1}Timestamp: {timestamp_ns}")
-            print(f"{TAB1}Timestamp base: {self.timestamp_base[idx]}")
+            print(f"{TAB1}Timestamp base: {self.timestamp_base}")
 
-        for idx, device in enumerate(self.devices):
-            self.config_device(device, idx)
+            self.config_device(device)
             print(
                 f"{TAB1}Connected to device {device.nodemap.get_node('DeviceModelName').value}"
             )
@@ -207,9 +212,13 @@ class LucidPyAPI:
             trigger_delay = device.nodemap.get_node("TriggerDelay").value
             print(f"{TAB1}Initial Trigger Delay: {trigger_delay}")
             device.nodemap.get_node("TriggerDelay").value = 0.0
-        # self.devices[0].nodemap.get_node("TriggerDelay").value = 0.0
 
-    def config_device(self, device: Device, idx: int):
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    def config_device(self, device: Device):
         nodemap = device.nodemap
         device.stop_stream()
         resetTimestamp: NodeCommand = nodemap.get_node("TimestampReset")
@@ -290,9 +299,14 @@ class LucidPyAPI:
 
 
 if __name__ == "__main__":
-    lucid = LucidPyAPI()
+    lucid = LucidCamera(serial="224201564")
+    lucid_right = LucidCamera(serial="224201585")
     lucid.connect_device()
     lucid.open_stream()
-    lucid.collect_images()
-    lucid.collect_images()
+    lucid_right.connect_device()
+    lucid_right.open_stream()
+    images = lucid.collect_images()
+    print(f"Collected {len(images)} images")
+    images = lucid_right.collect_images()
+    print(f"Collected {len(images)} images")
     del lucid

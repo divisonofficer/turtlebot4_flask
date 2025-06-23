@@ -9,13 +9,13 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
-class StereoItemMerged(Generic[T]):
+class StereoItemMerged(Generic[T, K]):
     header: Header
 
     def __init__(
         self,
         left: T,
-        right: T,
+        right: K,
         timestamp: Optional[Header] = None,
     ):
         self.left = left

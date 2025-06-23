@@ -13,7 +13,7 @@ class SQueue:
 
     def __init__(self):
         self.queue_dict = {}
-        self.max_time_interval = 0.3  # 300ms
+        self.max_time_interval = 0.05  # 50ms
         self.max_queue_length = 20
         self.root_key = None
 

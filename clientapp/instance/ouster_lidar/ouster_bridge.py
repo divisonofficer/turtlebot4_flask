@@ -326,7 +326,7 @@ class OusterBridge:
             av_covariance,
             la_covariance,
         )
-        while self.imu_packet_queue:
+        while len(self.imu_packet_queue) > 500:
             self.imu_packet_queue.pop(0)
         return imu
 

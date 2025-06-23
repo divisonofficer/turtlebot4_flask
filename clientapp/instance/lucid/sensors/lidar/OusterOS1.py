@@ -55,11 +55,20 @@ class SensorOuster(Sensor):
         if isinstance(msg, OusterLidarData):
             frame = self.Frame(
                 msg.timestamp_ns / 1e9,
-                {"points": msg.points, "pose": msg.pose},
+                {
+                    "points": msg.points,
+                    "imu_av": msg.imu.av,
+                    "imu_la": msg.imu.la,
+                    "imu_ts": msg.imu.timestamp_ns,
+                    "lidar_ts": msg.timestamp_ns,
+                },
                 {},
                 {
                     "points": "npy",
-                    "pose": "npy",
+                    "imu_av": "npy",
+                    "imu_la": "npy",
+                    "imu_ts": "npy",
+                    "lidar_ts": "npy",
                 },
             )
             self.frame_callback(self, frame)

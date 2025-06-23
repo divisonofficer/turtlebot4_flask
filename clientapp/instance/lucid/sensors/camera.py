@@ -25,10 +25,10 @@ class Camera(Sensor):
         self.frame_callback = callback
 
     def start_stream(self):
-        pass
+        raise NotImplementedError("start_stream method not implemented")
 
     def stop_stream(self):
-        pass
+        raise NotImplementedError("stop_stream method not implemented")
 
     def post_process_thumbnail(self, frame, frame_id: str):
         return frame
