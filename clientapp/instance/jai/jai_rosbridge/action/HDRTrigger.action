@@ -1,5 +1,5 @@
 # Goal definition
-string log_message  # 전송할 로그 메시지
+string space_id  # 전송할 로그 메시지
 ---
 
 # Result definition
