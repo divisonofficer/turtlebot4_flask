@@ -1,5 +1,6 @@
 import { makeAutoObservable } from "mobx";
 import { httpGet, httpPost } from "../connect/http/request";
+import { lucidSocket } from "../connect/socket/subscribe";
 
 export namespace Sensor {
   export namespace Param {
@@ -52,6 +53,7 @@ export namespace Sensor {
     timestamp_last?: number;
     fps?: number;
     preview_on: boolean;
+    device_status: "disconnected" | "connecting" | "connected" | "error";
   }
 
   export interface Preview {
@@ -66,7 +68,7 @@ export namespace Sensor {
     name: string;
     const: Const;
     state: State;
-    type: "camera" | "lidar";
+    type: "camera" | "sensor";
     config?: {
       [key: string]: Param.Param;
     };
@@ -161,7 +163,28 @@ class SensorsStore {
 
   constructor() {
     makeAutoObservable(this);
+    lucidSocket.subscribe("sensors", (data: any) => {
+      this._updateSensorList(data);
+    });
+    lucidSocket.subscribe(
+      "sensor_update",
+      (data: { name: string; timestamp_last: number; fps: number }) => {
+        this._updateSensorState(data);
+      }
+    );
   }
+
+  _updateSensorState = (data: {
+    name: string;
+    timestamp_last: number;
+    fps: number;
+  }) => {
+    const sensor = this.sensors.find((s) => s.name === data.name);
+    if (sensor && sensor.state) {
+      sensor.state.timestamp_last = data.timestamp_last;
+      sensor.state.fps = data.fps;
+    }
+  };
 
   _updateSensorList = (data: any) => {
     this.sensors = data as Array<Sensor.Sensor>;
@@ -208,6 +231,11 @@ class SensorsStore {
   };
   fetchPostPreviewOff = (sensor: Sensor.Sensor) => {
     httpPost(`/lucid/sensors/${sensor.name}/preview/off`)
+      .onSuccess(this._updateSensorList)
+      .fetch();
+  };
+  fetchLaunchDevice = (sensor: Sensor.Sensor) => {
+    httpPost(`/lucid/sensors/${sensor.name}/launch`)
       .onSuccess(this._updateSensorList)
       .fetch();
   };

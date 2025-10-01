@@ -1,0 +1,35 @@
+{
+    "DEVICE_LEFT_NAME": "jai_1600_left",
+    "DEVICE_RIGHT_NAME": "jai_1600_right",
+    "DEVICE_LEFT_ADDRESS": "00:0c:df:0a:b9:62",
+    "DEVICE_RIGHT_ADDRESS": "00:0c:df:0a:c6:c8",
+    "BUFFER_COUNT": 8,
+    "BUFFER_SIZE": 3110400,
+    "ROS_MSG_BUFFER_SIZE": 1555200,
+    "ROS_SCALE_DOWN": false,
+    "VIZ_PIXEL_ACQUIRE_FORMAT": 17301513,
+    "NIR_PIXEL_ACQUIRE_FORMAT": 17301505,
+    "FRAME_RATE": 4,
+    "HDR_TIMEOUT_CNT": 3,
+    "MULTIFRAME_COUNT": 40,
+    "HDR_CAPTURE_MODE": true,
+    "HDR_CAPTURE_SINGLE": true,
+    "HDR_PARALLEL_MODE": true,
+    "STEREO_EXPOSURE_SYNC": false,
+    "STEREO_EXPOSURE_SYNC_RATIO": 0.05,
+    "NODE_MODE": 1,
+    "TRIGGER_SYNC": false,
+    "MIN_DIFFS": 1,
+    "HDR_EXPOSURE_DELAY": 500,
+    "HDR_EXPOSURE": [
+        2000,
+        8000,
+        32000,
+        128000
+    ],
+    "HDR_EXPOSURE_NIR": [
+        8000,
+        128000
+    ],
+    "STREAM_BUFFER": true
+}

@@ -71,7 +71,12 @@ class JAIHDRNode : public rclcpp::Node {
    */
   void connectCamera();
 
-  void tapoTrigger(bool on);
+  /**
+   * DCS103e 채널 제어
+   * @param channel 채널 번호 (0, 1, 2)
+   * @param enable true: 켜기, false: 끄기
+   */
+  void dcsChannelControl(int channel, bool enable);
 
   /**
    * ROS2 node initialization
@@ -84,6 +89,12 @@ class JAIHDRNode : public rclcpp::Node {
    */
 
   void collectHdrImages(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
+
+  /**
+   *  Fast parallel HDR image acquisition
+   */
+  void collectHdrImagesParallel(
       const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
 
   void collectHdrImagesFor(int dn, int sn);
@@ -105,6 +116,13 @@ class JAIHDRNode : public rclcpp::Node {
   std::atomic_bool cancel_flag;
   std::atomic_bool hdr_trigger_flag;
 
-  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_tapo_on,
-      client_tapo_off;
+  // DCS103e 조명 제어 클라이언트
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_dcs_connect,
+      client_dcs_disconnect;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_dcs_ch0_enable,
+      client_dcs_ch0_disable;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_dcs_ch1_enable,
+      client_dcs_ch1_disable;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_dcs_ch2_enable,
+      client_dcs_ch2_disable;
 };

@@ -196,7 +196,10 @@ int JAIRGBNIRCamera::readImage(
     std::vector<cv::Mat>& dst, __uint64_t& timestamp) {
   for (int i = 0; i < 4; i++) hdr_stream_done_flag[i / 2][i % 2] = false;
 
-  while (true) {
+  int max_retries = 3;  // 최대 재시도 횟수
+  int retry_count = 0;
+
+  while (retry_count < max_retries) {
     bool all_done = true;
     std::vector<std::thread> threads;
 
@@ -217,21 +220,12 @@ int JAIRGBNIRCamera::readImage(
 
     for (int d = 0; d < cameras.size(); d++) {
       if (!(hdr_stream_done_flag[d][0] && hdr_stream_done_flag[d][1])) {
-        // if (hdr_stream_buffer_received[d][0] > 0 ||
-        //     hdr_stream_buffer_received[d][1] > 0) {
-        //   Debug << "Some buffer timeout";
-        //   sendFeedback(goal_handle, "Some buffer timeout");
-        //
-        // } else {
-        //   Debug << "Some buffer received but not all done";
-
-        //   hdr_stream_buffer_received[d][0] = config->HDR_TIMEOUT_CNT;
-        //   hdr_stream_buffer_received[d][1] = config->HDR_TIMEOUT_CNT;
-        // }
-        std::this_thread::sleep_for(
-            std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY * 1000000));
+        // 짧은 대기 시간으로 더 빠른 재시도
+        std::this_thread::sleep_for(std::chrono::nanoseconds(
+            config->HDR_EXPOSURE_DELAY * 1000000));  // 절반으로 단축
         triggerFrameCapture(d);
         all_done = false;
+        break;  // 하나라도 실패하면 바로 다음 루프로
       }
     }
 
@@ -239,11 +233,17 @@ int JAIRGBNIRCamera::readImage(
       break;
     }
 
-    // std::this_thread::sleep_for(
-    //     std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY * 1000000));
+    retry_count++;
   }
-  timestamp = systemTimeNano();
 
+  // 타임아웃 체크
+  if (retry_count >= max_retries) {
+    sendFeedback(goal_handle,
+                 "{\"type\":\"warning_timeout\",\"data\":{\"message\":\"Some "
+                 "buffers timed out but continuing\"}}");
+  }
+
+  timestamp = systemTimeNano();
   return 0;
 }
 
@@ -251,9 +251,26 @@ JAIHDRNode::JAIHDRNode() : Node("jai_hdr_node") {
   connectCamera();
   initNodeService();
 
-  this->client_tapo_on = this->create_client<std_srvs::srv::Trigger>("tapo/on");
-  this->client_tapo_off =
-      this->create_client<std_srvs::srv::Trigger>("tapo/off");
+  // DCS103e 서비스 클라이언트 초기화
+  this->client_dcs_connect = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/connect");
+  this->client_dcs_disconnect = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/disconnect");
+
+  this->client_dcs_ch0_enable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_0/enable");
+  this->client_dcs_ch0_disable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_0/disable");
+
+  this->client_dcs_ch1_enable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_1/enable");
+  this->client_dcs_ch1_disable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_1/disable");
+
+  this->client_dcs_ch2_enable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_2/enable");
+  this->client_dcs_ch2_disable = this->create_client<std_srvs::srv::Trigger>(
+      "/dcs103e_controller/channel_2/disable");
 }
 
 void JAIHDRNode::connectCamera() { camera.connectCamera(); }
@@ -284,14 +301,32 @@ void JAIRGBNIRCamera::closeStreamAll() {
   for (int i = 0; i < cameras.size(); i++) cameras[i]->closeStream();
 }
 
-void JAIHDRNode::tapoTrigger(bool on) {
-  auto client = on ? client_tapo_on : client_tapo_off;
+void JAIHDRNode::dcsChannelControl(int channel, bool enable) {
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client;
+
+  // 채널별 클라이언트 선택
+  switch (channel) {
+    case 0:
+      client = enable ? client_dcs_ch0_enable : client_dcs_ch0_disable;
+      break;
+    case 1:
+      client = enable ? client_dcs_ch1_enable : client_dcs_ch1_disable;
+      break;
+    case 2:
+      client = enable ? client_dcs_ch2_enable : client_dcs_ch2_disable;
+      break;
+    default:
+      throw std::runtime_error("Invalid channel number: " +
+                               std::to_string(channel));
+  }
+
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
 
   // 서비스가 준비될 때까지 최대 1초 대기
   if (!client->wait_for_service(std::chrono::seconds(1))) {
-    throw std::runtime_error("Service is not available");
+    throw std::runtime_error("DCS103e service is not available");
   }
+
   // 비동기적으로 서비스 호출
   auto future_result = client->async_send_request(request);
 
@@ -305,7 +340,7 @@ void JAIHDRNode::tapoTrigger(bool on) {
     // 1초 이상 대기 시 타임아웃 처리
     if (std::chrono::steady_clock::now() - start_time >
         std::chrono::seconds(1)) {
-      throw std::runtime_error("Service call timed out");
+      throw std::runtime_error("DCS103e service call timed out");
     }
   }
 
@@ -313,8 +348,11 @@ void JAIHDRNode::tapoTrigger(bool on) {
   auto response = future_result.get();
   if (!response || !response->success) {
     throw std::runtime_error(response ? response->message
-                                      : "No response received");
+                                      : "No response received from DCS103e");
   }
+
+  RCLCPP_INFO(this->get_logger(), "DCS103e Channel %d %s", channel,
+              enable ? "enabled" : "disabled");
 }
 
 void JAIHDRNode::collectHdrImages(
@@ -322,17 +360,26 @@ void JAIHDRNode::collectHdrImages(
   std::vector<cv::Mat> images;
   std::vector<__uint64_t> timestamps;
 
+  // 미리 조명 상태 설정 (NIR 첫 번째 시퀀스용)
+  try {
+    dcsChannelControl(0, true);  // 채널 0 켜기
+  } catch (const std::exception& e) {
+    RCLCPP_WARN(this->get_logger(), "Failed to turn on DCS103e Channel 0: %s",
+                e.what());
+  }
+
   for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
     int t = config->HDR_EXPOSURE[t_idx];
     int t2 = config->HDR_EXPOSURE_NIR[t_idx % config->HDR_EXPOSURE_NIR.size()];
+
+    // 다음 조명 상태를 미리 준비 (비동기)
+    bool should_toggle_light = (t_idx + 1 == config->HDR_EXPOSURE_NIR.size());
+    std::future<void> light_control_future;
+
     camera.configureExposureAll(t, t2);
     camera.openStreamAll();
     camera.flushStream();
 
-    // std::this_thread::sleep_for(
-    //     std::chrono::nanoseconds(config->HDR_EXPOSURE_DELAY));
-
-    // camera.openStreamAll();
     camera.triggerFrameCapture(0);
     if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
     Debug << "Collect HDR Images for " << t;
@@ -348,29 +395,186 @@ void JAIHDRNode::collectHdrImages(
     __uint64_t timestamp;
     camera.readImage(goal_handle, imgr, timestamp);
     Debug << "Image Read Done";
-    if (t_idx + 1 == config->HDR_EXPOSURE_NIR.size()) {
-      Debug << "NIR Image Read Done";
-      tapoTrigger(false);
+
+    // 조명 제어를 이미지 읽기와 병렬로 처리
+    if (should_toggle_light) {
+      light_control_future = std::async(std::launch::async, [this]() {
+        Debug << "NIR Image Read Done - Turning off DCS103e Channel 0";
+        try {
+          dcsChannelControl(0, false);  // 채널 0 끄기
+        } catch (const std::exception& e) {
+          RCLCPP_WARN(this->get_logger(),
+                      "Failed to turn off DCS103e Channel 0: %s", e.what());
+        }
+      });
     }
+
+    // HDR 촬영 완료 후 채널 0 켜기
     if (t_idx + 1 == config->HDR_EXPOSURE.size()) {
-      tapoTrigger(true);
+      Debug << "HDR Image sequence completed - Turning on DCS103e Channel 0";
+      try {
+        dcsChannelControl(0, true);  // 채널 0 켜기
+      } catch (const std::exception& e) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Failed to turn on DCS103e Channel 0: %s", e.what());
+      }
     }
+    // 이미지 데이터를 즉시 이동하여 복사 오버헤드 감소 (빈 이미지도 포함)
     Debug << "Prepare pushing data";
-    for (auto img : imgr) {
-      images.push_back(img);
+    for (auto& img : imgr) {
+      images.push_back(std::move(img));  // 빈 이미지도 포함하여 인덱스 유지
     }
     Debug << "push image done";
     timestamps.push_back(timestamp);
-  }
-  camera.closeStreamAll();
-  storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
-                           images);
 
-  camera.flushStream();
-  for (auto img : images) {
-    img.release();
+    // 조명 제어 완료 대기 (비동기로 시작했던 것)
+    if (should_toggle_light && light_control_future.valid()) {
+      light_control_future.wait();
+    }
   }
-  images.clear();
+
+  // 저장을 별도 스레드에서 비동기로 처리
+  std::thread storage_thread([this, goal_handle,
+                              timestamps = std::move(timestamps),
+                              images = std::move(images)]() mutable {
+    camera.closeStreamAll();
+    storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                             images);
+    camera.flushStream();
+
+    // 이미지 메모리 해제
+    for (auto& img : images) {
+      img.release();
+    }
+    images.clear();
+  });
+
+  storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
+}
+
+void JAIHDRNode::collectHdrImagesParallel(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
+  std::vector<cv::Mat> images;
+  std::vector<__uint64_t> timestamps;
+
+  // 미리 조명 상태 설정 (NIR 첫 번째 시퀀스용)
+  try {
+    dcsChannelControl(0, true);  // 채널 0 켜기
+  } catch (const std::exception& e) {
+    RCLCPP_WARN(this->get_logger(), "Failed to turn on DCS103e Channel 0: %s",
+                e.what());
+  }
+
+  for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
+    int t = config->HDR_EXPOSURE[t_idx];
+    int t2 = config->HDR_EXPOSURE_NIR[t_idx % config->HDR_EXPOSURE_NIR.size()];
+
+    // 다음 조명 상태를 미리 준비 (비동기)
+    bool should_toggle_light = (t_idx + 1 == config->HDR_EXPOSURE_NIR.size());
+    std::future<void> light_control_future;
+
+    sendFeedbackPrintf(
+        goal_handle,
+        "{\"type\" : \"info_collect_hdr_images_parallel\", \"data\" : { "
+        "\"exposure\" : %d,"
+        "\"exp_idx\" : %d}}",
+        t, t_idx);
+
+    // 노출 설정과 스트림 준비를 비동기로 처리
+    std::future<void> setup_future =
+        std::async(std::launch::async, [this, t, t2]() {
+          camera.configureExposureAll(t, t2);
+          camera.openStreamAll();
+          camera.flushStream();
+        });
+
+    // 설정 완료 대기
+    setup_future.wait();
+
+    // 캡처 시작
+    camera.triggerFrameCapture(0);
+    if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
+
+    Debug << "Parallel Collect HDR Images for " << t;
+
+    // 이미지 읽기와 조명 제어를 병렬로 처리
+    std::future<std::pair<std::vector<cv::Mat>, __uint64_t>> image_future =
+        std::async(std::launch::async, [this, goal_handle]() {
+          std::vector<cv::Mat> imgr;
+          imgr.assign(4, cv::Mat());
+          __uint64_t timestamp;
+          camera.readImage(goal_handle, imgr, timestamp);
+          return std::make_pair(std::move(imgr), timestamp);
+        });
+
+    // 조명 제어를 이미지 읽기와 병렬로 처리
+    if (should_toggle_light) {
+      light_control_future = std::async(std::launch::async, [this]() {
+        Debug << "Parallel NIR Image Read Done - Turning off DCS103e Channel 0";
+        try {
+          dcsChannelControl(0, false);  // 채널 0 끄기
+        } catch (const std::exception& e) {
+          RCLCPP_WARN(this->get_logger(),
+                      "Failed to turn off DCS103e Channel 0: %s", e.what());
+        }
+      });
+    }
+
+    // 이미지 읽기 완료 대기
+    auto [imgr, timestamp] = image_future.get();
+
+    Debug << "Parallel Image Read Done";
+
+    // 이미지 데이터 저장 (기존과 동일한 방식 - 빈 이미지도 포함)
+    Debug << "Adding images for exposure " << t_idx
+          << ": imgr.size()=" << imgr.size();
+    for (size_t idx = 0; idx < imgr.size(); ++idx) {
+      if (!imgr[idx].empty()) {
+        Debug << "  Adding image[" << images.size() << "] from imgr[" << idx
+              << "] - size: " << imgr[idx].size();
+      } else {
+        Debug << "  Adding empty image[" << images.size() << "] from imgr["
+              << idx << "]";
+      }
+      images.push_back(
+          std::move(imgr[idx]));  // 빈 이미지도 포함하여 인덱스 유지
+    }
+    timestamps.push_back(timestamp);
+
+    // 조명 제어 완료 대기 (비동기로 시작했던 것)
+    if (should_toggle_light && light_control_future.valid()) {
+      light_control_future.wait();
+    }
+
+    // HDR 촬영 완료 후 채널 0 켜기
+    if (t_idx + 1 == config->HDR_EXPOSURE.size()) {
+      Debug << "Parallel HDR sequence completed - Turning on DCS103e Channel 0";
+      try {
+        dcsChannelControl(0, true);  // 채널 0 켜기
+      } catch (const std::exception& e) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Failed to turn on DCS103e Channel 0: %s", e.what());
+      }
+    }
+  }
+
+  // 저장을 별도 스레드에서 비동기로 처리
+  std::thread storage_thread([this, goal_handle,
+                              timestamps = std::move(timestamps),
+                              images = std::move(images)]() mutable {
+    camera.closeStreamAll();
+    storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                             images);
+    camera.flushStream();
+
+    // 이미지 메모리 해제
+    for (auto& img : images) {
+      img.release();
+    }
+    images.clear();
+  });
+
+  storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
 }
 
 HDRStorage::HDRStorage() {}
@@ -433,7 +637,12 @@ void JAIHDRNode::action_hdr_trigger_accepted(
     const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   Debug << "HDR Trigger Accepted";
   std::thread([this, goal_handle]() {
-    this->collectHdrImages(goal_handle);
+    // 설정에 따라 병렬 또는 순차 처리 선택
+    if (config->HDR_PARALLEL_MODE) {
+      this->collectHdrImagesParallel(goal_handle);
+    } else {
+      this->collectHdrImages(goal_handle);
+    }
     auto result = std::make_shared<HDRTrigger::Result>();
     if (this->cancel_flag.load()) {
       result->success = false;

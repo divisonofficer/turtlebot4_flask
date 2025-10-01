@@ -42,6 +42,7 @@ class AppConfig {
   int MULTIFRAME_COUNT;
   bool HDR_CAPTURE_MODE;
   bool HDR_CAPTURE_SINGLE;
+  bool HDR_PARALLEL_MODE;  // 병렬 처리 모드 추가
   bool STEREO_EXPOSURE_SYNC;
   float STEREO_EXPOSURE_SYNC_RATIO;
   bool TRIGGER_SYNC;

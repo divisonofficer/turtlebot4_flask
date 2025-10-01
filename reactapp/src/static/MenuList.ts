@@ -16,6 +16,7 @@ import {
   Notification,
   Robot,
   RocketLaunch,
+  Television,
   VideoCameraSlash,
 } from "@phosphor-icons/react";
 import { Toolbox } from "@phosphor-icons/react/dist/ssr";
@@ -141,6 +142,7 @@ export const menuList: MenuItem[] = [
         name: "HDR",
         destination: "/jaibridge/hdr",
       },
+      { icon: Television, name: "Demo", destination: "/jaibridge/demo" },
     ],
   },
   {

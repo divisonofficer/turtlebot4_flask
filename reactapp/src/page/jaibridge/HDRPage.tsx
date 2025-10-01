@@ -13,10 +13,12 @@ import {
   Box,
   Image,
   Text,
+  Select,
+  Divider,
 } from "@chakra-ui/react";
 import { PageRoot } from "../../design/other/flexs";
 
-import { Body2, H3, H4 } from "../../design/text/textsystem";
+import { Body2, H4 } from "../../design/text/textsystem";
 import { observer } from "mobx-react";
 
 import { Fragment, useEffect } from "react";
@@ -26,11 +28,11 @@ import { Camera } from "@phosphor-icons/react/dist/ssr";
 import {
   CameraRotate,
   GooglePhotosLogo,
-  Log,
   Pause,
   Play,
   Steps,
   Stop,
+  Trash,
 } from "@phosphor-icons/react";
 import { Color } from "../../design/color";
 
@@ -359,7 +361,7 @@ const HDRProgressView = observer(() => {
 });
 
 const HDRPreview = observer(() => {
-  const { space_id, image } = jaiHDRStore.hdr_latest_capture;
+  const { image } = jaiHDRStore.hdr_latest_capture;
 
   return (
     <VStack width="100%" height="auto">
@@ -407,6 +409,143 @@ const HDRPreview = observer(() => {
   );
 });
 
+const HDRStorageBrowser = observer(() => {
+  const isMobile = window.innerWidth < 768;
+
+  return (
+    <HStack width="100%" spacing={4}>
+      <VStack>
+        <H4>HDR Storage Browser</H4>
+
+        {/* Scene Selector */}
+        <HStack width="100%">
+          <Text>Scene:</Text>
+          <Select
+            value={jaiHDRStore.current_scene_id}
+            onChange={(e) => jaiHDRStore.fetchSceneFrames(e.target.value)}
+            width={isMobile ? "100%" : "300px"}
+          >
+            <option value="">Select Scene...</option>
+            {jaiHDRStore.hdr_scene_list.map((sceneId) => (
+              <option key={sceneId} value={sceneId}>
+                {sceneId}
+              </option>
+            ))}
+          </Select>
+        </HStack>
+      </VStack>
+
+      {/* Frame Browser */}
+      {jaiHDRStore.current_scene_id && (
+        <>
+          <Divider />
+          <VStack>
+            <HStack width="100%">
+              <Text>Frames ({jaiHDRStore.current_scene_frames.length}):</Text>
+              <IconButton
+                icon={<CameraRotate />}
+                aria-label="Refresh Frames"
+                onClick={() =>
+                  jaiHDRStore.fetchSceneFrames(jaiHDRStore.current_scene_id)
+                }
+                size="sm"
+              />
+            </HStack>
+
+            {/* Frame List - Scrollable */}
+            <Box
+              width="16rem"
+              maxHeight="200px"
+              overflowY="auto"
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="md"
+              p={2}
+            >
+              <VStack spacing={1} align="stretch">
+                {jaiHDRStore.current_scene_frames.map((frameId) => (
+                  <HStack
+                    key={frameId}
+                    p={2}
+                    bg={
+                      jaiHDRStore.selected_frame_id === frameId
+                        ? "blue.100"
+                        : "gray.50"
+                    }
+                    borderRadius="md"
+                    _hover={{ bg: "blue.50" }}
+                    justifyContent="space-between"
+                  >
+                    <Box
+                      flex={1}
+                      cursor="pointer"
+                      onClick={() => jaiHDRStore.selectFrame(frameId)}
+                    >
+                      <Text fontSize="sm">{frameId}</Text>
+                    </Box>
+                    <IconButton
+                      icon={<Trash />}
+                      aria-label="Delete Frame"
+                      size="xs"
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete frame ${frameId}?`)) {
+                          jaiHDRStore.deleteFrame(
+                            jaiHDRStore.current_scene_id,
+                            frameId
+                          );
+                        }
+                      }}
+                    />
+                  </HStack>
+                ))}
+              </VStack>
+            </Box>
+          </VStack>
+
+          {/* Frame Preview */}
+          {jaiHDRStore.selected_frame_id && (
+            <>
+              <Divider />
+              <VStack width="16rem">
+                <Text>Frame: {jaiHDRStore.selected_frame_id}</Text>
+                <Box
+                  width={isMobile ? "100%" : "400px"}
+                  height="300px"
+                  position="relative"
+                >
+                  {jaiHDRStore.frame_preview_image ? (
+                    <Image
+                      src={jaiHDRStore.frame_preview_image}
+                      alt={`Frame ${jaiHDRStore.selected_frame_id}`}
+                      objectFit="contain"
+                      width="100%"
+                      height="100%"
+                    />
+                  ) : (
+                    <Box
+                      width="100%"
+                      height="100%"
+                      bg="gray.100"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <Text color="gray.500">Loading...</Text>
+                    </Box>
+                  )}
+                </Box>
+              </VStack>
+            </>
+          )}
+        </>
+      )}
+    </HStack>
+  );
+});
+
 export const HDRPage = observer(() => {
   useEffect(() => {
     //jaiStore.fetchGetStereoNodeStatus();
@@ -414,7 +553,11 @@ export const HDRPage = observer(() => {
 
   return (
     <PageRoot title="HDR">
-      <HDRProgressView />
+      <VStack spacing={6} width="100%">
+        <HDRProgressView />
+        <Divider />
+        <HDRStorageBrowser />
+      </VStack>
     </PageRoot>
   );
 });

@@ -73,12 +73,18 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
   std::string ipAddress;
 
   // Find the first GEV Device
+  Info << "Searching " << lSystem.GetInterfaceCount()
+       << " interfaces for devices.";
   for (int i = 0; i < lSystem.GetInterfaceCount(); i++) {
     lInterface = const_cast<PvInterface *>(lSystem.GetInterface(i));
+    Info << "Interface " << i << ": " << lInterface->GetDisplayID().GetAscii();
     if (lInterface->GetDeviceCount()) {
       std::string uniqueID = lInterface->GetUniqueID().GetAscii();
       ipAddress = uniqueID.substr(17, uniqueID.length() - 17);
-      Info << "Interface found: " << ipAddress;
+      Info << "Interface found: " << ipAddress << " With "
+           << lInterface->GetDeviceCount() << " devices";
+    } else {
+      continue;
     }
     for (int j = 0; j < lInterface->GetDeviceCount(); j++) {
       const PvDeviceInfo *lDeviceInfo = lInterface->GetDeviceInfo(j);
@@ -88,8 +94,12 @@ bool DeviceManager::findDeviceConnectionID(PvString &aConnectionID,
         const PvDeviceInfoGEV *lDeviceGEV =
             dynamic_cast<const PvDeviceInfoGEV *>(lDeviceInfo);
         if (lDeviceGEV->GetMACAddress().GetAscii() != macAddress) {
+          Info << "Device " << lDeviceGEV->GetMACAddress().GetAscii()
+               << " does not match " << macAddress;
           continue;
         }
+        Info << "Device " << lDeviceGEV->GetMACAddress().GetAscii()
+             << " matches " << macAddress;
       }
 
       if (aConnectionIdSet.find(lDeviceInfo->GetConnectionID().GetAscii()) !=

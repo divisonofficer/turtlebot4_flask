@@ -92,10 +92,13 @@ DualDevice::DualDevice(PvString &connection_ID) {
   ParamManager::setParamEnum(rgb_device->GetParameters(), "LUTMode", 0);
   ParamManager::setParam(rgb_device->GetParameters(), "GainAutoControlMax",
                          10.0f);
-  // ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
-  //                            PvPixelMono10);
-  ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
-                             config->NIR_PIXEL_ACQUIRE_FORMAT);
+  if (config->HDR_CAPTURE_MODE) {
+    ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
+                               PvPixelMono12);
+  } else {
+    ParamManager::setParamEnum(rgb_device->GetParameters(), "PixelFormat",
+                               config->NIR_PIXEL_ACQUIRE_FORMAT);
+  }
   ParamManager::setParamEnum(rgb_device->GetParameters(), "AcquisitionSyncMode",
                              1);
 

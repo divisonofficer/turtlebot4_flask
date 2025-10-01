@@ -59,6 +59,13 @@ class JaiHDRStore {
     image: undefined,
     frame_count: 0,
   };
+
+  // HDR Storage related states
+  hdr_scene_list: string[] = [];
+  current_scene_id: string = "";
+  current_scene_frames: string[] = [];
+  selected_frame_id: string = "";
+  frame_preview_image: string = "";
   constructor() {
     makeAutoObservable(this);
 
@@ -82,6 +89,7 @@ class JaiHDRStore {
     );
 
     this.fetchGetConfig();
+    this.fetchHDRSceneList();
   }
 
   triggerHDR = () => {
@@ -126,6 +134,90 @@ class JaiHDRStore {
         );
       })
       .fetch();
+  };
+
+  // HDR Storage methods
+  fetchHDRSceneList = () => {
+    httpGet("/jai/stereo/storage/list?root=tmp/stereo/hdr")
+      .onSuccess((data: string[]) => {
+        this.hdr_scene_list = data;
+        // Auto-select the latest scene if available
+        if (data.length > 0 && !this.current_scene_id) {
+          this.current_scene_id = data[data.length - 1];
+          this.fetchSceneFrames(this.current_scene_id);
+        }
+      })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          c || m || e.message,
+          "Failed to fetch HDR scene list"
+        );
+      })
+      .fetch();
+  };
+
+  fetchSceneFrames = (sceneId: string) => {
+    httpGet(`/jai/stereo/storage/${sceneId}/frames?root=tmp/stereo/hdr`)
+      .onSuccess((data: string[]) => {
+        this.current_scene_frames = data;
+        this.current_scene_id = sceneId;
+        // Auto-select the latest frame if available
+        if (data.length > 0) {
+          this.selectFrame(data[data.length - 1]);
+        }
+      })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          c || m || e.message,
+          "Failed to fetch scene frames"
+        );
+      })
+      .fetch();
+  };
+
+  selectFrame = (frameId: string) => {
+    this.selected_frame_id = frameId;
+    this.fetchFramePreview(this.current_scene_id, frameId);
+  };
+
+  fetchFramePreview = (sceneId: string, frameId: string) => {
+    // Use the new HDR thumbnail API
+    httpGet(`/jai/stereo/hdr/frame/${sceneId}/${frameId}/thumbnail`)
+      .onSuccess((data: { thumbnail: string }) => {
+        this.frame_preview_image = `data:image/jpeg;base64,${data.thumbnail}`;
+      })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          c || m || e.message,
+          "Failed to fetch frame preview"
+        );
+      })
+      .fetch();
+  };
+
+  deleteFrame = (sceneId: string, frameId: string) => {
+    fetch(`/jai/stereo/hdr/frame/${sceneId}/${frameId}`, {
+      method: "DELETE",
+    })
+      .then((response) => {
+        if (response.ok) {
+          alertStore.addAlert(
+            "success",
+            "Frame deleted successfully",
+            "Delete Frame"
+          );
+          // Refresh the frame list
+          this.fetchSceneFrames(sceneId);
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      })
+      .catch((error) => {
+        alertStore.addAlert("error", error.message, "Failed to delete frame");
+      });
   };
 }
 export const jaiHDRStore = new JaiHDRStore();

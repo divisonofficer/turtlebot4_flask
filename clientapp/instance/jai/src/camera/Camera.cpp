@@ -22,6 +22,8 @@ MultiSpectralCamera::MultiSpectralCamera(std::string deviceName,
 void MultiSpectralCamera::initDevice() {
   streamCallback[0] = nullptr;
   streamCallback[1] = nullptr;
+  Info << "Initializing MultiSpectralCamera with deviceName: " << deviceName
+       << " and macAddress: " << macAddressInit;
   dualDevice = DeviceManager::getInstance()->connectDualDevice(macAddressInit);
   flagInterrupted = false;
 }
