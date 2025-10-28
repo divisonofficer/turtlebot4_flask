@@ -21,4 +21,7 @@ clientapp/instance/jai/JAI_ROS_bridge/Makefile
 clientapp/instance/lucid/docs/*
 clientapp/instance/lucid/examples/*
 clientapp/instance/lucid/ArenaSDK_Linux_x64/*
-build/*
+build/*robot_arm/build/
+robot_arm/install/
+robot_arm/log/
+robot_arm/devel/
