@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Piper Arm Controller</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fafafa;
+      margin: 40px;
+      color: #222;
+    }
+    h2 {
+      color: #444;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 8px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background-color: #0078D7;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background-color: #005fa3;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 17px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 50%;
+      min-width: 300px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      text-align: right;
+      padding: 6px 10px;
+    }
+    th {
+      background-color: #f0f0f0;
+      text-align: center;
+    }
+    #jointTable {
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Piper Arm Control Panel</h2>
+
+  <section>
+    <h3>자동 제어</h3>
+    <button onclick="toggleAuto(true)">Auto ON</button>
+    <button onclick="toggleAuto(false)">Auto OFF</button>
+  </section>
+
+  <section>
+    <h3>수동 포즈 제어</h3>
+    <div>
+      <button onclick="sendMove(0)">Pose 0</button>
+      <button onclick="sendMove(1)">Pose 1</button>
+      <button onclick="sendMove(2)">Pose 2</button>
+      <button onclick="sendMove(3)">Pose 3</button>
+      <button onclick="sendMove(4)">Pose 4</button>
+    </div>
+  </section>
+
+  <div id="status">상태: 대기 중</div>
+
+  <section>
+    <h3>현재 관절 상태</h3>
+    <table id="jointTable">
+      <thead>
+        <tr>
+          <th>Joint</th>
+          <th>Angle (rad)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>J1</td><td id="j1">0.000</td></tr>
+        <tr><td>J2</td><td id="j2">0.000</td></tr>
+        <tr><td>J3</td><td id="j3">0.000</td></tr>
+        <tr><td>J4</td><td id="j4">0.000</td></tr>
+        <tr><td>J5</td><td id="j5">0.000</td></tr>
+        <tr><td>J6</td><td id="j6">0.000</td></tr>
+        <tr><td>J7</td><td id="j7">0.000</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    let busy = false;
+
+    function setStatus(msg) {
+      document.getElementById("status").innerText = "상태: " + msg;
+    }
+
+    async function toggleAuto(enable) {
+      if (busy) return;
+      busy = true;
+      setStatus(enable ? "자동 제어 시작 중..." : "자동 제어 중지 중...");
+      try {
+        const res = await fetch("/auto", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ enable })
+        });
+        const data = await res.json();
+      } catch (e) {
+      }
+      busy = false;
+    }
+
+    async function sendMove(idx) {
+      if (busy) return;
+      busy = true;
+      setStatus(`Pose ${idx}로 이동 중...`);
+      try {
+        const res = await fetch("/move", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ move_idx: idx })
+        });
+        const data = await res.json();
+      } catch (e) {
+      }
+      busy = false;
+    }
+
+    async function updateJoints() {
+      try {
+        const res = await fetch("/joints");
+        const data = await res.json();
+        const joints = data.joints;
+        for (let i = 0; i < joints.length; i++) {
+          document.getElementById("j" + (i + 1)).innerText = joints[i].toFixed(3);
+        }
+      } catch (e) {}
+    }
+
+    setInterval(updateJoints, 1000);
+  </script>
+</body>
+</html>
