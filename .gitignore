@@ -25,3 +25,7 @@ build/*robot_arm/build/
 robot_arm/install/
 robot_arm/log/
 robot_arm/devel/
+piper_ws/build/
+piper_ws/install/
+piper_ws/log/
+piper_ws/devel/
