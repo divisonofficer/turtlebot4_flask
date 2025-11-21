@@ -1,0 +1,5 @@
+/home/cg-tuf/turtlebot4_flask/build/piper_msgs/rosidl_adapter/piper_msgs:msg/PiperStatusMsg.idl
+/home/cg-tuf/turtlebot4_flask/build/piper_msgs/rosidl_adapter/piper_msgs:msg/PosCmd.idl
+/home/cg-tuf/turtlebot4_flask/build/piper_msgs/rosidl_adapter/piper_msgs:srv/Enable.idl
+/home/cg-tuf/turtlebot4_flask/build/piper_msgs/rosidl_adapter/piper_msgs:srv/MoveArm.idl
+/home/cg-tuf/turtlebot4_flask/build/piper_msgs/rosidl_adapter/piper_msgs:srv/AutoMotionToggle.idl

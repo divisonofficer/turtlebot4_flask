@@ -1,0 +1,6 @@
+{
+  "package_name": "jai_rosbridge",
+  "non_idl_tuples": [
+    "/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge:action/HDRTrigger.action"
+  ]
+}

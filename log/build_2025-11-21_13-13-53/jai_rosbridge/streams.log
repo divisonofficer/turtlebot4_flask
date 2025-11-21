@@ -1,0 +1,153 @@
+[0.020s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16
+[0.239s] [  6%] Built target jai_rosbridge__cpp
+[0.239s] [  8%] Built target jai_rosbridge__rosidl_generator_c
+[0.239s] [  8%] Built target ament_cmake_python_copy_jai_rosbridge
+[0.239s] [ 41%] Built target jai_rosbridge__rosidl_typesupport_fastrtps_c
+[0.239s] [ 41%] Built target jai_rosbridge__rosidl_typesupport_fastrtps_cpp
+[0.239s] [ 41%] Built target jai_rosbridge__rosidl_typesupport_introspection_c
+[0.239s] [ 41%] Built target jai_rosbridge__rosidl_typesupport_c
+[0.240s] [ 41%] Built target jai_rosbridge__rosidl_typesupport_cpp
+[0.240s] [ 47%] Built target jai_rosbridge__rosidl_typesupport_introspection_cpp
+[0.240s] [ 47%] Built target jai_rosbridge
+[0.240s] [ 76%] Built target jai_node_lib
+[0.240s] [ 78%] Built target jai_rosbridge__py
+[0.240s] [ 82%] Built target jai_node
+[0.240s] [ 86%] Built target jai_rosbridge__rosidl_generator_py
+[0.240s] [100%] Built target jai_rosbridge__rosidl_typesupport_introspection_c__pyext
+[0.240s] [100%] Built target jai_rosbridge__rosidl_typesupport_c__pyext
+[0.240s] [100%] Built target jai_rosbridge__rosidl_typesupport_fastrtps_c__pyext
+[0.262s] running egg_info
+[0.262s] writing jai_rosbridge.egg-info/PKG-INFO
+[0.262s] writing dependency_links to jai_rosbridge.egg-info/dependency_links.txt
+[0.263s] writing top-level names to jai_rosbridge.egg-info/top_level.txt
+[0.265s] reading manifest file 'jai_rosbridge.egg-info/SOURCES.txt'
+[0.265s] writing manifest file 'jai_rosbridge.egg-info/SOURCES.txt'
+[0.341s] [100%] Built target ament_cmake_python_build_jai_rosbridge_egg
+[0.369s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16
+[0.370s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge
+[0.379s] -- Install configuration: ""
+[0.379s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/ament_index/resource_index/rosidl_interfaces/jai_rosbridge
+[0.379s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.379s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg/rosidl_generator_c__visibility_control.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/hdr_trigger.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__struct.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__functions.c
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__type_support.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__functions.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/library_path.sh
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/library_path.dsv
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_generator_c.so
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.380s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__rosidl_typesupport_fastrtps_c.h
+[0.381s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_fastrtps_c.so
+[0.381s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg/rosidl_generator_cpp__visibility_control.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__traits.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__builder.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__type_support.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__struct.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/hdr_trigger.hpp
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.382s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/dds_fastrtps
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__rosidl_typesupport_fastrtps_cpp.hpp
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_fastrtps_cpp.so
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__rosidl_typesupport_introspection_c.h
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__type_support.c
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_introspection_c.so
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_c.so
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__rosidl_typesupport_introspection_cpp.hpp
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/include/jai_rosbridge/jai_rosbridge/action/detail/hdr_trigger__type_support.cpp
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_introspection_cpp.so
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_typesupport_cpp.so
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/pythonpath.sh
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/pythonpath.dsv
+[0.383s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge-0.0.0-py3.10.egg-info
+[0.383s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge-0.0.0-py3.10.egg-info/SOURCES.txt
+[0.384s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge-0.0.0-py3.10.egg-info/top_level.txt
+[0.384s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge-0.0.0-py3.10.egg-info/dependency_links.txt
+[0.384s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge-0.0.0-py3.10.egg-info/PKG-INFO
+[0.384s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge
+[0.384s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[0.384s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/_jai_rosbridge_s.ep.rosidl_typesupport_introspection_c.c
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/action
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/action/__init__.py
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/action/_hdr_trigger_s.c
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/action/_hdr_trigger.py
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/libjai_rosbridge__rosidl_generator_py.so
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/_jai_rosbridge_s.ep.rosidl_typesupport_fastrtps_c.c
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/__init__.py
+[0.385s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/_jai_rosbridge_s.ep.rosidl_typesupport_c.c
+[0.403s] Listing '/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge'...
+[0.403s] Listing '/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/action'...
+[0.409s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/local/lib/python3.10/dist-packages/jai_rosbridge/jai_rosbridge_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_rosbridge__rosidl_generator_py.so
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/action/HDRTrigger.idl
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/action/HDRTrigger.action
+[0.410s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/jai_rosbridge/jai_node
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/lib/libjai_node_lib.so
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/ament_index/resource_index/package_run_dependencies/jai_rosbridge
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/ament_index/resource_index/parent_prefix_path/jai_rosbridge
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/ament_prefix_path.sh
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/ament_prefix_path.dsv
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/path.sh
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/environment/path.dsv
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/local_setup.bash
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/local_setup.sh
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/local_setup.zsh
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/local_setup.dsv
+[0.411s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/package.dsv
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/ament_index/resource_index/packages/jai_rosbridge
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_generator_cExport.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_generator_cExport-noconfig.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_typesupport_fastrtps_cExport.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_generator_cppExport.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_typesupport_fastrtps_cppExport.cmake
+[0.411s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_introspection_cExport.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_cExport.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_cExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_introspection_cppExport.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_cppExport.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridge__rosidl_typesupport_cppExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_generator_pyExport.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/export_jai_rosbridge__rosidl_generator_pyExport-noconfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/rosidl_cmake-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/ament_cmake_export_dependencies-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/ament_cmake_export_include_directories-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/ament_cmake_export_libraries-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/ament_cmake_export_targets-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridgeConfig.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/cmake/jai_rosbridgeConfig-version.cmake
+[0.412s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/jai_rosbridge/share/jai_rosbridge/package.xml
+[0.416s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge

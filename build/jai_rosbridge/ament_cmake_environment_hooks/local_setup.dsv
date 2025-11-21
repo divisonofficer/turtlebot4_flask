@@ -1,0 +1,4 @@
+source;share/jai_rosbridge/environment/ament_prefix_path.sh
+source;share/jai_rosbridge/environment/library_path.sh
+source;share/jai_rosbridge/environment/path.sh
+source;share/jai_rosbridge/environment/pythonpath.sh

@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from piper_msgs/srv/MoveArm.srv
+// generated code does not contain a copyright notice
+
+
+module piper_msgs {
+  module srv {
+    struct MoveArm_Request {
+      int32 move_idx;
+    };
+    struct MoveArm_Response {
+      boolean success;
+    };
+  };
+};

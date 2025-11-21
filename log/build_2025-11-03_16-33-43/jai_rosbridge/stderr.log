@@ -1,0 +1,12 @@
+[31mCMake Error at CMakeLists.txt:100 (target_link_libraries):
+  The keyword signature for target_link_libraries has already been used with
+  the target "jai_node_lib".  All uses of target_link_libraries with a target
+  must be either all-keyword or all-plain.
+
+  The uses of the keyword signature are here:
+
+   * CMakeLists.txt:96 (target_link_libraries)
+
+
+[0m
+gmake: *** [Makefile:1126: cmake_check_build_system] Error 1

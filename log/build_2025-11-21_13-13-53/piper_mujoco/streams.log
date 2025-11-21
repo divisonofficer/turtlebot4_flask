@@ -1,0 +1,22 @@
+[0.244s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_mujoco': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_mujoco -- -j16 -l16
+[0.292s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_mujoco' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_mujoco -- -j16 -l16
+[0.292s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_mujoco': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_mujoco
+[0.300s] -- Install configuration: ""
+[0.300s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/lib/piper_mujoco/piper_mujoco_ctrl.py
+[0.300s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/lib/piper_mujoco/piper_no_gripper_mujoco_ctrl.py
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/ament_index/resource_index/package_run_dependencies/piper_mujoco
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/ament_index/resource_index/parent_prefix_path/piper_mujoco
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/environment/ament_prefix_path.sh
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/environment/ament_prefix_path.dsv
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/environment/path.sh
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/environment/path.dsv
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/local_setup.bash
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/local_setup.sh
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/local_setup.zsh
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/local_setup.dsv
+[0.301s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/package.dsv
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/ament_index/resource_index/packages/piper_mujoco
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/cmake/piper_mujocoConfig.cmake
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/cmake/piper_mujocoConfig-version.cmake
+[0.301s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_mujoco/share/piper_mujoco/package.xml
+[0.315s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_mujoco' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_mujoco

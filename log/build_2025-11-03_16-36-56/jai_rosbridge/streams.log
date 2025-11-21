@@ -1,0 +1,49 @@
+[0.024s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16
+[0.231s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.231s] -- Found rclcpp: 16.0.15 (/opt/ros/humble/share/rclcpp/cmake)
+[0.231s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.231s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.231s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.231s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.231s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.231s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.231s] -- Found rmw_fastrtps_cpp: 6.2.8 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.307s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.340s] -- Found rclcpp_action: 16.0.15 (/opt/ros/humble/share/rclcpp_action/cmake)
+[0.357s] -- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+[0.364s] -- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+[0.380s] -- Found cv_bridge: 3.2.1 (/opt/ros/humble/share/cv_bridge/cmake)
+[0.381s] -- Found std_srvs: 4.9.0 (/opt/ros/humble/share/std_srvs/cmake)
+[0.408s] [31mCMake Error at CMakeLists.txt:106 (target_link_libraries):
+[0.408s]   The plain signature for target_link_libraries has already been used with
+[0.408s]   the target "jai_node_lib".  All uses of target_link_libraries with a target
+[0.408s]   must be either all-keyword or all-plain.
+[0.408s] 
+[0.408s]   The uses of the plain signature are here:
+[0.408s] 
+[0.408s]    * /opt/ros/humble/share/ament_cmake_target_dependencies/cmake/ament_target_dependencies.cmake:145 (target_link_libraries)
+[0.408s] 
+[0.408s] 
+[0.408s] [0m
+[0.629s] -- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+[0.872s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.986s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.008s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[1.033s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[1.033s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[1.033s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[1.046s] [31mCMake Error at CMakeLists.txt:151 (target_link_libraries):
+[1.046s]   The plain signature for target_link_libraries has already been used with
+[1.047s]   the target "jai_node".  All uses of target_link_libraries with a target
+[1.047s]   must be either all-keyword or all-plain.
+[1.047s] 
+[1.047s]   The uses of the plain signature are here:
+[1.047s] 
+[1.047s]    * /opt/ros/humble/share/ament_cmake_target_dependencies/cmake/ament_target_dependencies.cmake:145 (target_link_libraries)
+[1.047s] 
+[1.047s] 
+[1.047s] [0m
+[1.049s] -- Configuring incomplete, errors occurred!
+[1.050s] See also "/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge/CMakeFiles/CMakeOutput.log".
+[1.063s] gmake: *** [Makefile:1126: cmake_check_build_system] Error 1
+[1.066s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '2': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16

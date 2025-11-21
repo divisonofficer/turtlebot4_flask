@@ -1,0 +1,15 @@
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/ament_index/resource_index/package_run_dependencies/piper_humble
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/ament_index/resource_index/parent_prefix_path/piper_humble
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/environment/ament_prefix_path.sh
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/environment/ament_prefix_path.dsv
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/environment/path.sh
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/environment/path.dsv
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/local_setup.bash
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/local_setup.sh
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/local_setup.zsh
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/local_setup.dsv
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/package.dsv
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/ament_index/resource_index/packages/piper_humble
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/cmake/piper_humbleConfig.cmake
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/cmake/piper_humbleConfig-version.cmake
+/home/cg-tuf/turtlebot4_flask/install/piper_humble/share/piper_humble/package.xml

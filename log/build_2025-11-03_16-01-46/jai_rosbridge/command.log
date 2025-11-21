@@ -1,0 +1,2 @@
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '1': /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge

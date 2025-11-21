@@ -1,0 +1,8 @@
+setup.py
+jai_rosbridge/__init__.py
+jai_rosbridge.egg-info/PKG-INFO
+jai_rosbridge.egg-info/SOURCES.txt
+jai_rosbridge.egg-info/dependency_links.txt
+jai_rosbridge.egg-info/top_level.txt
+jai_rosbridge/action/__init__.py
+jai_rosbridge/action/_hdr_trigger.py

@@ -1,0 +1,233 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-b14d08d18c7bf2072cb6.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17
+					]
+				},
+				{
+					"build" : "piper_msgs__py",
+					"jsonFile" : "directory-piper_msgs__py-2c0d4b6f2c4f3f552acc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "/home/cg-tuf/turtlebot4_flask/build/piper_msgs/piper_msgs__py",
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "piper_msgs",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_build_piper_msgs_egg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_build_piper_msgs_egg-a9290d562d11640afa55.json",
+					"name" : "ament_cmake_python_build_piper_msgs_egg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_copy_piper_msgs::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_copy_piper_msgs-af823abdfb588e066097.json",
+					"name" : "ament_cmake_python_copy_piper_msgs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs-99ee512910f0339aa379.json",
+					"name" : "piper_msgs",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__cpp-55e367345ff4ff921955.json",
+					"name" : "piper_msgs__cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "piper_msgs__py::@43978d8a7c56cb28b7be",
+					"jsonFile" : "target-piper_msgs__py-bef7afee04982451fd70.json",
+					"name" : "piper_msgs__py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_generator_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_generator_c-47103b86a327451bc378.json",
+					"name" : "piper_msgs__rosidl_generator_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_generator_py::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_generator_py-663cc66f18bb2cf7f68e.json",
+					"name" : "piper_msgs__rosidl_generator_py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_c-8849010e1e6e79689981.json",
+					"name" : "piper_msgs__rosidl_typesupport_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_c__pyext-5f2d8012f84ed716b519.json",
+					"name" : "piper_msgs__rosidl_typesupport_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_cpp-2d986411347d67ff29a8.json",
+					"name" : "piper_msgs__rosidl_typesupport_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_fastrtps_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_fastrtps_c-9244f72a79d9c4c0e10c.json",
+					"name" : "piper_msgs__rosidl_typesupport_fastrtps_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_fastrtps_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_fastrtps_c__pyext-95899519bf31469ecf59.json",
+					"name" : "piper_msgs__rosidl_typesupport_fastrtps_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_fastrtps_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_fastrtps_cpp-0df8a59cbd5d25339574.json",
+					"name" : "piper_msgs__rosidl_typesupport_fastrtps_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_introspection_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_introspection_c-ba25b10e6342f6eb3b08.json",
+					"name" : "piper_msgs__rosidl_typesupport_introspection_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_introspection_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_introspection_c__pyext-5f1ebda730149181ed54.json",
+					"name" : "piper_msgs__rosidl_typesupport_introspection_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs__rosidl_typesupport_introspection_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs__rosidl_typesupport_introspection_cpp-122a2dab84c2f6280b28.json",
+					"name" : "piper_msgs__rosidl_typesupport_introspection_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "piper_msgs_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-piper_msgs_uninstall-db9c626dce647139942e.json",
+					"name" : "piper_msgs_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-b0430cb39b85e0627c2b.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/cg-tuf/turtlebot4_flask/build/piper_msgs",
+		"source" : "/home/cg-tuf/turtlebot4_flask/piper_ws/src/Piper_ros/src/piper_msgs"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

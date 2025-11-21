@@ -1,0 +1,4 @@
+source;share/jai_rosbridge/local_setup.bash
+source;share/jai_rosbridge/local_setup.dsv
+source;share/jai_rosbridge/local_setup.sh
+source;share/jai_rosbridge/local_setup.zsh

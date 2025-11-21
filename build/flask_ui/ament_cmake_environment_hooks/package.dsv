@@ -1,0 +1,4 @@
+source;share/flask_ui/local_setup.bash
+source;share/flask_ui/local_setup.dsv
+source;share/flask_ui/local_setup.sh
+source;share/flask_ui/local_setup.zsh

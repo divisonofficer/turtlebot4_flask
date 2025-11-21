@@ -1,0 +1,6 @@
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '0': /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '0': /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge -- -j16 -l16
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge': /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge' returned '0': /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/jai_rosbridge

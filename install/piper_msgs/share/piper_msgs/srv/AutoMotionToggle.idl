@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from piper_msgs/srv/AutoMotionToggle.srv
+// generated code does not contain a copyright notice
+
+
+module piper_msgs {
+  module srv {
+    struct AutoMotionToggle_Request {
+      boolean enable;
+    };
+    struct AutoMotionToggle_Response {
+      boolean success;
+    };
+  };
+};

@@ -1,0 +1,43 @@
+[0.020s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit -- -j16 -l16
+[0.056s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit' returned '0': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit -- -j16 -l16
+[0.059s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit
+[0.067s] -- Install configuration: ""
+[0.067s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/ament_index/resource_index/package_run_dependencies/piper_with_gripper_moveit
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/ament_index/resource_index/parent_prefix_path/piper_with_gripper_moveit
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/environment/ament_prefix_path.sh
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/environment/ament_prefix_path.dsv
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/environment/path.sh
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/environment/path.dsv
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/local_setup.bash
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/local_setup.sh
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/local_setup.zsh
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/local_setup.dsv
+[0.068s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/package.dsv
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/ament_index/resource_index/packages/piper_with_gripper_moveit
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/cmake/piper_with_gripper_moveitConfig.cmake
+[0.068s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/cmake/piper_with_gripper_moveitConfig-version.cmake
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/package.xml
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/move_group.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/rsp.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/static_virtual_joint_tfs.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/warehouse_db.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/piper_moveit.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/spawn_controllers.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/setup_assistant.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/moveit_rviz.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/launch/demo.launch.py
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config
+[0.069s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/ros2_controllers.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/piper.ros2_control.xacro
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/kinematics.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/moveit.rviz
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/moveit_controllers.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/piper.srdf
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/joint_limits.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/pilz_cartesian_limits.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/sensors_3d.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/piper.urdf.xacro
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/config/initial_positions.yaml
+[0.070s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit/share/piper_with_gripper_moveit/.setup_assistant
+[0.072s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit' returned '0': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_description:/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_with_gripper_moveit

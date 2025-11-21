@@ -1,0 +1,23 @@
+[0.010s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/flask_ui': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/opt/ros/humble LD_LIBRARY_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/flask_ui -- -j16 -l16
+[0.054s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/flask_ui' returned '0': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/opt/ros/humble LD_LIBRARY_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/flask_ui -- -j16 -l16
+[0.056s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/flask_ui': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/opt/ros/humble LD_LIBRARY_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/flask_ui
+[0.064s] -- Install configuration: ""
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/lib/flask_ui/app.py
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/templates
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/templates/index.html
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/package_run_dependencies/flask_ui
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/parent_prefix_path/flask_ui
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/ament_prefix_path.sh
+[0.064s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/ament_prefix_path.dsv
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/path.sh
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/path.dsv
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.bash
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.sh
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.zsh
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.dsv
+[0.065s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/package.dsv
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/packages/flask_ui
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/cmake/flask_uiConfig.cmake
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/cmake/flask_uiConfig-version.cmake
+[0.065s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/package.xml
+[0.067s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/flask_ui' returned '0': AMENT_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/opt/ros/humble LD_LIBRARY_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/cg-tuf/turtlebot4_flask/install/piper_msgs/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/flask_ui

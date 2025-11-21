@@ -1,0 +1,55 @@
+[0.031s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_description': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_description -- -j16 -l16
+[0.262s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_description' returned '0': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/piper_description -- -j16 -l16
+[0.271s] Invoking command in '/home/cg-tuf/turtlebot4_flask/build/piper_description': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_description
+[0.278s] -- Install configuration: ""
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_xacro.launch.py
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_urdf.launch.py
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_urdf_follow.launch.py
+[0.279s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_urdf.launch.py
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_xacro.launch.py
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_urdf_follow.launch.py
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link3.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link7.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link5.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link2.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link6.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link1.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link4.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/base_link.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link8.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/gripper_base.STL
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz/piper_ctrl.rviz
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz/piper_no_gripper.rviz
+[0.280s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description_gazebo.xacro
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description.urdf
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description_gazebo.xacro
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description.urdf
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description_old.urdf
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description_old.urdf
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description.xacro
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description.xacro
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model/piper_no_gripper_description.xml
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model/piper_description.xml
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/package_run_dependencies/piper_description
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/parent_prefix_path/piper_description
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/ament_prefix_path.sh
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/ament_prefix_path.dsv
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/path.sh
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/path.dsv
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.bash
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.sh
+[0.281s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.zsh
+[0.282s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.dsv
+[0.282s] -- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/package.dsv
+[0.282s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/packages/piper_description
+[0.282s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/cmake/piper_descriptionConfig.cmake
+[0.282s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/cmake/piper_descriptionConfig-version.cmake
+[0.282s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/package.xml
+[0.283s] Invoked command in '/home/cg-tuf/turtlebot4_flask/build/piper_description' returned '0': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/piper_description

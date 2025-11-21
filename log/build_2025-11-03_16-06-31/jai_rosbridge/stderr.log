@@ -1,0 +1,212 @@
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/stream/Stream.cpp:[m[K In member function ‘[01m[Kvoid StreamManager::CreateStreamBuffers(PvDevice*, PvStream*, std::vector<PvBuffer*>*)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/stream/Stream.cpp:75:42:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kuint32_t[m[K’ {aka ‘[01m[Kunsigned int[m[K’} and ‘[01m[Kint[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   75 |       ([01;35m[KaStream->GetQueuedBufferMaximum() < config->BUFFER_COUNT[m[K)
+      |        [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/stream/Stream.cpp:71:51:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[KaDevice[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+   71 | void StreamManager::CreateStreamBuffers([01;35m[KPvDevice* aDevice[m[K, PvStream* aStream,
+      |                                         [01;35m[K~~~~~~~~~~^~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/DualDevice.cpp:[m[K In member function ‘[01m[KPvDevice* DualDevice::getDevice(int)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/DualDevice.cpp:146:37:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Ksource[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  146 | PvDevice *DualDevice::getDevice([01;35m[Kint source[m[K) { return rgb_device; }
+      |                                 [01;35m[K~~~~^~~~~~[m[K
+In file included from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:3[m[K:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:[m[K In function ‘[01m[KPvString PvSelectInterface()[m[K’:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:504:18:[m[K [01;35m[Kwarning: [m[Kcomparison of unsigned expression in ‘[01m[K>= 0[m[K’ is always true [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wtype-limits-Wtype-limits]8;;[m[K]
+  504 |         ( [01;35m[KlIndex >= 0[m[K ) &&
+      |           [01;35m[K~~~~~~~^~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:[m[K In member function ‘[01m[Kbool DeviceManager::findDevice(PvString&, PvDevice*&, std::string&)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:42:32:[m[K [01;35m[Kwarning: [m[Kcomparison with string literal results in unspecified behavior [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Waddress-Waddress]8;;[m[K]
+   42 |   if ([01;35m[KaConnectionID.GetAscii() == ""[m[K) {
+      |       [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:[m[K In member function ‘[01m[Kbool DeviceManager::findDeviceConnectionID(PvString&, std::string&, std::string)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:78:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kuint32_t[m[K’ {aka ‘[01m[Kunsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   78 |   for (int i = 0; [01;35m[Ki < lSystem.GetInterfaceCount()[m[K; i++) {
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:89:23:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kuint32_t[m[K’ {aka ‘[01m[Kunsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   89 |     for (int j = 0; [01;35m[Kj < lInterface->GetDeviceCount()[m[K; j++) {
+      |                     [01;35m[K~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/device/Device.cpp:72:7:[m[K [01;35m[Kwarning: [m[Kunused variable ‘[01m[KdeviceCount[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-variable-Wunused-variable]8;;[m[K]
+   72 |   int [01;35m[KdeviceCount[m[K = 0;
+      |       [01;35m[K^~~~~~~~~~~[m[K
+In file included from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:4[m[K:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:[m[K In function ‘[01m[KPvString PvSelectInterface()[m[K’:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:504:18:[m[K [01;35m[Kwarning: [m[Kcomparison of unsigned expression in ‘[01m[K>= 0[m[K’ is always true [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wtype-limits-Wtype-limits]8;;[m[K]
+  504 |         ( [01;35m[KlIndex >= 0[m[K ) &&
+      |           [01;35m[K~~~~~~~^~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:[m[K In member function ‘[01m[Kvoid AcquireManager::AcquireSingleImageDual(DualDevice*)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:41:15:[m[K [01;35m[Kwarning: [m[Kunused variable ‘[01m[KlBuffer[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-variable-Wunused-variable]8;;[m[K]
+   41 |     PvBuffer* [01;35m[KlBuffer[m[K = nullptr;
+      |               [01;35m[K^~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:[m[K In member function ‘[01m[Kvoid AcquireManager::bufferProcess(PvDevice*, PvStream*, PvGenParam&, StreamMonitor&)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:211:46:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[KaDevice[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  211 | void AcquireManager::bufferProcess([01;35m[KPvDevice* aDevice[m[K, PvStream* aStream,
+      |                                    [01;35m[K~~~~~~~~~~^~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:[m[K In member function ‘[01m[Kvoid AcquireManager::bufferDestroy(PvDevice*, PvStream*)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:248:46:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[KaDevice[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  248 | void AcquireManager::bufferDestroy([01;35m[KPvDevice* aDevice[m[K, PvStream* aStream) {
+      |                                    [01;35m[K~~~~~~~~~~^~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:[m[K In member function ‘[01m[Kvoid AcquireManager::payloadPleoraCompressedProcess(PvBuffer*, PvResult&, PvGenParam&, StreamMonitor&)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/acquire/Acquire.cpp:285:65:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kparams[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  285 |                                                     [01;35m[KPvGenParam& params[m[K,
+      |                                                     [01;35m[K~~~~~~~~~~~~^~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/camera/Camera.cpp:[m[K In member function ‘[01m[Kvoid MultiSpectralCamera::timeStampReset(uint64_t, uint64_t)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/camera/Camera.cpp:59:51:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Ksystem_time[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+   59 | void MultiSpectralCamera::timeStampReset([01;35m[Kuint64_t system_time[m[K,
+      |                                          [01;35m[K~~~~~~~~~^~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/src/camera/Camera.cpp:60:51:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kcamera_time[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+   60 |                                          [01;35m[Kuint64_t camera_time[m[K) {
+      |                                          [01;35m[K~~~~~~~~~^~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:187:[m[K [01;35m[Kwarning: [m[Kignoring ‘[01m[K#pragma omp parallel[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunknown-pragmas-Wunknown-pragmas]8;;[m[K]
+  187 | #pragma omp parallel for collapse(2)  // OpenMP 병렬 처리
+      | 
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/HdrFusion.cpp:[m[K In member function ‘[01m[Kvoid HdrFusion::fusion_hdr(std::vector<std::pair<int, cv::Mat> >, cv::Mat&, cv::Mat&, bool)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/HdrFusion.cpp:3:65:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kimages[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+    3 | void HdrFusion::fusion_hdr([01;35m[Kstd::vector<std::pair<int, cv::Mat>> images[m[K,
+      |                            [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/HdrFusion.cpp:4:37:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kdst_hdr[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+    4 |                            [01;35m[Kcv::Mat& dst_hdr[m[K, cv::Mat& dst_fusion, bool rgb) {
+      |                            [01;35m[K~~~~~~~~~^~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/HdrFusion.cpp:4:55:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kdst_fusion[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+    4 |                            cv::Mat& dst_hdr, [01;35m[Kcv::Mat& dst_fusion[m[K, bool rgb) {
+      |                                              [01;35m[K~~~~~~~~~^~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/HdrFusion.cpp:4:72:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Krgb[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+    4 |                            cv::Mat& dst_hdr, cv::Mat& dst_fusion, [01;35m[Kbool rgb[m[K) {
+      |                                                                   [01;35m[K~~~~~^~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIRGBNIRCamera::openStreamAll()[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:53:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   53 |   for (int i = 0; [01;35m[Ki < cameras.size()[m[K; i++) {
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIRGBNIRCamera::configureExposureAll(float, float)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:76:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   76 |   for (int i = 0; [01;35m[Ki < cameras.size()[m[K; i++) {
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIRGBNIRCamera::flushStream()[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:86:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   86 |   for (int i = 0; [01;35m[Ki < cameras.size()[m[K; i++) {
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kint JAIRGBNIRCamera::readImage(std::shared_ptr<rclcpp_action::ServerGoalHandle<jai_rosbridge::action::HDRTrigger> >, std::vector<cv::Mat>&, __uint64_t&)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:206:23:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  206 |     for (int d = 0; [01;35m[Kd < cameras.size()[m[K; d++) {
+      |                     [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:221:23:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  221 |     for (int d = 0; [01;35m[Kd < cameras.size()[m[K; d++) {
+      |                     [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIRGBNIRCamera::closeStreamAll()[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:301:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  301 |   for (int i = 0; [01;35m[Ki < cameras.size()[m[K; i++) cameras[i]->closeStream();
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIHDRNode::collectHdrImages(std::shared_ptr<rclcpp_action::ServerGoalHandle<jai_rosbridge::action::HDRTrigger> >)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:371:29:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  371 |   for (int t_idx = 0; [01;35m[Kt_idx < config->HDR_EXPOSURE.size()[m[K; t_idx++) {
+      |                       [01;35m[K~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:376:43:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  376 |     bool should_toggle_light = ([01;35m[Kt_idx + 1 == config->HDR_EXPOSURE_NIR.size()[m[K);
+      |                                 [01;35m[K~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:413:19:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  413 |     if ([01;35m[Kt_idx + 1 == config->HDR_EXPOSURE.size()[m[K) {
+      |         [01;35m[K~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid JAIHDRNode::collectHdrImagesParallel(std::shared_ptr<rclcpp_action::ServerGoalHandle<jai_rosbridge::action::HDRTrigger> >)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:468:29:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  468 |   for (int t_idx = 0; [01;35m[Kt_idx < config->HDR_EXPOSURE.size()[m[K; t_idx++) {
+      |                       [01;35m[K~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:473:43:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  473 |     bool should_toggle_light = ([01;35m[Kt_idx + 1 == config->HDR_EXPOSURE_NIR.size()[m[K);
+      |                                 [01;35m[K~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:550:19:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  550 |     if ([01;35m[Kt_idx + 1 == config->HDR_EXPOSURE.size()[m[K) {
+      |         [01;35m[K~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Kvoid HDRStorage::storeHDRSequence(std::string, std::vector<long unsigned int>, std::vector<cv::Mat>)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:599:17:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<cv::Mat>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  599 |       if ([01;35m[Kindex < images.size()[m[K) {
+      |           [01;35m[K~~~~~~^~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:609:32:[m[K [01;35m[Kwarning: [m[Kformat ‘[01m[K%lld[m[K’ expects argument of type ‘[01m[Klong long int[m[K’, but argument 5 has type ‘[01m[K__gnu_cxx::__alloc_traits<std::allocator<long unsigned int>, long unsigned int>::value_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wformat=-Wformat=]8;;[m[K]
+  609 |     snprintf(path, 256, "%s/[01;35m[K%lld[m[K_col%d.png", space_id.c_str(), timestamp[0], j);
+      |                             [01;35m[K~~~^[m[K
+      |                                [01;35m[K|[m[K
+      |                                [01;35m[Klong long int[m[K
+      |                             [32m[K%ld[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Krclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(const GoalUUID&, std::shared_ptr<const jai_rosbridge::action::HDRTrigger_Goal_<std::allocator<void> > >)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:619:36:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kuuid[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  619 |     [01;35m[Kconst rclcpp_action::GoalUUID& uuid[m[K,
+      |     [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:620:45:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kgoal[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  620 |     [01;35m[Kstd::shared_ptr<const HDRTrigger::Goal> goal[m[K) {
+      |     [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:[m[K In member function ‘[01m[Krclcpp_action::CancelResponse JAIHDRNode::action_hdr_trigger_cancel(std::shared_ptr<rclcpp_action::ServerGoalHandle<jai_rosbridge::action::HDRTrigger> >)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAIHDRNode.cpp:630:49:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kgoal_handle[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  630 |     [01;35m[Kconst std::shared_ptr<GoalHandleHDRTrigger> goal_handle[m[K) {
+      |     [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In member function ‘[01m[Kvoid JAINode::enlistJAIDevice(int, std::string, int)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:82:30:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kstd::vector<std::vector<std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::CompressedImage_<std::allocator<void> > > > > >::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} and ‘[01m[Kint[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   82 |   if ([01;35m[KimagePublishers.size() <= device_num[m[K) {
+      |       [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:92:42:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kstd::vector<std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::CompressedImage_<std::allocator<void> > > > >::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} and ‘[01m[Kint[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+   92 |   if ([01;35m[KimagePublishers[device_num].size() < channel_count[m[K) {
+      |       [01;35m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In lambda function:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:115:18:[m[K [01;35m[Kwarning: [m[Kunused variable ‘[01m[Kret[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-variable-Wunused-variable]8;;[m[K]
+  115 |             auto [01;35m[Kret[m[K = this->cameras[device_num]->holdAutoExposureAndGetValue(
+      |                  [01;35m[K^~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In lambda function:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:143:24:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kbuffer[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  143 |   return [&]([01;35m[KPvBuffer* buffer[m[K) {
+      |              [01;35m[K~~~~~~~~~~^~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In member function ‘[01m[Kstd::function<void(PvBuffer*)> JAINode::getEbusRosCallback(int, int)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:142:15:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Kdevice_num[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  142 |     [01;35m[Kconst int device_num[m[K, const int source_num) {
+      |     [01;35m[K~~~~~~~~~~^~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:142:37:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[Ksource_num[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+  142 |     const int device_num, [01;35m[Kconst int source_num[m[K) {
+      |                           [01;35m[K~~~~~~~~~~^~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In member function ‘[01m[Kvoid JAINode::emitRosImageMsgPublish(int, int, PvBuffer*, uint64_t)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:355:7:[m[K [01;35m[Kwarning: [m[Kvariable ‘[01m[KcompressType[m[K’ set but not used [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-but-set-variable-Wunused-but-set-variable]8;;[m[K]
+  355 |   int [01;35m[KcompressType[m[K;
+      |       [01;35m[K^~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In member function ‘[01m[Kvoid JAINode::createServiceClient()[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:530:21:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<MultiSpectralCamera*>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  530 |   for (int i = 0; [01;35m[Ki < cameras.size()[m[K; i++) {
+      |                   [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In lambda function:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:547:29:[m[K [01;35m[Kwarning: [m[Kloop variable ‘[01m[Kparam[m[K’ creates a copy from type ‘[01m[Kconst ParameterValue[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wrange-loop-construct-Wrange-loop-construct]8;;[m[K]
+  547 |             for (const auto [01;35m[Kparam[m[K : msg_proto->parameters()) {
+      |                             [01;35m[K^~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:547:29:[m[K [01;36m[Knote: [m[Kuse reference type to prevent copying
+  547 |             for (const auto [01;36m[Kparam[m[K : msg_proto->parameters()) {
+      |                             [01;36m[K^~~~~[m[K
+      |                             [32m[K&[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In constructor ‘[01m[KHdrScenario::HdrScenario()[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:601:25:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  601 |       for (int k = 0; [01;35m[Kk < hdr_exp.size()[m[K; k++) {
+      |                       [01;35m[K~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In member function ‘[01m[Kvoid HdrScenario::processHdrImage(int, int, PvBuffer*, long unsigned int)[m[K’:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:626:57:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  626 |   if (hdr_exposure_idx[dn] > -1 && [01;35m[Khdr_exposure_idx[dn] < hdr_exp.size()[m[K) {
+      |                                    [01;35m[K~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:646:28:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  646 |   if ([01;35m[Khdr_exposure_idx[dn] == hdr_exp.size()[m[K) {
+      |       [01;35m[K~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:656:27:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<std::pair<int, cv::Mat> >::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  656 |         for (int i = 2; [01;35m[Ki < hdr_exposure_image[dn][s].size()[m[K; ++i) {
+      |                         [01;35m[K~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:675:57:[m[K [01;35m[Kwarning: [m[Kcomparison of integer expressions of different signedness: ‘[01m[Kint[m[K’ and ‘[01m[Kstd::vector<double>::size_type[m[K’ {aka ‘[01m[Klong unsigned int[m[K’} [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wsign-compare-Wsign-compare]8;;[m[K]
+  675 |   if (hdr_exposure_idx[dn] >= 0 && [01;35m[Khdr_exposure_idx[dn] < hdr_exp.size()[m[K) {
+      |                                    [01;35m[K~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:[m[K In lambda function:
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:557:17:[m[K [01;35m[Kwarning: [m[K‘[01m[Kvoid free(void*)[m[K’ called on pointer returned from a mismatched allocation function [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wmismatched-new-delete-Wmismatched-new-delete]8;;[m[K]
+  557 |             [01;35m[Kfree(msg_proto)[m[K;
+      |             [01;35m[K~~~~^~~~~~~~~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/ros/JAINode.cpp:545:50:[m[K [01;36m[Knote: [m[Kreturned from ‘[01m[Kvoid* operator new(std::size_t)[m[K’
+  545 |             auto msg_proto = new ParameterUpdate([01;36m[K)[m[K;
+      |                                                  [01;36m[K^[m[K
+In file included from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/jai_node.cpp:3[m[K:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:[m[K In function ‘[01m[KPvString PvSelectInterface()[m[K’:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:504:18:[m[K [01;35m[Kwarning: [m[Kcomparison of unsigned expression in ‘[01m[K>= 0[m[K’ is always true [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wtype-limits-Wtype-limits]8;;[m[K]
+  504 |         ( [01;35m[KlIndex >= 0[m[K ) &&
+      |           [01;35m[K~~~~~~~^~~~[m[K
+[01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge/src/jai_node.cpp:[m[K In function ‘[01m[Kvoid CatchCtrlC(int)[m[K’:
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:64:26:[m[K [01;35m[Kwarning: [m[Kunused parameter ‘[01m[KaSig[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-parameter-Wunused-parameter]8;;[m[K]
+   64 |     void CatchCtrlC( [01;35m[Kint aSig[m[K ) { gStop = 1; }                      \
+      |                      [01;35m[K~~~~^~~~[m[K
+[01m[K/opt/jai/ebus_sdk/Ubuntu-22.04-x86_64/include/PvSampleUtils.h:64:26:[m[K [01;36m[Knote: [m[Kin definition of macro ‘[01m[KPV_INIT_SIGNAL_HANDLER[m[K’
+   64 |     void CatchCtrlC( int [01;36m[KaSig[m[K ) { gStop = 1; }                      \
+      |                          [01;36m[K^~~~[m[K

@@ -1,0 +1,19 @@
+-- Install configuration: ""
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/lib/flask_ui/app.py
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/templates
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/templates/index.html
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/package_run_dependencies/flask_ui
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/parent_prefix_path/flask_ui
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/ament_prefix_path.sh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/ament_prefix_path.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/path.sh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/environment/path.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.bash
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.sh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.zsh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/local_setup.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/package.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/ament_index/resource_index/packages/flask_ui
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/cmake/flask_uiConfig.cmake
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/cmake/flask_uiConfig-version.cmake
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/flask_ui/share/flask_ui/package.xml

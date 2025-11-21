@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "jai_rosbridge__py",
+		"source" : "/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge/jai_rosbridge__py"
+	}
+}

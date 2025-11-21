@@ -1,0 +1,30 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from jai_rosbridge/action/HDRTrigger.action
+// generated code does not contain a copyright notice
+
+
+module jai_rosbridge {
+  module action {
+    @verbatim (language="comment", text=
+      "Goal definition")
+    struct HDRTrigger_Goal {
+      @verbatim (language="comment", text=
+        "전송할 로그 메시지")
+      string space_id;
+    };
+    struct HDRTrigger_Result {
+      @verbatim (language="comment", text=
+        "Result definition" "\n"
+        "성공 여부")
+      boolean success;
+
+      string result_message;
+    };
+    struct HDRTrigger_Feedback {
+      @verbatim (language="comment", text=
+        "Feedback definition" "\n"
+        "진행 상황에 대한 피드백 메시지")
+      string feedback_message;
+    };
+  };
+};

@@ -1,0 +1,251 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-6f0cf0925f604be1290f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "jai_rosbridge__py",
+					"jsonFile" : "directory-jai_rosbridge__py-5138bfd2c328556e6914.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge/jai_rosbridge__py",
+					"targetIndexes" : 
+					[
+						6
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "jai_rosbridge",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_build_jai_rosbridge_egg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_build_jai_rosbridge_egg-b27844910b880dceaf6f.json",
+					"name" : "ament_cmake_python_build_jai_rosbridge_egg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_copy_jai_rosbridge::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_copy_jai_rosbridge-e362e386f089b03cc951.json",
+					"name" : "ament_cmake_python_copy_jai_rosbridge",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_node::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_node-78086900b76c3b1f78e6.json",
+					"name" : "jai_node",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_node_lib::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_node_lib-bb82bde350e4345d3392.json",
+					"name" : "jai_node_lib",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge-4c06b038bc6892827af2.json",
+					"name" : "jai_rosbridge",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__cpp-9a41f49cf4c28efc4c88.json",
+					"name" : "jai_rosbridge__cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "jai_rosbridge__py::@d0aca71917959f5c5886",
+					"jsonFile" : "target-jai_rosbridge__py-cad669f5b0e41469495e.json",
+					"name" : "jai_rosbridge__py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_generator_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_generator_c-5a970ff6b4a568c5daae.json",
+					"name" : "jai_rosbridge__rosidl_generator_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_generator_py::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_generator_py-97b2895f90a266ceb967.json",
+					"name" : "jai_rosbridge__rosidl_generator_py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_c-116815dfe812b3c34203.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_c__pyext-9e89d9044bd9b01643bb.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_cpp-8b34ecdac85aef7b4f42.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_fastrtps_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_fastrtps_c-9d7a9f2e662804d7404c.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_fastrtps_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_fastrtps_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_fastrtps_c__pyext-27aca17bde5942a845b1.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_fastrtps_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_fastrtps_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_fastrtps_cpp-3d047ff57cd2f0d0f63d.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_fastrtps_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_introspection_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_introspection_c-9662dc5596c733842603.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_introspection_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_introspection_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_introspection_c__pyext-f4f57d33454ee77cf224.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_introspection_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge__rosidl_typesupport_introspection_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge__rosidl_typesupport_introspection_cpp-f61ea899dbabb28eb097.json",
+					"name" : "jai_rosbridge__rosidl_typesupport_introspection_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "jai_rosbridge_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-jai_rosbridge_uninstall-d50e14b52d8af006c534.json",
+					"name" : "jai_rosbridge_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-a4bcd9f901e18e5028cc.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/cg-tuf/turtlebot4_flask/build/jai_rosbridge",
+		"source" : "/home/cg-tuf/turtlebot4_flask/clientapp/instance/jai/jai_rosbridge"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

@@ -1,0 +1,29 @@
+[0.534s] Invoking command in '/home/cg-tuf/turtlebot4_flask/piper_ws/src/Piper_ros/src/piper': PYTHONPATH=/home/cg-tuf/turtlebot4_flask/build/piper/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../../../build/piper build --build-base /home/cg-tuf/turtlebot4_flask/build/piper/build install --record /home/cg-tuf/turtlebot4_flask/build/piper/install.log --single-version-externally-managed install_data
+[0.669s] running egg_info
+[0.669s] writing ../../../../../build/piper/piper.egg-info/PKG-INFO
+[0.669s] writing dependency_links to ../../../../../build/piper/piper.egg-info/dependency_links.txt
+[0.669s] writing entry points to ../../../../../build/piper/piper.egg-info/entry_points.txt
+[0.669s] writing requirements to ../../../../../build/piper/piper.egg-info/requires.txt
+[0.669s] writing top-level names to ../../../../../build/piper/piper.egg-info/top_level.txt
+[0.670s] reading manifest file '../../../../../build/piper/piper.egg-info/SOURCES.txt'
+[0.670s] adding license file 'LICENSE'
+[0.671s] writing manifest file '../../../../../build/piper/piper.egg-info/SOURCES.txt'
+[0.671s] running build
+[0.671s] running build_py
+[0.671s] copying piper/auto_motion.py -> /home/cg-tuf/turtlebot4_flask/build/piper/build/lib/piper
+[0.671s] running install
+[0.671s] running install_lib
+[0.672s] copying /home/cg-tuf/turtlebot4_flask/build/piper/build/lib/piper/auto_motion.py -> /home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages/piper
+[0.672s] byte-compiling /home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages/piper/auto_motion.py to auto_motion.cpython-310.pyc
+[0.673s] running install_data
+[0.673s] running install_egg_info
+[0.675s] removing '/home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages/piper-0.0.0-py3.10.egg-info' (and everything under it)
+[0.675s] Copying ../../../../../build/piper/piper.egg-info to /home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages/piper-0.0.0-py3.10.egg-info
+[0.675s] running install_scripts
+[0.688s] Installing auto_motion script to /home/cg-tuf/turtlebot4_flask/install/piper/lib/piper
+[0.689s] Installing auto_motion_service script to /home/cg-tuf/turtlebot4_flask/install/piper/lib/piper
+[0.689s] Installing move_arm_service script to /home/cg-tuf/turtlebot4_flask/install/piper/lib/piper
+[0.689s] Installing piper_read_slave_joint script to /home/cg-tuf/turtlebot4_flask/install/piper/lib/piper
+[0.689s] Installing piper_single_ctrl script to /home/cg-tuf/turtlebot4_flask/install/piper/lib/piper
+[0.689s] writing list of installed files to '/home/cg-tuf/turtlebot4_flask/build/piper/install.log'
+[0.716s] Invoked command in '/home/cg-tuf/turtlebot4_flask/piper_ws/src/Piper_ros/src/piper' returned '0': PYTHONPATH=/home/cg-tuf/turtlebot4_flask/build/piper/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/cg-tuf/turtlebot4_flask/install/piper/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../../../build/piper build --build-base /home/cg-tuf/turtlebot4_flask/build/piper/build install --record /home/cg-tuf/turtlebot4_flask/build/piper/install.log --single-version-externally-managed install_data
