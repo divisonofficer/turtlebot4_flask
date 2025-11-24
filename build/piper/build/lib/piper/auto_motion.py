@@ -98,7 +98,7 @@ class AutoMotion(Node):
         self.presets_rad = generate_presets()
         self.iterator = itertools.cycle(self.presets_rad)
 
-        self.timer = self.create_timer(5.0, self.timer_callback)
+        self.timer = self.create_timer(7.0, self.timer_callback)
 
     def timer_callback(self):
         msg = JointState()

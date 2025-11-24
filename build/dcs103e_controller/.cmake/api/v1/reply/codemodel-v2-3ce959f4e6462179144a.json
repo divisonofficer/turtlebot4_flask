@@ -1,0 +1,242 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-79b46b447e1aff5ff6a3.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18
+					]
+				},
+				{
+					"build" : "dcs103e_controller__py",
+					"jsonFile" : "directory-dcs103e_controller__py-a51eb979f0b22600d437.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller/dcs103e_controller__py",
+					"targetIndexes" : 
+					[
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "dcs103e_controller",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_build_dcs103e_controller_egg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_build_dcs103e_controller_egg-4443149a1ac008e86b13.json",
+					"name" : "ament_cmake_python_build_dcs103e_controller_egg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ament_cmake_python_copy_dcs103e_controller::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ament_cmake_python_copy_dcs103e_controller-4594268b44d1bec97520.json",
+					"name" : "ament_cmake_python_copy_dcs103e_controller",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller-3a68c5962e37f088db33.json",
+					"name" : "dcs103e_controller",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__cpp-c2cccab2ebe6f84cc61a.json",
+					"name" : "dcs103e_controller__cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "dcs103e_controller__py::@b6b7049deae053b888cb",
+					"jsonFile" : "target-dcs103e_controller__py-d5d7a7af45eefe534d3f.json",
+					"name" : "dcs103e_controller__py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_generator_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_generator_c-b0dcf4cfe760e7e390cb.json",
+					"name" : "dcs103e_controller__rosidl_generator_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_generator_py::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_generator_py-06ea415dccdf549c1422.json",
+					"name" : "dcs103e_controller__rosidl_generator_py",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_c-3a0268a4e581db596471.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_c__pyext-1cbef334d70a5a1eba2e.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_cpp-a9d98b1a83c99dea93f0.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_fastrtps_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_fastrtps_c-b1531c61f3b0c271e659.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_fastrtps_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_fastrtps_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_fastrtps_c__pyext-aab540f33c1f0d45d86c.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_fastrtps_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_fastrtps_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_fastrtps_cpp-847a31097134005a6f14.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_fastrtps_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_introspection_c::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_introspection_c-452203e1146fbfbe62b9.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_introspection_c",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_introspection_c__pyext::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_introspection_c__pyext-ab0b6ea0d2cc2ecf3435.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_introspection_c__pyext",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller__rosidl_typesupport_introspection_cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller__rosidl_typesupport_introspection_cpp-799c8a8122cd4ed1dd2d.json",
+					"name" : "dcs103e_controller__rosidl_typesupport_introspection_cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_controller_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_controller_uninstall-af933a543c6aaafb6a85.json",
+					"name" : "dcs103e_controller_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "dcs103e_node::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-dcs103e_node-743eb20582224e0083ca.json",
+					"name" : "dcs103e_node",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-c394eb1b1a350b78544e.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller",
+		"source" : "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

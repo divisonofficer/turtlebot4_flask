@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "dcs103e_controller__py",
+		"source" : "/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller/dcs103e_controller__py"
+	}
+}

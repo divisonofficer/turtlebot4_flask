@@ -1,0 +1,29 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from dcs103e_controller/srv/ControlChannel.srv
+// generated code does not contain a copyright notice
+
+
+module dcs103e_controller {
+  module srv {
+    @verbatim (language="comment", text=
+      "Service to control DCS103e channel")
+    struct ControlChannel_Request {
+      @verbatim (language="comment", text=
+        "Channel number (0, 1, 2)")
+      int32 channel;
+
+      @verbatim (language="comment", text=
+        "true to turn on, false to turn off")
+      boolean enable;
+
+      @verbatim (language="comment", text=
+        "Current value (optional, used when enabling)")
+      double current;
+    };
+    struct ControlChannel_Response {
+      boolean success;
+
+      string message;
+    };
+  };
+};

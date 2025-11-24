@@ -1,0 +1,8 @@
+srv/ControlChannel.idl
+srv/ControlChannel.srv
+srv/ControlChannel_Request.msg
+srv/ControlChannel_Response.msg
+srv/SetChannelMode.idl
+srv/SetChannelMode.srv
+srv/SetChannelMode_Request.msg
+srv/SetChannelMode_Response.msg

@@ -1,0 +1,4 @@
+source;share/dcs103e_controller/local_setup.bash
+source;share/dcs103e_controller/local_setup.dsv
+source;share/dcs103e_controller/local_setup.sh
+source;share/dcs103e_controller/local_setup.zsh

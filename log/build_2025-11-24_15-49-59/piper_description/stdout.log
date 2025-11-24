@@ -1,0 +1,61 @@
+-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+-- Added test 'copyright' to check source files copyright and LICENSE
+-- Added test 'flake8' to check Python code syntax and style conventions
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/cg-tuf/turtlebot4_flask/build/piper_description
+-- Install configuration: ""
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_xacro.launch.py
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_urdf.launch.py
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_with_gripper/display_urdf_follow.launch.py
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_urdf.launch.py
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_xacro.launch.py
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/launch/piper_no_gripper/display_no_gripper_urdf_follow.launch.py
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link3.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link7.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link5.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link2.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link6.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link1.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link4.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/base_link.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/link8.STL
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/meshes/gripper_base.STL
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz/piper_ctrl.rviz
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/rviz/piper_no_gripper.rviz
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description_gazebo.xacro
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description.urdf
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description_gazebo.xacro
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description.urdf
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description_old.urdf
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description_old.urdf
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_description.xacro
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/urdf/piper_no_gripper_description.xacro
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model/piper_no_gripper_description.xml
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/mujoco_model/piper_description.xml
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/package_run_dependencies/piper_description
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/parent_prefix_path/piper_description
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/ament_prefix_path.sh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/ament_prefix_path.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/path.sh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/environment/path.dsv
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.bash
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.sh
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.zsh
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/local_setup.dsv
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/package.dsv
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/ament_index/resource_index/packages/piper_description
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/cmake/piper_descriptionConfig.cmake
+-- Up-to-date: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/cmake/piper_descriptionConfig-version.cmake
+-- Installing: /home/cg-tuf/turtlebot4_flask/install/piper_description/share/piper_description/package.xml

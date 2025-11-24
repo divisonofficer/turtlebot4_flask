@@ -1,0 +1,284 @@
+[0.009s] Invoking command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller
+[0.064s] -- The C compiler identification is GNU 11.4.0
+[0.110s] -- The CXX compiler identification is GNU 11.4.0
+[0.120s] -- Detecting C compiler ABI info
+[0.194s] -- Detecting C compiler ABI info - done
+[0.198s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.198s] -- Detecting C compile features
+[0.198s] -- Detecting C compile features - done
+[0.200s] -- Detecting CXX compiler ABI info
+[0.280s] -- Detecting CXX compiler ABI info - done
+[0.286s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.286s] -- Detecting CXX compile features
+[0.287s] -- Detecting CXX compile features - done
+[0.288s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.410s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.479s] -- Found rclcpp: 16.0.15 (/opt/ros/humble/share/rclcpp/cmake)
+[0.505s] -- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.508s] -- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.513s] -- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.520s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.532s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.558s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.559s] -- Found rmw_fastrtps_cpp: 6.2.9 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.642s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[0.662s] -- Found FastRTPS: /opt/ros/humble/include  
+[0.693s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.698s] -- Looking for pthread.h
+[0.779s] -- Looking for pthread.h - found
+[0.779s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.857s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[0.858s] -- Found Threads: TRUE  
+[0.889s] -- Found std_srvs: 4.9.0 (/opt/ros/humble/share/std_srvs/cmake)
+[0.895s] -- Found geometry_msgs: 4.9.0 (/opt/ros/humble/share/geometry_msgs/cmake)
+[0.903s] -- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+[1.115s] -- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+[1.393s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.502s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.520s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+[1.521s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[1.547s] -- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+[1.547s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[1.547s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[1.547s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[1.563s] -- Found PythonExtra: .so  
+[1.601s] [0mCMake Deprecation Warning at /opt/ros/humble/share/rosidl_cmake/cmake/rosidl_target_interfaces.cmake:32 (message):
+[1.601s]   Use rosidl_get_typesupport_target() and target_link_libraries() instead of
+[1.601s]   rosidl_target_interfaces()
+[1.602s] Call Stack (most recent call first):
+[1.602s]   CMakeLists.txt:40 (rosidl_target_interfaces)
+[1.602s] 
+[1.602s] [0m
+[1.602s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[1.616s] -- Added test 'copyright' to check source files copyright and LICENSE
+[1.649s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[1.649s] -- Configured cppcheck include dirs: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/include;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_generator_c>;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_typesupport_fastrtps_c>;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_generator_cpp>;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_typesupport_fastrtps_cpp>;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_typesupport_introspection_c>;$<BUILD_INTERFACE:/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_typesupport_introspection_cpp>;/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_generator_c;/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller/rosidl_generator_py
+[1.649s] -- Configured cppcheck exclude dirs and/or files: 
+[1.675s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[1.676s] -- Configured cpplint exclude dirs and/or files: 
+[1.679s] -- Added test 'flake8' to check Python code syntax and style conventions
+[1.686s] -- Added test 'lint_cmake' to check CMake code style
+[1.690s] -- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+[1.716s] -- Added test 'uncrustify' to check C / C++ code style
+[1.716s] -- Configured uncrustify additional arguments: 
+[1.720s] -- Added test 'xmllint' to check XML markup files
+[1.722s] -- Configuring done
+[1.754s] -- Generating done
+[1.763s] -- Build files have been written to: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller
+[1.785s] Invoked command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller' returned '0': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller
+[1.787s] Invoking command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller -- -j16 -l16
+[1.833s] [  2%] [34m[1mGenerating C code for ROS interfaces[0m
+[1.844s] [  4%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[1.856s] [  4%] Built target ament_cmake_python_copy_dcs103e_controller
+[2.024s] running egg_info
+[2.024s] creating dcs103e_controller.egg-info
+[2.024s] writing dcs103e_controller.egg-info/PKG-INFO
+[2.025s] writing dependency_links to dcs103e_controller.egg-info/dependency_links.txt
+[2.025s] writing top-level names to dcs103e_controller.egg-info/top_level.txt
+[2.025s] writing manifest file 'dcs103e_controller.egg-info/SOURCES.txt'
+[2.026s] reading manifest file 'dcs103e_controller.egg-info/SOURCES.txt'
+[2.027s] writing manifest file 'dcs103e_controller.egg-info/SOURCES.txt'
+[2.064s] [  4%] Built target ament_cmake_python_build_dcs103e_controller_egg
+[2.119s] [  7%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_generator_c.dir/rosidl_generator_c/dcs103e_controller/srv/detail/control_channel__functions.c.o[0m
+[2.119s] [  9%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_generator_c.dir/rosidl_generator_c/dcs103e_controller/srv/detail/set_channel_mode__functions.c.o[0m
+[2.140s] [  9%] Built target dcs103e_controller__cpp
+[2.152s] [ 16%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[2.152s] [ 16%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[2.152s] [ 16%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[2.173s] [ 19%] [32m[1mLinking C shared library libdcs103e_controller__rosidl_generator_c.so[0m
+[2.216s] [ 19%] Built target dcs103e_controller__rosidl_generator_c
+[2.228s] [ 26%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[2.228s] [ 26%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[2.228s] [ 26%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[2.443s] [ 30%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/dcs103e_controller/srv/control_channel__type_support.cpp.o[0m
+[2.444s] [ 30%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/dcs103e_controller/srv/set_channel_mode__type_support.cpp.o[0m
+[2.455s] [ 35%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/dcs103e_controller/srv/detail/control_channel__type_support.cpp.o[0m
+[2.456s] [ 35%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/dcs103e_controller/srv/detail/set_channel_mode__type_support.cpp.o[0m
+[2.468s] [ 40%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/dcs103e_controller/srv/detail/dds_fastrtps/control_channel__type_support.cpp.o[0m
+[2.469s] [ 40%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/dcs103e_controller/srv/detail/dds_fastrtps/set_channel_mode__type_support.cpp.o[0m
+[2.525s] [ 45%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_c.dir/rosidl_typesupport_c/dcs103e_controller/srv/control_channel__type_support.cpp.o[0m
+[2.525s] [ 45%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_c.dir/rosidl_typesupport_c/dcs103e_controller/srv/set_channel_mode__type_support.cpp.o[0m
+[2.569s] [ 52%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/dcs103e_controller/srv/detail/control_channel__type_support.c.o[0m
+[2.569s] [ 52%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/dcs103e_controller/srv/detail/set_channel_mode__type_support.c.o[0m
+[2.569s] [ 52%] [32m[1mLinking CXX shared library libdcs103e_controller__rosidl_typesupport_c.so[0m
+[2.593s] [ 57%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/dcs103e_controller/srv/detail/control_channel__type_support_c.cpp.o[0m
+[2.593s] [ 57%] [32mBuilding CXX object CMakeFiles/dcs103e_controller__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/dcs103e_controller/srv/detail/set_channel_mode__type_support_c.cpp.o[0m
+[2.619s] [ 59%] [32m[1mLinking C shared library libdcs103e_controller__rosidl_typesupport_introspection_c.so[0m
+[2.635s] [ 59%] Built target dcs103e_controller__rosidl_typesupport_c
+[2.671s] [ 59%] Built target dcs103e_controller__rosidl_typesupport_introspection_c
+[2.711s] [ 61%] [32m[1mLinking CXX shared library libdcs103e_controller__rosidl_typesupport_cpp.so[0m
+[2.757s] [ 61%] Built target dcs103e_controller__rosidl_typesupport_cpp
+[2.819s] [ 64%] [32m[1mLinking CXX shared library libdcs103e_controller__rosidl_typesupport_introspection_cpp.so[0m
+[2.862s] [ 66%] [32m[1mLinking CXX shared library libdcs103e_controller__rosidl_typesupport_fastrtps_cpp.so[0m
+[2.894s] [ 66%] Built target dcs103e_controller__rosidl_typesupport_introspection_cpp
+[2.905s] [ 69%] [32m[1mLinking CXX shared library libdcs103e_controller__rosidl_typesupport_fastrtps_c.so[0m
+[2.943s] [ 69%] Built target dcs103e_controller__rosidl_typesupport_fastrtps_cpp
+[2.978s] [ 69%] Built target dcs103e_controller__rosidl_typesupport_fastrtps_c
+[2.999s] [ 69%] Built target dcs103e_controller
+[3.020s] [ 71%] [32mBuilding CXX object CMakeFiles/dcs103e_node.dir/src/dcs103e_node.cpp.o[0m
+[3.020s] [ 73%] [34m[1mGenerating Python code for ROS interfaces[0m
+[3.020s] [ 76%] [32mBuilding CXX object CMakeFiles/dcs103e_node.dir/src/dcs103e_controller.cpp.o[0m
+[3.275s] In file included from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/include/dcs103e_controller.hpp:9[m[K,
+[3.275s]                  from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/src/dcs103e_controller.cpp:1[m[K:
+[3.275s] [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/include/DCS100.h:116:13:[m[K [01;35m[Kwarning: [m[Ktype qualifiers ignored on function return type [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wignored-qualifiers-Wignored-qualifiers]8;;[m[K]
+[3.275s]   116 |             [01;35m[Kconst[m[K double maxStrobe() const;
+[3.276s]       |             [01;35m[K^~~~~[m[K
+[3.422s] [ 76%] Built target dcs103e_controller__py
+[3.443s] [ 78%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_generator_py.dir/rosidl_generator_py/dcs103e_controller/srv/_control_channel_s.c.o[0m
+[3.443s] [ 80%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_generator_py.dir/rosidl_generator_py/dcs103e_controller/srv/_set_channel_mode_s.c.o[0m
+[3.512s] [ 83%] [32m[1mLinking C shared library rosidl_generator_py/dcs103e_controller/libdcs103e_controller__rosidl_generator_py.so[0m
+[3.549s] [ 83%] Built target dcs103e_controller__rosidl_generator_py
+[3.567s] [ 90%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_c.c.o[0m
+[3.567s] [ 90%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[3.567s] [ 90%] [32mBuilding C object CMakeFiles/dcs103e_controller__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[3.640s] [ 95%] [32m[1mLinking C shared library rosidl_generator_py/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so[0m
+[3.640s] [ 95%] [32m[1mLinking C shared library rosidl_generator_py/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so[0m
+[3.641s] [ 97%] [32m[1mLinking C shared library rosidl_generator_py/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so[0m
+[3.671s] [ 97%] Built target dcs103e_controller__rosidl_typesupport_introspection_c__pyext
+[3.671s] [ 97%] Built target dcs103e_controller__rosidl_typesupport_fastrtps_c__pyext
+[3.671s] [ 97%] Built target dcs103e_controller__rosidl_typesupport_c__pyext
+[4.501s] In file included from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/include/dcs103e_controller.hpp:9[m[K,
+[4.501s]                  from [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/src/dcs103e_node.cpp:6[m[K:
+[4.501s] [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/include/DCS100.h:116:13:[m[K [01;35m[Kwarning: [m[Ktype qualifiers ignored on function return type [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wignored-qualifiers-Wignored-qualifiers]8;;[m[K]
+[4.501s]   116 |             [01;35m[Kconst[m[K double maxStrobe() const;
+[4.501s]       |             [01;35m[K^~~~~[m[K
+[4.533s] [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/src/dcs103e_node.cpp:[m[K In constructor ‘[01m[KDCS103eNode::DCS103eNode()[m[K’:
+[4.533s] [01m[K/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/src/dcs103e_node.cpp:104:10:[m[K [01;35m[Kwarning: [m[Kunused variable ‘[01m[Kauto_connect[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wunused-variable-Wunused-variable]8;;[m[K]
+[4.533s]   104 |     bool [01;35m[Kauto_connect[m[K = this->get_parameter("auto_connect").as_bool();
+[4.533s]       |          [01;35m[K^~~~~~~~~~~~[m[K
+[6.142s] [100%] [32m[1mLinking CXX executable dcs103e_node[0m
+[6.299s] [100%] Built target dcs103e_node
+[6.310s] Invoked command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller' returned '0': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller -- -j16 -l16
+[6.318s] Invoking command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller
+[6.323s] -- Install configuration: ""
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/ament_index/resource_index/rosidl_interfaces/dcs103e_controller
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg/rosidl_generator_c__visibility_control.h
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/set_channel_mode.h
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/control_channel.h
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__struct.h
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__functions.c
+[6.324s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__struct.h
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__type_support.h
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__functions.h
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__functions.h
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__type_support.h
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__functions.c
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/environment/library_path.sh
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/environment/library_path.dsv
+[6.325s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_generator_c.so
+[6.326s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_generator_c.so" to ""
+[6.326s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.326s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg
+[6.326s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[6.326s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.326s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.326s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__rosidl_typesupport_fastrtps_c.h
+[6.326s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__rosidl_typesupport_fastrtps_c.h
+[6.326s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_fastrtps_c.so
+[6.326s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_fastrtps_c.so" to ""
+[6.327s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.327s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg/rosidl_generator_cpp__visibility_control.hpp
+[6.327s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/set_channel_mode.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/control_channel.hpp
+[6.327s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__struct.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__traits.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__type_support.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__builder.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__type_support.hpp
+[6.327s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__builder.hpp
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__traits.hpp
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__struct.hpp
+[6.328s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.328s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[6.328s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.328s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/dds_fastrtps
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__rosidl_typesupport_fastrtps_cpp.hpp
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__rosidl_typesupport_fastrtps_cpp.hpp
+[6.328s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_fastrtps_cpp.so
+[6.329s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_fastrtps_cpp.so" to ""
+[6.329s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.329s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg
+[6.329s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[6.329s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.329s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.329s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__rosidl_typesupport_introspection_c.h
+[6.329s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__type_support.c
+[6.329s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__type_support.c
+[6.330s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__rosidl_typesupport_introspection_c.h
+[6.330s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_introspection_c.so
+[6.330s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_introspection_c.so" to ""
+[6.330s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_c.so
+[6.331s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_c.so" to ""
+[6.331s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller
+[6.331s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv
+[6.331s] -- Up-to-date: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__rosidl_typesupport_introspection_cpp.hpp
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/control_channel__type_support.cpp
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__rosidl_typesupport_introspection_cpp.hpp
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/include/dcs103e_controller/dcs103e_controller/srv/detail/set_channel_mode__type_support.cpp
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_introspection_cpp.so
+[6.331s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_introspection_cpp.so" to ""
+[6.331s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_cpp.so
+[6.332s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_typesupport_cpp.so" to ""
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/environment/pythonpath.sh
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/environment/pythonpath.dsv
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller-0.0.1-py3.10.egg-info
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller-0.0.1-py3.10.egg-info/SOURCES.txt
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller-0.0.1-py3.10.egg-info/top_level.txt
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller-0.0.1-py3.10.egg-info/dependency_links.txt
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller-0.0.1-py3.10.egg-info/PKG-INFO
+[6.332s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_c.c
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_fastrtps_c.c
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/_dcs103e_controller_s.ep.rosidl_typesupport_introspection_c.c
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_control_channel_s.c
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_set_channel_mode.py
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_control_channel.py
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/__init__.py
+[6.333s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_set_channel_mode_s.c
+[6.334s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/__init__.py
+[6.334s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/libdcs103e_controller__rosidl_generator_py.so
+[6.334s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[6.360s] Listing '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller'...
+[6.360s] Compiling '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/__init__.py'...
+[6.361s] Listing '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv'...
+[6.361s] Compiling '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/__init__.py'...
+[6.361s] Compiling '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_control_channel.py'...
+[6.361s] Compiling '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/srv/_set_channel_mode.py'...
+[6.363s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[6.363s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+[6.364s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[6.364s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+[6.364s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[6.364s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/local/lib/python3.10/dist-packages/dcs103e_controller/dcs103e_controller_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+[6.364s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_generator_py.so
+[6.364s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/libdcs103e_controller__rosidl_generator_py.so" to ""
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/ControlChannel.idl
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/SetChannelMode.idl
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/ControlChannel.srv
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/ControlChannel_Request.msg
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/ControlChannel_Response.msg
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/SetChannelMode.srv
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/SetChannelMode_Request.msg
+[6.365s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/share/dcs103e_controller/srv/SetChannelMode_Response.msg
+[6.366s] -- Installing: /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/dcs103e_controller/dcs103e_node
+[6.368s] -- Set runtime path of "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/install/dcs103e_controller/lib/dcs103e_controller/dcs103e_node" to ""
+[6.368s] [31mCMake Error at cmake_install.cmake:411 (file):
+[6.368s]   file INSTALL cannot find
+[6.368s]   "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/launch": No such
+[6.368s]   file or directory.
+[6.368s] 
+[6.368s] [0m
+[6.370s] Invoked command in '/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller' returned '1': CMAKE_PREFIX_PATH=/home/cg-tuf/turtlebot4_flask/install/piper_with_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_no_gripper_moveit:/home/cg-tuf/turtlebot4_flask/install/piper_mujoco:/home/cg-tuf/turtlebot4_flask/install/flask_ui:/home/cg-tuf/turtlebot4_flask/install/piper_msgs:/home/cg-tuf/turtlebot4_flask/install/piper_humble:/home/cg-tuf/turtlebot4_flask/install/piper_gazebo:/home/cg-tuf/turtlebot4_flask/install/piper_description:/home/cg-tuf/turtlebot4_flask/install/piper:/opt/ros/humble:/home/cg-tuf/turtlebot4_flask/install/jai_rosbridge /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e/build/dcs103e_controller

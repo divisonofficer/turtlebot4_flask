@@ -1,0 +1,37 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from dcs103e_controller/srv/SetChannelMode.srv
+// generated code does not contain a copyright notice
+
+
+module dcs103e_controller {
+  module srv {
+    @verbatim (language="comment", text=
+      "Service to set channel mode")
+    struct SetChannelMode_Request {
+      @verbatim (language="comment", text=
+        "Channel number (0, 1, 2)")
+      int32 channel;
+
+      @verbatim (language="comment", text=
+        "\"continuous\" or \"pulsed\"")
+      string mode;
+
+      @verbatim (language="comment", text=
+        "Current value")
+      double current;
+
+      @verbatim (language="comment", text=
+        "Pulse width (for pulsed mode only)")
+      double pulse_width;
+
+      @verbatim (language="comment", text=
+        "Pulse delay (for pulsed mode only)")
+      double pulse_delay;
+    };
+    struct SetChannelMode_Response {
+      boolean success;
+
+      string message;
+    };
+  };
+};

@@ -1,0 +1,7 @@
+{
+  "package_name": "dcs103e_controller",
+  "non_idl_tuples": [
+    "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e:srv/ControlChannel.srv",
+    "/home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e:srv/SetChannelMode.srv"
+  ]
+}

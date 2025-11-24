@@ -1,0 +1,6 @@
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/dcs103e_controller
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/cg-tuf/turtlebot4_flask/clientapp/instance/dcs103e -DCMAKE_INSTALL_PREFIX=/home/cg-tuf/turtlebot4_flask/install/dcs103e_controller
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/dcs103e_controller -- -j16 -l16
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/cg-tuf/turtlebot4_flask/build/dcs103e_controller -- -j16 -l16
+Invoking command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/dcs103e_controller
+Invoked command in '/home/cg-tuf/turtlebot4_flask/build/dcs103e_controller' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/cg-tuf/turtlebot4_flask/build/dcs103e_controller

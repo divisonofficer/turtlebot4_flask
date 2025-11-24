@@ -49,7 +49,7 @@ class AutoMotionService(Node):
             self.get_logger().info(f"Automatic preset published: {msg.position}")
 
             # sleep을 이벤트 기반으로 변경
-            if self.stop_event.wait(timeout=5.0):
+            if self.stop_event.wait(timeout=10.0):
                 break  # 이벤트가 set되면 즉시 종료
 
 
