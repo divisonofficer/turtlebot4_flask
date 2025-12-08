@@ -582,11 +582,13 @@ HDRStorage::HDRStorage() {}
 void HDRStorage::storeHDRSequence(std::string space_id,
                                   std::vector<__uint64_t> timestamp,
                                   std::vector<cv::Mat> images) {
-  int rows = config->HDR_EXPOSURE.size();
-  int cols = 4;
+  int rgb_exposure_count = config->HDR_EXPOSURE.size();
+  int cols = 4;  // 센서 개수(2) × 카메라 개수(2)
   int img_height = 1080;
   int img_width = 1440;
   for (int j = 0; j < cols; ++j) {
+    // 촬영 횟수는 HDR_EXPOSURE.size()로 결정됨 (NIR도 동일 횟수 촬영)
+    int rows = rgb_exposure_count;
     cv::Mat combined_image;
     if (j % 2 == 0) {
       combined_image = cv::Mat::zeros(rows * img_height, img_width, CV_8UC1);
