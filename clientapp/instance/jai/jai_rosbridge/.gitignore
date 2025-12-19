@@ -11,3 +11,5 @@ rosidl_*
 *.so
 *.a
 Makefile
+*.npy
+temp/*

@@ -173,6 +173,12 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
       name: "arc_radius",
       value: jaiHDRStore.hdr_config.arc_radius,
     },
+    {
+      range: [1, 20],
+      step: 1,
+      name: "capture_cnt",
+      value: jaiHDRStore.hdr_config.capture_cnt,
+    },
   ];
   const params = [
     ...(jaiHDRStore.hdr_config.drive_mode === "arc" ? params_arc : []),
@@ -218,6 +224,12 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
     <>
       {isMobile ? (
         <Grid templateColumns="repeat(2, 1fr)" gap={4} width="100%">
+          <OptionEnum
+            option_id="drive_mode"
+            option_name="Drive mode"
+            value={jaiHDRStore.hdr_config.drive_mode}
+            value_list={["forward", "side", "arc"]}
+          />
           {renderSliders()}
           <JaiOptionSwitch
             option_id="lidar"
@@ -228,6 +240,16 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
             option_id="drive_forward"
             option_name="Drive forward/Side"
             checked={jaiHDRStore.hdr_config.drive_forward}
+          />
+          <JaiOptionSwitch
+            option_id="use_piper"
+            option_name="Use Piper Arm"
+            checked={jaiHDRStore.hdr_config.use_piper}
+          />
+          <JaiOptionSwitch
+            option_id="arc_forward"
+            option_name="Arc Forward"
+            checked={jaiHDRStore.hdr_config.arc_forward}
           />
         </Grid>
       ) : (
@@ -248,6 +270,21 @@ const JaiHDRControls = ({ isMobile }: { isMobile: boolean }) => {
             option_id="drive_forward"
             option_name="Drive forward/Side"
             checked={jaiHDRStore.hdr_config.drive_forward}
+          />
+          <JaiOptionSwitch
+            option_id="use_piper"
+            option_name="Use Piper Arm"
+            checked={jaiHDRStore.hdr_config.use_piper}
+          />
+          <JaiOptionSwitch
+            option_id="arc_forward"
+            option_name="Arc Forward"
+            checked={jaiHDRStore.hdr_config.arc_forward}
+          />
+          <JaiOptionSwitch
+            option_id="skip_jai"
+            option_name="Skip Camera"
+            checked={jaiHDRStore.hdr_config.skip_jai}
           />
         </VStack>
       )}
@@ -350,7 +387,7 @@ const HDRProgressView = observer(() => {
         <InfoCard
           title={"Exposure"}
           value={pr.task}
-          progressBar={<CircularProgress value={(ps.idx / 4) * 100} />}
+          progressBar={<CircularProgress value={(ps.idx / 6) * 100} />}
         />
       )}
       {hdr_error_msgs.length < 1 && <InfoCard title="Error" value="None" />}
@@ -375,7 +412,7 @@ const HDRPreview = observer(() => {
           <Image
             src={`data:image/bmp;base64,${image}`}
             alt="HDR capture"
-            objectFit="contain"
+            objectFit="scale-down"
             transform="rotate(270deg)" /* CSS transform 사용 */
             width="100%"
           />

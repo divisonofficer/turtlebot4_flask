@@ -23,7 +23,7 @@ import numpy as np
 import threading
 
 HOSTNAME = "os-122107000458.local"
-LIDAR_MODE = LidarMode.MODE_1024x10
+LIDAR_MODE = LidarMode.MODE_2048x10
 
 
 class OusterImuData:
@@ -189,31 +189,121 @@ IMU_STORAGE = "tmp/ouster_imu"
 class OusterBridge:
     def __init__(self, multi_signal_enhance=None):
         self.base_time = 0
+        # lock to protect sensor re-init from multiple threads
+        self._sensor_lock = threading.Lock()
+        # indicate whether a manual reconnect was requested
+        self._reconnect_requested = threading.Event()
+        # connected flag (best-effort)
+        self.connected = False
         config = SensorConfig()
         config.udp_port_lidar = 7502
         config.udp_port_imu = 7503
         config.operating_mode = OperatingMode.OPERATING_NORMAL
         config.lidar_mode = LIDAR_MODE
+        config.timestamp_mode = client.TimestampMode.TIME_FROM_PTP_1588
 
         if multi_signal_enhance is not None:
             config.signal_multiplier = 3.0
             config.azimuth_window = multi_signal_enhance
+        else:
+            config.signal_multiplier = 1.0
+            config.azimuth_window = (0, 360000)
+
+
 
         client.set_config(HOSTNAME, config, persist=True, udp_dest_auto=True)
 
-        self.imu_sensor = client.Sensor(HOSTNAME, 7502, 7503, buf_size=640)
-
-        # self.sensor = client.Scans.stream(HOSTNAME, 7502, complete=False)
-        self.sensor = ScanWithImu(self.imu_sensor, complete=False, _max_latency=2)
-
-        self.packet_format = PacketFormat(self.sensor.metadata)
-        self.xyzlut = client.XYZLut(self.sensor.metadata)
+        # initialize sensor and helpers through a method so we can re-create them
+        # at runtime when needed
+        self._init_sensor()
 
         self.imu_packet_queue: list[ImuPacket] = []
         self.imu_value_queue: list[Tuple[int, np.ndarray, np.ndarray]] = []
         self.imu_value_queue_storage: list[Tuple[int, np.ndarray, np.ndarray]] = []
 
         self.flag_kill = threading.Event()
+
+    def _init_sensor(self):
+        """(Re)initialize the underlying Sensor and helper objects.
+
+        This is safe to call multiple times but not concurrently. Caller should
+        hold external synchronization if needed; this method uses an internal
+        lock to protect concurrent inits.
+        """
+        with getattr(self, "_sensor_lock", threading.Lock()):
+            try:
+                # set_config is cheap and idempotent; keep it so settings persist
+                # but calling it repeatedly is not harmful
+                # client.set_config(HOSTNAME, config, persist=True, udp_dest_auto=True)
+
+                # close previous sensor if present
+                if hasattr(self, "sensor"):
+                    try:
+                        self.sensor.close()
+                    except Exception:
+                        pass
+                    try:
+                        del self.sensor
+                    except Exception:
+                        pass
+
+                if hasattr(self, "imu_sensor"):
+                    try:
+                        self.imu_sensor.close()
+                    except Exception:
+                        pass
+                    try:
+                        del self.imu_sensor
+                    except Exception:
+                        pass
+
+                # create new sensor
+                self.imu_sensor = client.Sensor(HOSTNAME, 7502, 7503, buf_size=640)
+                self.sensor = ScanWithImu(self.imu_sensor, complete=False, _max_latency=2)
+                self.packet_format = PacketFormat(self.sensor.metadata)
+                self.xyzlut = client.XYZLut(self.sensor.metadata)
+                self.connected = True
+                # clear reconnect request flag
+                self._reconnect_requested.clear()
+            except Exception as e:
+                # mark as disconnected and surface the exception to caller if needed
+                self.connected = False
+                raise
+
+    def reconnect(self, max_attempts: int = 5, base_delay: float = 1.0) -> bool:
+        """Attempt to reinitialize the connection to the lidar with retries.
+
+        Returns True if reconnection succeeded, False otherwise.
+        """
+        # simple exponential backoff retry
+        attempt = 0
+        while attempt < max_attempts and not self.flag_kill.is_set():
+            attempt += 1
+            try:
+                self._init_sensor()
+                print(f"OusterBridge: reconnected on attempt {attempt}")
+                return True
+            except Exception as e:
+                wait = base_delay * (2 ** (attempt - 1))
+                print(f"OusterBridge: reconnect attempt {attempt} failed: {e}; retrying in {wait}s")
+                time.sleep(wait)
+
+        print("OusterBridge: failed to reconnect after attempts")
+        return False
+
+    def force_reconnect(self, wait_for_success: bool = False, **kwargs) -> bool:
+        """Request a reconnect. If wait_for_success is True, block until
+        reconnect returns or attempts are exhausted.
+        """
+        # allow external callers to trigger reconnect safely
+        self._reconnect_requested.set()
+        if wait_for_success:
+            return self.reconnect(**kwargs)
+        else:
+            # spawn a background thread to reconnect so caller isn't blocked
+            t = threading.Thread(target=self.reconnect, kwargs=kwargs, daemon=True)
+            t.start()
+            return True
 
     def store_imu_value_queue_storage(self):
         """
@@ -336,40 +426,65 @@ class OusterBridge:
         # self.imu_thread = threading.Thread(target=self.collect_imu_data)
         # self.imu_thread.start()
 
-        with closing(self.sensor) as stream:
-            show = True
+        # We will repeatedly open a stream from the current sensor instance.
+        # If a timeout or other error occurs, attempt to reconnect and then
+        # continue streaming without requiring an application restart.
+        while not self.flag_kill.is_set():
+            # if a reconnect was requested externally, try it first
+            if self._reconnect_requested.is_set():
+                print("OusterBridge: external reconnect requested")
+                self.reconnect()
 
-            while show:
-                try:
+            # create a local reference so we can safely close/replace self.sensor
+            try:
+                with closing(self.sensor) as stream:
                     for packet in stream:
+
+                        if self.flag_kill.is_set():
+                            print("LiDAR kill flag is set")
+                            break
 
                         if isinstance(packet, ImuPacket):
                             if self.base_time == 0:
-                                self.base_time = (
-                                    time.time_ns()
-                                    - self.packet_format.imu_sys_ts(packet.buf)
-                                )
+                                try:
+                                    self.base_time = (
+                                        time.time_ns()
+                                        - self.packet_format.imu_sys_ts(packet.buf)
+                                    )
+                                except Exception:
+                                    # packet_format might be stale; ignore and continue
+                                    pass
                             if len(self.imu_packet_queue) > 3000:
                                 self.imu_packet_queue.pop(0)
                             self.imu_packet_queue.append(packet)
 
                         if isinstance(packet, LidarScan):
                             if self.base_time == 0:
-                                self.base_time = time.time_ns() - packet.timestamp[-1]
+                                try:
+                                    self.base_time = time.time_ns() - packet.timestamp[-1]
+                                except Exception:
+                                    pass
                             if not packet.complete():
                                 timestamp = time.time_ns() - self.base_time
+                            else:
+                                timestamp = packet.timestamp[-1]
+                            try:
+                                reflectivity = client.destagger(
+                                    stream.metadata,
+                                    packet.field(client.ChanField.REFLECTIVITY),
+                                )
+                                ranges = client.destagger(
+                                    stream.metadata, packet.field(client.ChanField.RANGE)
+                                )
+                                xyz = self.xyzlut(packet)
+                            except Exception as e:
+                                # something wrong with current sensor state; request reconnect
+                                print(f"OusterBridge: error while processing packet: {e}")
+                                callback(e)
+                                # attempt reconnect and break to restart loop
+                                self.reconnect()
+                                break
 
-                            reflectivity = client.destagger(
-                                stream.metadata,
-                                packet.field(client.ChanField.REFLECTIVITY),
-                            )
-                            ranges = client.destagger(
-                                stream.metadata, packet.field(client.ChanField.RANGE)
-                            )
-                            xyz = self.xyzlut(packet)
-
-                            # timestamp = packet.timestamp[-1]
-                            # print(xyz.shape, timestamp)
                             pose = packet.pose
                             callback(
                                 OusterLidarData(
@@ -382,12 +497,23 @@ class OusterBridge:
                                     self.get_imu_from_packet(),
                                 )
                             )
-                except client.ClientTimeout as e:
-                    print("Lidar Timeout!")
-                    callback(e)
-                if self.flag_kill.is_set():
-                    print("LiDAR kill flag is set")
-                    break
+            except client.ClientTimeout as e:
+                print("Lidar Timeout!")
+                callback(e)
+                # try to reconnect and continue
+                ok = self.reconnect()
+                if not ok:
+                    # wait a bit before next outer attempt
+                    time.sleep(1.0)
+            except Exception as e:
+                # generic exception from iterating stream or sensor; attempt reconnect
+                print(f"OusterBridge: unexpected error reading stream: {e}")
+                callback(e)
+                ok = self.reconnect()
+                if not ok:
+                    time.sleep(1.0)
+            # small pause to avoid a busy loop when reconnecting fails
+            time.sleep(0.01)
 
     def __del__(self):
         if hasattr(self, "sensor"):

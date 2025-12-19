@@ -50,8 +50,8 @@ for i, (rel_path, lr_dict) in tqdm.tqdm(enumerate(pairs_items)):
 
     # 만약 해당 상대 경로에 left와 right가 모두 있다면 처리한다.
     if left_file and right_file:
-        if os.path.exists(f"{output_folder}/{rel_path}/left_rectified.npy"):
-            continue
+        # if os.path.exists(f"{output_folder}/{rel_path}/left_rectified.npy"):
+        #     continue
         # 실제 파일 전체 경로
         left_path = os.path.join(input_folder, rel_path, left_file)
         right_path = os.path.join(input_folder, rel_path, right_file)

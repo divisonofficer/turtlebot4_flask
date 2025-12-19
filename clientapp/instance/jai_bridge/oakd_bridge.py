@@ -112,6 +112,11 @@ class DepthAICamera:
         # Connect to the device and start the pipeline
         with self.device as device:
             calibration = device.readCalibration()
+            print(
+                calibration.getBaselineDistance(
+                    dai.CameraBoardSocket.LEFT, dai.CameraBoardSocket.RIGHT
+                )
+            )
             print(calibration.getCameraIntrinsics(dai.CameraBoardSocket.RGB))
             print(calibration.getCameraIntrinsics(dai.CameraBoardSocket.LEFT))
             print(calibration.getCameraIntrinsics(dai.CameraBoardSocket.RIGHT))

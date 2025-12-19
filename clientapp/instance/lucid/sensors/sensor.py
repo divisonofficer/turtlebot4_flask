@@ -8,17 +8,19 @@ class Sensor:
         timestamp: float
         data: Dict[str, Any]
         attrs: Dict[str, Any]
-        file_format: Dict[str, Literal["png", "npy", "tiff"]]
+        file_format: Dict[str, Literal["png", "npy", "tiff", "exr"]]
 
     @dataclass
     class State:
         timestamp_last: float = 0
         fps: float = 0
-        device_on: bool = False
+        device_status: str = (
+            "disconnected"  # disconnected, connecting, connected, error
+        )
         stream_on: bool = False
         preview_on: bool = False
         preview_last: float = 0
-        preview_interval: float = 3.0
+        preview_interval: float = 1.0
 
     @dataclass
     class Const:
@@ -47,7 +49,13 @@ class Sensor:
             raise NotImplementedError("get_config method not implemented")
 
         def get_dict(self):
-            return {name: asdict(config) for name, config in self.configs.items()}
+            return dict(
+                sorted(
+                    {
+                        name: asdict(config) for name, config in self.configs.items()
+                    }.items()
+                )
+            )
 
     def refresh_config(self):
         pass

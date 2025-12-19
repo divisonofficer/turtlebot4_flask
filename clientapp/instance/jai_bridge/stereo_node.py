@@ -6,6 +6,7 @@ import sys
 from flask_socketio import SocketIO
 import tqdm
 
+from piper_client import PiperClient
 from jai_rosbridge.action import (
     HDRTrigger,
 )
@@ -40,6 +41,7 @@ from ouster_lidar.ouster_bridge import OusterBridge, OusterLidarData
 from rclpy.action import ActionClient
 from irobot_create_msgs.action import RotateAngle, DriveDistance
 from stereo_hdr_agent import JaiHDRCaptureAgent
+
 from std_srvs.srv import Trigger
 
 
@@ -88,6 +90,9 @@ class JaiStereoDepth(Node):
         self.stereo_hdr_queue = StereoHDRQueue()
         self.stereo_hdr_queue.register_key("lidar")
         self.socket = socket
+
+        # Store a reference to the global socketio instance for background thread emit
+        self.global_socketio = socket
         """
         DepthAI Sensor (OAK-D) initialization
         """
@@ -146,6 +151,8 @@ class JaiStereoDepth(Node):
         self.tapo_on_service_client = self.create_client(Trigger, "/tapo/on")
         self.tapo_off_service_client = self.create_client(Trigger, "/tapo/off")
 
+        piper_client = PiperClient(self)
+
         self.hdr_agent = JaiHDRCaptureAgent(
             self.stereo_hdr_queue,
             [
@@ -158,6 +165,7 @@ class JaiStereoDepth(Node):
             self.config.hdr_config,
             self.hdr_storage_callback,
             self.hdr_publish_log,
+            piper_client=piper_client
         )
 
         # self.__init_raft_stereo()
@@ -381,58 +389,196 @@ class JaiStereoDepth(Node):
             return
         if self.stereo_storage_id is None:
             self.enable_stereo_storage()
+
+        # Use a background task to ensure the callback runs in the right context
+        def callback_wrapper():
+            # Use start_background_task to ensure proper context for socket.emit
+            self.socket.start_background_task(
+                target=self.emit_latest_capture_hdr, space_id=self.stereo_storage_id
+            )
+
         self.hdr_agent.capture_thread(
             self.stereo_storage_id,
-            lambda: self.emit_latest_capture_hdr(self.stereo_storage_id),
+            callback_wrapper,
         )
 
     def emit_latest_capture_hdr(self, space_id=None):
         """
         For HDR node, return latest capture through socket
+        Wait for files to be completely saved before emitting
         """
+        import time
+
+        # Wait a bit to ensure all files are saved
+        time.sleep(3)
+
         if space_id == None:
             space_id = self.stereo_storage.get_latest_scene_id(root="tmp/stereo/hdr")
         if space_id == None:
+            print("No HDR capture found")
             return
-        frame_latest = [
-            x
-            for x in os.listdir(f"tmp/stereo/hdr/{space_id}")
-            if x.split("_")[-1].isdigit()
-        ]
+
+        # Wait for frame files to be available with timeout
+        max_wait_time = 10  # seconds
+        wait_start = time.time()
+        frame_latest = []
+
+        while time.time() - wait_start < max_wait_time:
+            try:
+                frame_latest = [
+                    x
+                    for x in os.listdir(f"tmp/stereo/hdr/{space_id}")
+                    if x.split("_")[-1].isdigit()
+                ]
+                if len(frame_latest) > 0:
+                    break
+            except FileNotFoundError:
+                pass
+            time.sleep(0.1)
+
+        if len(frame_latest) == 0:
+            print(f"No frame files found for space_id: {space_id}")
+            return
+
         frame_latest.sort()
         frame_count = len(frame_latest)
         frame_latest = frame_latest[-1]
         frame_folder = os.path.join(f"tmp/stereo/hdr/{space_id}", frame_latest)
 
-        imgs = os.listdir(frame_folder)
-        img_col0 = [x for x in imgs if "_col0" in x][0]
-        img_col1 = [x for x in imgs if "_col1" in x][0]
-        img_col0 = cv2.imread(
-            os.path.join(frame_folder, img_col0), cv2.IMREAD_UNCHANGED
-        )
-        img_col1 = (
-            cv2.imread(os.path.join(frame_folder, img_col1), cv2.IMREAD_UNCHANGED) // 16
-        ).astype(np.uint8)
-        print(img_col0.shape, img_col1.shape)
-        img_col1 = cv2.cvtColor(img_col1, cv2.COLOR_GRAY2BGR)
-        img_col0 = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
-        img_col_concat = np.concatenate([img_col0, img_col1], axis=1)
-        img_col_concat = cv2.resize(
-            img_col_concat,
-            (int(img_col_concat.shape[1] / 4), int(img_col_concat.shape[0] / 4)),
-        )
+        # Wait for image files to be available
+        while time.time() - wait_start < max_wait_time:
+            try:
+                imgs = os.listdir(frame_folder)
+                img_col0_files = [x for x in imgs if "_col0" in x]
+                img_col1_files = [x for x in imgs if "_col1" in x]
+                if len(img_col0_files) > 0 and len(img_col1_files) > 0:
+                    break
+            except FileNotFoundError:
+                pass
+            time.sleep(0.1)
 
-        _, buffer = cv2.imencode(".jpg", img_col_concat)
-        encoded_img = base64.b64encode(buffer).decode("utf-8")
+        try:
+            imgs = os.listdir(frame_folder)
+            img_col0 = [x for x in imgs if "_col0" in x][0]
+            img_col1 = [x for x in imgs if "_col1" in x][0]
+            img_col0 = cv2.imread(
+                os.path.join(frame_folder, img_col0), cv2.IMREAD_UNCHANGED
+            )
+            img_col1 = (
+                cv2.imread(os.path.join(frame_folder, img_col1), cv2.IMREAD_UNCHANGED)
+                // 16
+            ).astype(np.uint8)
+            print(img_col0.shape, img_col1.shape)
+            img_col1 = cv2.cvtColor(img_col1, cv2.COLOR_GRAY2BGR)
+            img_col0 = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
+            img_col_concat = np.concatenate([img_col0, img_col1], axis=1)
+            img_col_concat = cv2.resize(
+                img_col_concat,
+                (int(img_col_concat.shape[1] / 4), int(img_col_concat.shape[0] / 4)),
+            )
 
-        self.socket.emit(
-            "hdr/latest_capture",
-            {
-                "space_id": space_id,
-                "frame_count": frame_count,
-                "image": encoded_img,
-            },
-        )
+            _, buffer = cv2.imencode(".jpg", img_col_concat)
+            encoded_img = base64.b64encode(buffer).decode("utf-8")
+
+            # This should now work properly when called via start_background_task
+            self.socket.emit(
+                "hdr/latest_capture",
+                {
+                    "space_id": space_id,
+                    "frame_count": frame_count,
+                    "image": encoded_img,
+                },
+            )
+            print(
+                f"HDR emit completed for space_id: {space_id} with {frame_count} frames"
+            )
+        except Exception as e:
+            print(f"Error processing HDR images: {e}")
+            # Emit without image if there's an error
+            self.socket.emit(
+                "hdr/latest_capture",
+                {
+                    "space_id": space_id,
+                    "frame_count": frame_count,
+                    "image": None,
+                },
+            )
+
+    def get_hdr_frame_thumbnail(self, space_id: str, frame_id: str):
+        """
+        Get HDR frame thumbnail by combining left RGB and NIR images
+        Returns base64 encoded image or None if error
+        """
+        try:
+            frame_folder = os.path.join(f"tmp/stereo/hdr/{space_id}", frame_id)
+
+            if not os.path.exists(frame_folder):
+                return None
+
+            imgs = os.listdir(frame_folder)
+            img_col0_files = [x for x in imgs if "_col0" in x]
+            img_col2_files = [x for x in imgs if "_col2" in x]
+
+            if not img_col0_files or not img_col2_files:
+                return None
+
+            img_col0 = cv2.imread(
+                os.path.join(frame_folder, img_col0_files[0]), cv2.IMREAD_UNCHANGED
+            )
+            img_col2 = cv2.imread(
+                os.path.join(frame_folder, img_col2_files[0]), cv2.IMREAD_UNCHANGED
+            )
+
+            if img_col0 is None or img_col2 is None:
+                return None
+
+            # Convert images
+            img_col0_rgb = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
+            img_col2_gray = (img_col2 // 16).astype(np.uint8)
+            img_col2_bgr = cv2.cvtColor(img_col2_gray, cv2.COLOR_GRAY2BGR)
+
+            # Concatenate horizontally
+            img_concat = np.concatenate([img_col0_rgb, img_col2_bgr], axis=1)
+
+            # Resize for thumbnail
+            img_thumbnail = cv2.resize(
+                img_concat,
+                (int(img_concat.shape[1] / 4), int(img_concat.shape[0] / 4)),
+            )
+
+            _, buffer = cv2.imencode(".jpg", img_thumbnail)
+            encoded_img = base64.b64encode(buffer.tobytes()).decode("utf-8")
+
+            return encoded_img
+
+        except Exception as e:
+            print(f"Error getting HDR frame thumbnail: {e}")
+            return None
+
+    def delete_hdr_frame(self, space_id: str, frame_id: str):
+        """
+        Delete HDR frame folder and all its contents
+        Returns True if successful, False otherwise
+        """
+        try:
+            import shutil
+
+            frame_folder = os.path.join(f"tmp/stereo/hdr/{space_id}", frame_id)
+
+            if not os.path.exists(frame_folder):
+                return False
+
+            # Check if it's actually a frame folder (ends with digits)
+            if not frame_id.split("_")[-1].isdigit():
+                return False
+
+            shutil.rmtree(frame_folder)
+            print(f"Deleted HDR frame: {space_id}/{frame_id}")
+            return True
+
+        except Exception as e:
+            print(f"Error deleting HDR frame: {e}")
+            return False
 
     def enable_stereo_storage(self, id: Optional[str] = None):
         if hasattr(self, "stereo_storage_id_cache") and id is None:

@@ -61,6 +61,12 @@ class SensorManager:
             else:
                 sensor.stop_stream()
 
+    def launch_device(self, sensor_name: str):
+        sensor = self.search_sensor_by_name(sensor_name)
+        if sensor is not None:
+            if hasattr(sensor, "launch_device"):
+                sensor.launch_device()
+
     def trigger_group(self, group_name: str):
         group = self.search_group_by_name(group_name)
         if group is not None:

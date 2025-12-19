@@ -508,7 +508,16 @@ const StorageControl = observer(() => {
     single_storage_mode,
     storage_id,
     storage_queued_cnt,
+    storage,
   } = status;
+
+  // Prefer storage.queue_size when available; fallback to legacy storage_queued_cnt
+  const queued =
+    storage && storage.queue_size !== undefined
+      ? storage.queue_size
+      : storage_queued_cnt;
+  const saved =
+    storage && storage.saved_count !== undefined ? storage.saved_count : 0;
 
   return (
     <Card p={4} m={4} variant="outline" maxW="24rem">
@@ -565,8 +574,12 @@ const StorageControl = observer(() => {
               <Code>{storage_id}</Code>
             </HStack>
             <HStack justifyContent="space-between" w="100%">
-              <Body3>Frames</Body3>
-              <Code>{storage_queued_cnt}</Code>
+              <Body3>Queued</Body3>
+              <Code>{queued}</Code>
+            </HStack>
+            <HStack justifyContent="space-between" w="100%">
+              <Body3>Saved</Body3>
+              <Code>{saved}</Code>
             </HStack>
           </VStack>
         )}

@@ -902,6 +902,40 @@ def emit_latest_capture():
     return depth_node.node_status()
 
 
+@app.route("/stereo/hdr/emit_latest_capture", methods=["POST"])
+def emit_latest_capture_hdr():
+    depth_node.emit_latest_capture_hdr()
+    return Response(status=200)
+
+
+@app.route("/stereo/hdr/frame/<scene_id>/<frame_id>/thumbnail", methods=["GET"])
+def get_hdr_frame_thumbnail(scene_id: str, frame_id: str):
+    thumbnail = depth_node.get_hdr_frame_thumbnail(scene_id, frame_id)
+    if thumbnail is None:
+        return Response("Frame not found or error processing", status=404)
+
+    return Response(
+        json.dumps({"thumbnail": thumbnail}), status=200, mimetype="application/json"
+    )
+
+
+@app.route("/stereo/hdr/frame/<scene_id>/<frame_id>", methods=["DELETE"])
+def delete_hdr_frame(scene_id: str, frame_id: str):
+    success = depth_node.delete_hdr_frame(scene_id, frame_id)
+    if success:
+        return Response(
+            json.dumps({"message": "Frame deleted successfully"}),
+            status=200,
+            mimetype="application/json",
+        )
+    else:
+        return Response(
+            json.dumps({"error": "Failed to delete frame"}),
+            status=404,
+            mimetype="application/json",
+        )
+
+
 @app.route("/stereo/option/<option>", methods=["POST"])
 def set_stereo_option(option):
     value = request.json.get("value") if request.json else None

@@ -6,7 +6,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
 from nav_msgs.msg import Odometry
-from irobot_create_msgs.action import RotateAngle, DriveDistance
+from irobot_create_msgs.action import RotateAngle, DriveDistance, DriveArc
 from geometry_msgs.msg import Twist, PoseStamped
 import asyncio
 from rclpy.executors import MultiThreadedExecutor
@@ -17,8 +17,8 @@ RANGER_ID = "odom"
 class RangerStatus:
     odom: Optional[Odometry] = None
     # 최대 각속도 설정 (라디안/초)
-    max_angular_speed = 0.3  # rad/s
-    max_linear_speed = 0.3  # m/s
+    max_angular_speed = 0.25  # rad/s
+    max_linear_speed = 0.25  # m/s
     loop_rate = 50  # Hz
 
 
@@ -210,7 +210,7 @@ class RangerNode(Node):
             self._publisher_cmd.publish(cmd)
 
             # 목표 도달 판단 (0.01 m 이하의 오차 허용)
-            if abs(remaining_distance) < 0.01:
+            if abs(remaining_distance) < 0.003:
                 self.get_logger().info("목표 거리에 도달했습니다.")
                 break
 

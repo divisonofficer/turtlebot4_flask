@@ -38,11 +38,12 @@ class LucidImage:
 class LucidPyAPI:
     def __init__(self):
         self.SERIAL = ["224201564", "224201585"]
-        self.timestamp_base = [0, 0]
+        self.timestamp_base = [0, 0, 0]
         self.FRAME_RATE = 10.0
         self.BUFFER_COUNT = 6
         self.buffers_device: List[List[_Buffer]] = [[], []]
         self.trigger_thread: Optional[threading.Thread] = None
+        self.type = "TRI054S-C"
 
     def create_devices_with_tries(self):
         """
@@ -215,33 +216,33 @@ class LucidPyAPI:
         resetTimestamp: NodeCommand = nodemap.get_node("TimestampReset")
         resetTimestamp.execute()
 
-        # node_report_keys = [
-        #     "AcquisitionStartMode",
-        #     # "TriggerLatency",
-        #     "TriggerActivation",
-        #     "TriggerSource",
-        #     "TriggerMode",
-        #     "TriggerSelector",
-        #     "AcquisitionFrameRate",
-        #     "Width",
-        #     "Height",
-        #     "TriggerOverlap",
-        #     "PayloadSize",
-        #     "ExposureTime",
-        #     "ExposureAuto",
-        #     "ColorTransformationEnable",
-        #     "BlackLevel",
-        #     "BalanceWhiteEnable",
-        #     "BalanceWhiteAuto",
-        #     "HDROutput",
-        #     "HDRTuningEnable",
-        #     "LUTEnable",
-        #     "LUTToneMapping",
-        # ]
+        node_report_keys = [
+            "AcquisitionStartMode",
+            "AcquisitionFrameRate",
+            # "TriggerActivation",
+            # "TriggerSource",
+            # "TriggerMode",
+            # "TriggerSelector",
+            # "AcquisitionFrameRate",
+            # "Width",
+            # "Height",
+            "TriggerOverlap",
+            "PayloadSize",
+            "ExposureTime",
+            "ExposureAuto",
+            "ColorTransformationEnable",
+            "BlackLevel",
+            "BalanceWhiteEnable",
+            "BalanceWhiteAuto",
+            # "HDROutput",
+            # "HDRTuningEnable",
+            "LUTEnable",
+            "LUTToneMapping",
+        ]
 
         # for node_key in node_report_keys:
-        #     print(f"{TAB1}{node_key}: ")
-        #     print({nodemap.get_node(node_key).value})
+        #     node = nodemap.get_node(node_key)
+        #     print(node)
 
         # nodemap.get_node("Width").value = 2880
         # nodemap.get_node("Height").value = 1856
@@ -250,9 +251,10 @@ class LucidPyAPI:
         nodemap.get_node("OffsetX").value = int(0)
         nodemap.get_node("OffsetY").value = int(0)
         nodemap.get_node("AcquisitionFrameRateEnable").value = True
-        nodemap.get_node("Width").value = RESOLUTION[0] // 2
-        nodemap.get_node("Height").value = RESOLUTION[1] // 2
-        nodemap.get_node("BinningSelector").value = "Sensor"
+        if self.type == "TRI054S-C":
+            nodemap.get_node("Width").value = RESOLUTION[0] // 2
+            nodemap.get_node("Height").value = RESOLUTION[1] // 2
+            nodemap.get_node("BinningSelector").value = "Sensor"
         nodemap.get_node("BinningHorizontalMode").value = "Average"
         nodemap.get_node("BinningVerticalMode").value = "Average"
         nodemap.get_node("BinningHorizontal").value = int(2)
@@ -262,19 +264,24 @@ class LucidPyAPI:
         nodemap.get_node("AcquisitionFrameCount").value = self.BUFFER_COUNT
         nodemap.get_node("AcquisitionMode").value = "Continuous"
 
-        nodemap.get_node("PixelFormat").value = "BayerRG24"
+        if self.type == "TRI054S-C":
+            nodemap.get_node("PixelFormat").value = "BayerRG24"
+        else:
+            nodemap.get_node("PixelFormat").value = "BayerRG12"
 
         nodemap["TriggerSelector"].value = "FrameStart"
         nodemap["TriggerOverlap"].value = "PreviousFrame"
         nodemap["TriggerMode"].value = "On"
         nodemap["TriggerSource"].value = "Software"
 
-        nodemap["ExposureTime"].value = 50000.0
         nodemap["ExposureAuto"].value = "Off"
 
-        nodemap["LUTEnable"].value = False
-        nodemap["HDRTuningEnable"].value = False
-        nodemap["ColorTransformationEnable"].value = False
+        nodemap["ExposureTime"].value = 50000.0
+
+        if self.type == "TRI054S-C":
+            nodemap["LUTEnable"].value = False
+            nodemap["HDRTuningEnable"].value = False
+            nodemap["ColorTransformationEnable"].value = False
 
         nodemap["GainAuto"].value = "Off"
         nodemap["Gain"].value = 1.0
@@ -284,13 +291,38 @@ class LucidPyAPI:
         tl_stream_nodemap["StreamAutoNegotiatePacketSize"].value = True
         tl_stream_nodemap["StreamPacketResendEnable"].value = True
 
+    def cleanup_devices(self):
+        """모든 디바이스를 안전하게 정리합니다."""
+        if hasattr(self, "devices") and self.devices:
+            try:
+                print(f"{TAB1}Cleaning up {len(self.devices)} devices...")
+                # 각 디바이스 스트림 중지
+                for device in self.devices:
+                    try:
+                        device.stop_stream()
+                    except Exception as e:
+                        print(f"{TAB1}Error stopping stream for device: {e}")
+
+                # 모든 디바이스 파괴
+                system.destroy_device(self.devices)
+                print(f"{TAB1}All devices cleaned up successfully")
+            except Exception as e:
+                print(f"{TAB1}Error cleaning up devices: {e}")
+            finally:
+                self.devices = []
+
     def __del__(self):
-        system.destroy_device()
-        print(f"{TAB1}Destroyed device")
+        try:
+            self.cleanup_devices()
+        except Exception as e:
+            print(f"{TAB1}Error in device cleanup: {e}")
+        print(f"{TAB1}LucidPyAPI destroyed")
 
 
 if __name__ == "__main__":
     lucid = LucidPyAPI()
+    lucid.SERIAL = ["253200234", "253200221", "253300071"]
+    lucid.type = "TRI032S-C"
     lucid.connect_device()
     lucid.open_stream()
     lucid.collect_images()

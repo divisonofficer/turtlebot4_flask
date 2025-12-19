@@ -78,25 +78,25 @@ class LucidPostProcess:
     def bayerToBgr(self, bayer_img: np.ndarray) -> np.ndarray:
         height, width = bayer_img.shape
 
-        bayer_img_16 = bayer_img & 0xFFFF0000
-        bayer_img_16 = bayer_img_16 >> 16
-        bayer_img_0 = bayer_img & 0x0000FFFF
-        bayer_img_16 = bayer_img_16.astype(np.uint16)
-        bayer_img_0 = bayer_img_0.astype(np.uint16)
+        # bayer_img_16 = bayer_img & 0xFFFF0000
+        # bayer_img_16 = bayer_img_16 >> 16
+        # bayer_img_0 = bayer_img & 0x0000FFFF
+        # bayer_img_16 = bayer_img_16.astype(np.uint16)
+        # bayer_img_0 = bayer_img_0.astype(np.uint16)
 
-        rgb_img = cv2.cvtColor(bayer_img_16, cv2.COLOR_BAYER_RGGB2BGR).astype(
-            np.float32
-        ) / (256)
-        rgb_img_0 = cv2.cvtColor(bayer_img_0, cv2.COLOR_BAYER_RGGB2BGR).astype(
-            np.float32
-        ) / (65536 * 256)
+        # rgb_img = cv2.cvtColor(bayer_img_16, cv2.COLOR_BAYER_RGGB2BGR).astype(
+        #     np.float32
+        # ) / (256)
+        # rgb_img_0 = cv2.cvtColor(bayer_img_0, cv2.COLOR_BAYER_RGGB2BGR).astype(
+        #     np.float32
+        # ) / (65536 * 256)
 
-        rgb_img = rgb_img + rgb_img_0
-        # Apply white balance
-        rgb_img[:, :, 0] *= self.wb[0]
-        rgb_img[:, :, 1] *= self.wb[1]
-        rgb_img[:, :, 2] *= self.wb[2]
-        return rgb_img
+        # rgb_img = rgb_img + rgb_img_0
+        # # Apply white balance
+        # rgb_img[:, :, 0] *= self.wb[0]
+        # rgb_img[:, :, 1] *= self.wb[1]
+        # rgb_img[:, :, 2] *= self.wb[2]
+        # return rgb_img
 
         # Initialize the BGR channels
         red_channel = np.zeros((height, width), dtype=np.float32)
@@ -151,6 +151,9 @@ class LucidPostProcess:
         # Merge the channels into a BGR image
         bgr_image = np.stack((blue_channel, green_channel, red_channel), axis=-1)
         bgr_image = (bgr_image / (1 << 24)).astype(np.float32)
+        bgr_image[:, :, 0] *= self.wb[0]  # Blue channel
+        bgr_image[:, :, 1] *= self.wb[1]
+        bgr_image[:, :, 2] *= self.wb[2]
         return bgr_image
 
     def hdr_tonemap_to_8bit(self, hdr_image: np.ndarray, tonemap):
