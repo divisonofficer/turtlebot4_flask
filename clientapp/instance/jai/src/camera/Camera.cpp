@@ -147,11 +147,12 @@ void MultiSpectralCamera::configureDevice(int source, std::string command,
 
 void MultiSpectralCamera::configureSourceRuntime(
     int source, std::function<void(PvGenParameterArray*)> runBlock) {
-  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStop");
+  // Optimize: Keep acquisition running to prevent frame drops at high FPS
+  // Only switch source selector and update parameters
   ParamManager::setParamEnum(dualDevice->getDevice(0)->GetParameters(),
                              "SourceSelector", source);
   runBlock(dualDevice->getDevice(0)->GetParameters());
-  dualDevice->getDevice(0)->GetParameters()->ExecuteCommand("AcquisitionStart");
+  // No need to restart acquisition - camera supports live parameter updates
 }
 
 void MultiSpectralCamera::runUntilInterrupted(int streamIndex) {

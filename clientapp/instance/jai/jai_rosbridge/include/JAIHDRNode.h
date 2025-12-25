@@ -9,8 +9,30 @@
 #include <rclcpp_action/create_server.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 using HDRTrigger = jai_rosbridge::action::HDRTrigger;
 using GoalHandleHDRTrigger = rclcpp_action::ServerGoalHandle<HDRTrigger>;
+
+// Validation result enum
+enum class ValidationResult {
+  SUCCESS,
+  WARNING_BRIGHTEST_RGB_MISSING,
+  WARNING_SOME_NIR_FAILED,
+  ERROR_ALL_RGB_FAILED,
+  ERROR_ALL_NIR_FAILED,
+  ERROR_NIR_LIGHTING_FAILED
+};
+
+// Validation details structure
+struct ValidationDetails {
+  ValidationResult result;
+  std::string error_type;
+  std::string error_message;
+  std::vector<int> failed_indices;
+  double ncc_value;
+};
 
 class JAIRGBNIRCamera {
  public:
@@ -125,4 +147,15 @@ class JAIHDRNode : public rclcpp::Node {
       client_dcs_ch1_disable;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_dcs_ch2_enable,
       client_dcs_ch2_disable;
+
+  // Image validation functions
+  ValidationDetails validateHDRImages(const std::vector<cv::Mat>& images,
+                                      int exposure_count);
+  bool isImageEmpty(const cv::Mat& img);
+  double calculateNCC(const cv::Mat& img1, const cv::Mat& img2);
+  void sendValidationFeedback(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
+      const ValidationDetails& details);
+
+  ValidationDetails last_validation_result;  // Store last validation result
 };

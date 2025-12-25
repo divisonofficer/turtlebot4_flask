@@ -2,6 +2,7 @@
 #include <JAIHDRNode.h>
 #include <Logger.h>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <rclcpp/executor.hpp>
@@ -73,41 +74,27 @@ void JAIRGBNIRCamera::configureExposure(int dn, int sn, float exposure) {
 }
 
 void JAIRGBNIRCamera::configureExposureAll(float exposure, float nir_exposure) {
+  // Parallelize exposure configuration across cameras for faster setup
+  std::vector<std::thread> threads;
   for (int i = 0; i < cameras.size(); i++) {
-    configureExposure(i, 0, exposure);
-    configureExposure(i, 1, nir_exposure);
+    threads.emplace_back([this, i, exposure, nir_exposure]() {
+      configureExposure(i, 0, exposure);
+      configureExposure(i, 1, nir_exposure);
+    });
+  }
+  for (auto& thread : threads) {
+    thread.join();
   }
   ts_exp_ = systemTimeNano();  //+ config->HDR_EXPOSURE_DELAY * 1000000;
 }
 
 void JAIRGBNIRCamera::flushStream() {
-  std::vector<std::thread> threads;
+  // Optimized: No need to flush and reallocate buffers at high FPS
+  // Timestamp-based filtering in processStream will handle old frames
+  // This eliminates buffer reallocation overhead that causes frame drops
 
-  for (int i = 0; i < cameras.size(); i++) {
-    for (int s = 0; s < 2; s++) {
-      threads.emplace_back([this, i, s]() {
-        PvStreamGEV* stream =
-            (PvStreamGEV*)cameras[i]->dualDevice->getStream(s);
-        stream->FlushPacketQueue();
-        stream->AbortQueuedBuffers();
-        std::vector<PvBuffer*> buffers;
-        while (stream->GetQueuedBufferCount()) {
-          PvBuffer* buffer;
-          PvResult result;
-          auto bresult = stream->RetrieveBuffer(&buffer, &result, 10);
-          if (buffer) buffers.push_back(buffer);
-        }
-        for (auto buffer : buffers) {
-          buffer->Reset();
-          stream->QueueBuffer(buffer);
-        }
-      });
-    }
-  }
-  for (auto& thread : threads) {
-    thread.join();
-  }
-
+  // Just ensure streams are running - no buffer manipulation needed
+  // The timestamp validation (ts_exp_) will reject old exposure frames
   openStreamAll();
 }
 
@@ -116,8 +103,23 @@ int JAIRGBNIRCamera::retrieveBuffer(
     PvBuffer** buffer) {
   PvResult lResult, aResult;
   PvBuffer* lBuffer = nullptr;
-  lResult =
-      stream->RetrieveBuffer(&lBuffer, &aResult, 1000 / config->FRAME_RATE);
+
+  // Calculate timeout: max exposure time + overhead (in ms)
+  // Max exposure from config array, converted from μs to ms, plus 150ms safety
+  // margin (reduced for shorter exposures)
+  float max_exposure_us = *std::max_element(config->HDR_EXPOSURE.begin(),
+                                            config->HDR_EXPOSURE.end());
+  float max_exposure_nir_us = *std::max_element(
+      config->HDR_EXPOSURE_NIR.begin(), config->HDR_EXPOSURE_NIR.end());
+  float max_exposure_ms =
+      std::max(max_exposure_us, max_exposure_nir_us) / 1000.0f + 150.0f;
+
+  // Ensure minimum timeout based on frame rate, but allow longer for long
+  // exposures
+  int timeout_ms = std::max(static_cast<int>(max_exposure_ms),
+                            static_cast<int>(1000 / config->FRAME_RATE));
+
+  lResult = stream->RetrieveBuffer(&lBuffer, &aResult, timeout_ms);
   if (lResult.IsOK() && aResult.IsOK()) {
     *buffer = lBuffer;
     return 0;
@@ -151,7 +153,10 @@ void JAIRGBNIRCamera::processStream(
                            &buffer);
   if (!(hdr_stream_done_flag[d][s]) && buffer) {
     if (ret == 0) {
-      if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_) {
+      // Add 100ms tolerance window to accept frames near exposure change
+      // boundary Optimized for 8 FPS (125ms per frame, max exposure 100ms)
+      const __uint64_t TIMESTAMP_TOLERANCE = 100000000;  // 100ms in nanoseconds
+      if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_ - TIMESTAMP_TOLERANCE) {
         if (s == 0) {
           dst[d * 2 + s] =
               cv::Mat(1080, 1440, CV_8UC1, buffer->GetDataPointer()).clone();
@@ -220,9 +225,10 @@ int JAIRGBNIRCamera::readImage(
 
     for (int d = 0; d < cameras.size(); d++) {
       if (!(hdr_stream_done_flag[d][0] && hdr_stream_done_flag[d][1])) {
-        // 짧은 대기 시간으로 더 빠른 재시도
-        std::this_thread::sleep_for(std::chrono::nanoseconds(
-            config->HDR_EXPOSURE_DELAY * 1000000));  // 절반으로 단축
+        // Exponential backoff: 300ms -> 600ms -> 1200ms
+        int retry_delay = config->HDR_EXPOSURE_DELAY * (1 << retry_count);
+        std::this_thread::sleep_for(
+            std::chrono::nanoseconds(retry_delay * 1000000));
         triggerFrameCapture(d);
         all_done = false;
         break;  // 하나라도 실패하면 바로 다음 루프로
@@ -274,6 +280,184 @@ JAIHDRNode::JAIHDRNode() : Node("jai_hdr_node") {
 }
 
 void JAIHDRNode::connectCamera() { camera.connectCamera(); }
+
+bool JAIHDRNode::isImageEmpty(const cv::Mat& img) {
+  return img.empty() || img.data == nullptr || img.rows == 0 || img.cols == 0;
+}
+
+double JAIHDRNode::calculateNCC(const cv::Mat& img1, const cv::Mat& img2) {
+  if (isImageEmpty(img1) || isImageEmpty(img2)) {
+    return 0.0;
+  }
+
+  if (img1.size() != img2.size() || img1.type() != img2.type()) {
+    return 0.0;
+  }
+
+  cv::Mat float1, float2;
+  img1.convertTo(float1, CV_32F);
+  img2.convertTo(float2, CV_32F);
+
+  cv::Scalar mean1 = cv::mean(float1);
+  cv::Scalar mean2 = cv::mean(float2);
+
+  float1 -= mean1[0];
+  float2 -= mean2[0];
+
+  cv::Mat numerator = float1.mul(float2);
+  double num = cv::sum(numerator)[0];
+
+  double denom1 = cv::sum(float1.mul(float1))[0];
+  double denom2 = cv::sum(float2.mul(float2))[0];
+  double denom = std::sqrt(denom1 * denom2);
+
+  if (denom < 1e-10) {
+    return 0.0;
+  }
+
+  return num / denom;
+}
+
+ValidationDetails JAIHDRNode::validateHDRImages(
+    const std::vector<cv::Mat>& images, int exposure_count) {
+  ValidationDetails details;
+  details.result = ValidationResult::SUCCESS;
+  details.ncc_value = 0.0;
+
+  int images_per_exposure = config->HDR_CAPTURE_SINGLE ? 2 : 4;
+
+  // Validate image count
+  if (images.size() != exposure_count * images_per_exposure) {
+    details.result = ValidationResult::ERROR_ALL_RGB_FAILED;
+    details.error_type = "error_invalid_image_count";
+    details.error_message = "Unexpected image count";
+    return details;
+  }
+
+  // Track failed images
+  std::vector<int> failed_rgb_indices;
+  std::vector<int> failed_nir_indices;
+
+  // Check each exposure's left camera images
+  for (int exp_idx = 0; exp_idx < exposure_count; exp_idx++) {
+    int rgb_idx = exp_idx * images_per_exposure + 0;  // Device 0, RGB
+    int nir_idx = exp_idx * images_per_exposure + 1;  // Device 0, NIR
+
+    if (isImageEmpty(images[rgb_idx])) {
+      failed_rgb_indices.push_back(exp_idx);
+    }
+
+    if (isImageEmpty(images[nir_idx])) {
+      failed_nir_indices.push_back(exp_idx);
+    }
+  }
+
+  // === VALIDATION RULE 1: Brightest RGB missing ===
+  if (failed_rgb_indices.size() == 1 &&
+      failed_rgb_indices[0] == exposure_count - 1) {
+    details.result = ValidationResult::WARNING_BRIGHTEST_RGB_MISSING;
+    details.error_type = "warning_brightest_rgb_missing";
+    details.error_message =
+        "Brightest RGB image (highest exposure) not captured";
+    details.failed_indices = failed_rgb_indices;
+    return details;
+  }
+
+  // === VALIDATION RULE 2: All RGB failed ===
+  if (failed_rgb_indices.size() == exposure_count) {
+    details.result = ValidationResult::ERROR_ALL_RGB_FAILED;
+    details.error_type = "error_all_rgb_failed";
+    details.error_message = "All RGB images failed to capture";
+    details.failed_indices = failed_rgb_indices;
+    return details;
+  }
+
+  // === VALIDATION RULE 3: Some NIR failed (but not all) ===
+  if (failed_nir_indices.size() > 0 &&
+      failed_nir_indices.size() < exposure_count) {
+    details.result = ValidationResult::WARNING_SOME_NIR_FAILED;
+    details.error_type = "warning_some_nir_failed";
+    details.error_message = "Some NIR images failed to capture";
+    details.failed_indices = failed_nir_indices;
+    return details;
+  }
+
+  // === VALIDATION RULE 4: All NIR failed ===
+  if (failed_nir_indices.size() == exposure_count) {
+    details.result = ValidationResult::ERROR_ALL_NIR_FAILED;
+    details.error_type = "error_all_nir_failed";
+    details.error_message = "All NIR images failed to capture";
+    details.failed_indices = failed_nir_indices;
+    return details;
+  }
+
+  // === VALIDATION RULE 5: NIR lighting not working ===
+  if (failed_nir_indices.empty()) {
+    bool lighting_failed = false;
+    double max_ncc = 0.0;
+
+    int nir_count = config->HDR_EXPOSURE_NIR.size();
+
+    if (exposure_count == 2 * nir_count) {
+      // Compare first half vs second half
+      for (int nir_idx = 0; nir_idx < nir_count; nir_idx++) {
+        int first_idx = nir_idx * images_per_exposure + 1;
+        int second_idx = (nir_idx + nir_count) * images_per_exposure + 1;
+
+        double ncc = calculateNCC(images[first_idx], images[second_idx]);
+        max_ncc = std::max(max_ncc, ncc);
+
+        if (ncc > 0.999) {
+          lighting_failed = true;
+        }
+      }
+    } else {
+      RCLCPP_WARN(this->get_logger(),
+                  "NIR lighting check skipped: exposure_count=%d, nir_count=%d",
+                  exposure_count, nir_count);
+    }
+
+    details.ncc_value = max_ncc;
+
+    if (lighting_failed) {
+      details.result = ValidationResult::ERROR_NIR_LIGHTING_FAILED;
+      details.error_type = "error_nir_lighting_failed";
+      char msg[256];
+      snprintf(msg, 256, "NIR lighting not toggled (NCC=%.6f > 0.999)",
+               max_ncc);
+      details.error_message = msg;
+      return details;
+    }
+  }
+
+  // All validations passed
+  details.result = ValidationResult::SUCCESS;
+  details.error_type = "validation_success";
+  details.error_message = "All validations passed";
+  return details;
+}
+
+void JAIHDRNode::sendValidationFeedback(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
+    const ValidationDetails& details) {
+  std::string failed_indices_str = "[";
+  for (size_t i = 0; i < details.failed_indices.size(); i++) {
+    failed_indices_str += std::to_string(details.failed_indices[i]);
+    if (i < details.failed_indices.size() - 1) {
+      failed_indices_str += ",";
+    }
+  }
+  failed_indices_str += "]";
+
+  sendFeedbackPrintf(
+      goal_handle,
+      "{\"type\":\"%s\",\"data\":{"
+      "\"message\":\"%s\","
+      "\"failed_indices\":%s,"
+      "\"ncc_value\":%.6f}}",
+      details.error_type.c_str(), details.error_message.c_str(),
+      failed_indices_str.c_str(), details.ncc_value);
+}
 
 void JAIHDRNode::initNodeService() {
   // ROS2 node initialization
@@ -433,23 +617,47 @@ void JAIHDRNode::collectHdrImages(
     }
   }
 
-  // 저장을 별도 스레드에서 비동기로 처리
-  std::thread storage_thread([this, goal_handle,
-                              timestamps = std::move(timestamps),
-                              images = std::move(images)]() mutable {
-    camera.closeStreamAll();
-    storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
-                             images);
-    camera.flushStream();
+  // === VALIDATION: Validate captured images ===
+  int exposure_count = config->HDR_EXPOSURE.size();
+  ValidationDetails validation = validateHDRImages(images, exposure_count);
 
-    // 이미지 메모리 해제
+  // Send validation feedback
+  sendValidationFeedback(goal_handle, validation);
+
+  // Determine if we should store based on validation result
+  bool should_store = (validation.result == ValidationResult::SUCCESS);
+
+  if (should_store) {
+    // 저장을 별도 스레드에서 비동기로 처리
+    std::thread storage_thread([this, goal_handle,
+                                timestamps = std::move(timestamps),
+                                images = std::move(images)]() mutable {
+      storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                               images);
+
+      // 이미지 메모리 해제
+      for (auto& img : images) {
+        img.release();
+      }
+      images.clear();
+    });
+
+    storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
+  } else {
+    // Skip storage, but clean up memory
     for (auto& img : images) {
       img.release();
     }
     images.clear();
-  });
+    timestamps.clear();
+  }
 
-  storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
+  // Clean up streams (always execute)
+  camera.closeStreamAll();
+  camera.flushStream();
+
+  // Store validation result for goal result setting
+  this->last_validation_result = validation;
 }
 
 void JAIHDRNode::collectHdrImagesParallel(
@@ -558,23 +766,47 @@ void JAIHDRNode::collectHdrImagesParallel(
     }
   }
 
-  // 저장을 별도 스레드에서 비동기로 처리
-  std::thread storage_thread([this, goal_handle,
-                              timestamps = std::move(timestamps),
-                              images = std::move(images)]() mutable {
-    camera.closeStreamAll();
-    storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
-                             images);
-    camera.flushStream();
+  // === VALIDATION: Validate captured images ===
+  int exposure_count = config->HDR_EXPOSURE.size();
+  ValidationDetails validation = validateHDRImages(images, exposure_count);
 
-    // 이미지 메모리 해제
+  // Send validation feedback
+  sendValidationFeedback(goal_handle, validation);
+
+  // Determine if we should store based on validation result
+  bool should_store = (validation.result == ValidationResult::SUCCESS);
+
+  if (should_store) {
+    // 저장을 별도 스레드에서 비동기로 처리
+    std::thread storage_thread([this, goal_handle,
+                                timestamps = std::move(timestamps),
+                                images = std::move(images)]() mutable {
+      storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                               images);
+
+      // 이미지 메모리 해제
+      for (auto& img : images) {
+        img.release();
+      }
+      images.clear();
+    });
+
+    storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
+  } else {
+    // Skip storage, but clean up memory
     for (auto& img : images) {
       img.release();
     }
     images.clear();
-  });
+    timestamps.clear();
+  }
 
-  storage_thread.detach();  // 저장이 완료될 때까지 기다리지 않음
+  // Clean up streams (always execute)
+  camera.closeStreamAll();
+  camera.flushStream();
+
+  // Store validation result for goal result setting
+  this->last_validation_result = validation;
 }
 
 HDRStorage::HDRStorage() {}
@@ -645,16 +877,43 @@ void JAIHDRNode::action_hdr_trigger_accepted(
     } else {
       this->collectHdrImages(goal_handle);
     }
+
     auto result = std::make_shared<HDRTrigger::Result>();
+
+    // Check for cancellation
     if (this->cancel_flag.load()) {
       result->success = false;
+      result->result_message = "HDR Capture Cancelled";
       goal_handle->abort(result);
       hdr_trigger_flag.store(false);
       return;
     }
-    result->success = true;
-    result->result_message = "HDR Capture Finished";
-    goal_handle->succeed(result);
+
+    // Check validation result
+    bool is_error =
+        (last_validation_result.result == ValidationResult::ERROR_ALL_RGB_FAILED ||
+         last_validation_result.result == ValidationResult::ERROR_ALL_NIR_FAILED ||
+         last_validation_result.result ==
+             ValidationResult::ERROR_NIR_LIGHTING_FAILED);
+
+    if (is_error) {
+      // Error case: Set success=false with detailed message
+      result->success = false;
+      result->result_message = last_validation_result.error_message;
+      goal_handle->succeed(result);  // Still call succeed(), but with success=false
+    } else {
+      // Success or warning case: Set success=true
+      result->success = true;
+      if (last_validation_result.result == ValidationResult::SUCCESS) {
+        result->result_message = "HDR Capture Finished";
+      } else {
+        // Warning case: Include warning in message
+        result->result_message = "HDR Capture Finished (Warning: " +
+                                 last_validation_result.error_message + ")";
+      }
+      goal_handle->succeed(result);
+    }
+
     hdr_trigger_flag.store(false);
   }).detach();
 }

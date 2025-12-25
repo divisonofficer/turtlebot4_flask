@@ -38,6 +38,7 @@ from stereo_calibration import JaiStereoCalibration
 from rclpy.executors import MultiThreadedExecutor
 from stereo_node import JaiStereoDepth
 from demo_node import JaiDemoNode
+from battery_monitor import BatteryMonitor
 
 from jai_pb2 import (
     DeviceInfo,
@@ -566,6 +567,7 @@ node: JaiBridgeNode
 calibration_node: JaiStereoCalibration
 depth_node: JaiStereoDepth
 tapo_node: RosTapoNode
+battery_monitor: BatteryMonitor
 
 import threading
 
@@ -859,8 +861,25 @@ def enable_stereo_storage():
 
 @app.route("/stereo/hdr/trigger", methods=["POST"])
 def trigger_stereo_hdr():
-    depth_node.trigger_hdr_action()
+    """Trigger HDR capture with new space"""
+    depth_node.trigger_hdr_action(use_new_space=True)
     return depth_node.node_status()
+
+
+@app.route("/stereo/hdr/trigger/continue", methods=["POST"])
+def trigger_stereo_hdr_continue():
+    """Continue HDR capture in existing space"""
+    depth_node.trigger_hdr_action(use_new_space=False)
+    return depth_node.node_status()
+
+
+@app.route("/stereo/hdr/space/current", methods=["GET"])
+def get_current_hdr_space():
+    """Get current/cached HDR space ID"""
+    return {
+        "space_id": depth_node.hdr_storage_id_cache,
+        "exists": depth_node.hdr_storage_id_cache is not None
+    }
 
 
 @app.route("/stereo/hdr/config", methods=["GET"])
@@ -916,6 +935,17 @@ def get_hdr_frame_thumbnail(scene_id: str, frame_id: str):
 
     return Response(
         json.dumps({"thumbnail": thumbnail}), status=200, mimetype="application/json"
+    )
+
+
+@app.route("/stereo/hdr/frame/<scene_id>/<frame_id>/full", methods=["GET"])
+def get_hdr_frame_full(scene_id: str, frame_id: str):
+    full_image = depth_node.get_hdr_frame_full(scene_id, frame_id)
+    if full_image is None:
+        return Response("Frame not found or error processing", status=404)
+
+    return Response(
+        json.dumps({"image": full_image}), status=200, mimetype="application/json"
     )
 
 
@@ -1079,6 +1109,36 @@ def enable_lucid_calibration():
     return {"status": "success"}
 
 
+# ============================================================================
+# Battery Monitoring Routes
+# ============================================================================
+
+@app.route("/battery/current", methods=["GET"])
+def get_battery_current():
+    """Get current battery status"""
+    try:
+        return battery_monitor.get_latest_battery_data()
+    except Exception as e:
+        return {"error": str(e), "available": False}, 500
+
+
+@app.route("/battery/status", methods=["GET"])
+def get_battery_status():
+    """Get battery monitoring status"""
+    return {
+        "available": battery_monitor.battery_available,
+        "monitoring": battery_monitor.running,
+        "data_points": len(battery_monitor.battery_data)
+    }
+
+
+@socketio.on("connect")
+def handle_battery_connect():
+    """Send initial battery data on socket connect"""
+    if battery_monitor.battery_data:
+        socketio.emit("/battery", battery_monitor.get_latest_battery_data())
+
+
 with app.app_context():
     rclpy.init()
     node = JaiBridgeNode()
@@ -1091,6 +1151,11 @@ with app.app_context():
     if capture_mode == "demo":
         depth_node = JaiDemoNode(socketio)
     tapo_node = RosTapoNode()
+
+    # Initialize battery monitor
+    battery_monitor = BatteryMonitor(socketio)
+    battery_monitor.start_monitoring()
+
     nodes = [node, calibration_node, depth_node]
     if capture_mode == "hdr":
         nodes.append(tapo_node)

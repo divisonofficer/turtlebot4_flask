@@ -509,6 +509,8 @@ class JaiHDRCaptureAgent:
             print(call_feedback.feedback.feedback_message)
             if "error_" in log_json["type"]:
                 self.log.hdr_error_msgs.append(log_json)
+            if "warning_" in log_json["type"]:
+                self.log.hdr_error_msgs.append(log_json)
             if "info_" in log_json["type"]:
                 if log_json["type"] == "info_collect_hdr_images":
                     self.log.progress_sub["idx"] = log_json["data"]["exp_idx"]
@@ -535,6 +537,18 @@ class JaiHDRCaptureAgent:
             rclpy.spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise JaiTimeoutError("Action Timeout")
+
+        # Check goal result for errors
+        result = result_future.result().result
+        if not result.success:
+            # Error occurred during capture - raise exception to stop sequence
+            error_msg = f"HDR Capture Failed: {result.result_message}"
+            self.log.hdr_error_msgs.append({
+                "type": "error_hdr_capture_failed",
+                "data": {"message": result.result_message}
+            })
+            self.publish_log()
+            raise JaiTimeoutError(error_msg)
 
     def turn_right(self, angle: float):
         # self.pose_list.clear()

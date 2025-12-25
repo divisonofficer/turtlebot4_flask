@@ -44,7 +44,7 @@ export const BatteryMonitorIcon = () => {
   };
 
   useEffect(() => {
-    httpGet("/laptop/current")
+    httpGet("/jai/battery/current")
       .onSuccess((data: BatteryMonitorData) => {
         setSOC(data.SoC);
         setCharging(data.State === "Charging");

@@ -71,7 +71,9 @@ class JaiHDRStore {
   current_scene_id: string = "";
   current_scene_frames: string[] = [];
   selected_frame_id: string = "";
-  frame_preview_image: string = "";
+  frame_thumbnails: Map<string, string> = new Map();  // frameId → base64 image data
+  scene_representative_thumbnails: Map<string, string> = new Map();  // sceneId → base64 image data
+  current_hdr_space_id: string = "";
   constructor() {
     makeAutoObservable(this);
 
@@ -96,10 +98,23 @@ class JaiHDRStore {
 
     this.fetchGetConfig();
     this.fetchHDRSceneList();
+    this.fetchCurrentSpace();
   }
 
-  triggerHDR = () => {
-    httpPost("/jai/stereo/hdr/trigger").fetch();
+  triggerHDR = (useNewSpace: boolean = true) => {
+    const endpoint = useNewSpace
+      ? "/jai/stereo/hdr/trigger"           // New space
+      : "/jai/stereo/hdr/trigger/continue"; // Continue existing
+
+    httpPost(endpoint).fetch();
+  };
+
+  fetchCurrentSpace = () => {
+    httpGet("/jai/stereo/hdr/space/current")
+      .onSuccess((data: { space_id: string; exists: boolean }) => {
+        this.current_hdr_space_id = data.space_id || "";
+      })
+      .fetch();
   };
 
   triggerPause = () => {
@@ -168,9 +183,27 @@ class JaiHDRStore {
       .onSuccess((data: string[]) => {
         this.current_scene_frames = data;
         this.current_scene_id = sceneId;
-        // Auto-select the latest frame if available
+
+        // Clear previous thumbnails when switching scenes
+        this.frame_thumbnails.clear();
+
+        // Don't preload all thumbnails - let lazy loading handle it
+        // Only preload the first few for immediate display
+        const preloadCount = Math.min(6, data.length); // Preload first 6 (2 per row)
+        for (let i = 0; i < preloadCount; i++) {
+          this.fetchFramePreview(sceneId, data[i]);
+        }
+
+        // Auto-select the first frame if available
         if (data.length > 0) {
-          this.selectFrame(data[data.length - 1]);
+          this.selectFrame(data[0]);
+        }
+
+        // Load representative thumbnail for this scene (middle frame)
+        if (data.length > 0) {
+          const middleIndex = Math.floor(data.length / 2);
+          const representativeFrameId = data[middleIndex];
+          this.fetchSceneRepresentativeThumbnail(sceneId, representativeFrameId);
         }
       })
       .onError((c, m, e) => {
@@ -183,22 +216,66 @@ class JaiHDRStore {
       .fetch();
   };
 
+  fetchSceneRepresentativeThumbnail = (sceneId: string, frameId: string) => {
+    httpGet(`/jai/stereo/hdr/frame/${sceneId}/${frameId}/thumbnail`)
+      .onSuccess((data: { thumbnail: string }) => {
+        const imageData = `data:image/jpeg;base64,${data.thumbnail}`;
+        this.scene_representative_thumbnails.set(sceneId, imageData);
+      })
+      .onError((_c, _m, e) => {
+        console.error("Failed to fetch scene representative thumbnail:", e);
+      })
+      .fetch();
+  };
+
   selectFrame = (frameId: string) => {
     this.selected_frame_id = frameId;
-    this.fetchFramePreview(this.current_scene_id, frameId);
+
+    // Load full quality image for main preview
+    this.fetchFrameFull(this.current_scene_id, frameId);
   };
 
   fetchFramePreview = (sceneId: string, frameId: string) => {
-    // Use the new HDR thumbnail API
+    // Skip if already cached
+    if (this.frame_thumbnails.has(frameId)) {
+      return;
+    }
+
     httpGet(`/jai/stereo/hdr/frame/${sceneId}/${frameId}/thumbnail`)
       .onSuccess((data: { thumbnail: string }) => {
-        this.frame_preview_image = `data:image/jpeg;base64,${data.thumbnail}`;
+        const imageData = `data:image/jpeg;base64,${data.thumbnail}`;
+
+        // Cache the thumbnail
+        this.frame_thumbnails.set(frameId, imageData);
+
+        // If this is the selected frame, update main preview
+        if (this.selected_frame_id === frameId) {
+          this.hdr_latest_capture.image = imageData;
+        }
       })
       .onError((c, m, e) => {
         alertStore.addAlert(
           "error",
           c || m || e.message,
           "Failed to fetch frame preview"
+        );
+      })
+      .fetch();
+  };
+
+  fetchFrameFull = (sceneId: string, frameId: string) => {
+    httpGet(`/jai/stereo/hdr/frame/${sceneId}/${frameId}/full`)
+      .onSuccess((data: { image: string }) => {
+        const imageData = `data:image/jpeg;base64,${data.image}`;
+
+        // Update main preview with full quality image
+        this.hdr_latest_capture.image = imageData;
+      })
+      .onError((c, m, e) => {
+        alertStore.addAlert(
+          "error",
+          c || m || e.message,
+          "Failed to fetch full image"
         );
       })
       .fetch();

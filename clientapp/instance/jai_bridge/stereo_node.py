@@ -171,6 +171,7 @@ class JaiStereoDepth(Node):
         # self.__init_raft_stereo()
 
         self.stereo_storage_id: Optional[str] = None
+        self.hdr_storage_id_cache: Optional[str] = None  # Cache for HDR space continuation
 
         self.stored_frame_cnt = 0
         self.prev_timestamp = time.time()
@@ -384,21 +385,37 @@ class JaiStereoDepth(Node):
     def load_calibration(self, id: str):
         path = f"tmp/calibration/{id}/calibration.npz"
 
-    def trigger_hdr_action(self):
+    def trigger_hdr_action(self, use_new_space: bool = True):
+        """
+        Trigger HDR capture with space management
+
+        Args:
+            use_new_space: If True, creates new space. If False, continues from cached space.
+        """
         if self.config.capture_mode != "hdr":
             return
-        if self.stereo_storage_id is None:
-            self.enable_stereo_storage()
+
+        # Determine space ID based on flag
+        if use_new_space:
+            space_id = time.strftime("%m-%d-%H-%M-%S")
+            self.hdr_storage_id_cache = space_id  # Cache for potential continuation
+        else:
+            # Use cached ID if available, otherwise create new
+            space_id = self.hdr_storage_id_cache or time.strftime("%m-%d-%H-%M-%S")
+            if not self.hdr_storage_id_cache:
+                self.hdr_storage_id_cache = space_id
+
+        self.stereo_storage_id = space_id
 
         # Use a background task to ensure the callback runs in the right context
         def callback_wrapper():
             # Use start_background_task to ensure proper context for socket.emit
             self.socket.start_background_task(
-                target=self.emit_latest_capture_hdr, space_id=self.stereo_storage_id
+                target=self.emit_latest_capture_hdr, space_id=space_id
             )
 
         self.hdr_agent.capture_thread(
-            self.stereo_storage_id,
+            space_id,
             callback_wrapper,
         )
 
@@ -477,6 +494,9 @@ class JaiStereoDepth(Node):
                 (int(img_col_concat.shape[1] / 4), int(img_col_concat.shape[0] / 4)),
             )
 
+            # Rotate 90 degrees counter-clockwise for proper orientation
+            img_col_concat = cv2.rotate(img_col_concat, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
             _, buffer = cv2.imencode(".jpg", img_col_concat)
             encoded_img = base64.b64encode(buffer).decode("utf-8")
 
@@ -507,6 +527,7 @@ class JaiStereoDepth(Node):
     def get_hdr_frame_thumbnail(self, space_id: str, frame_id: str):
         """
         Get HDR frame thumbnail by combining left RGB and NIR images
+        Optimized version: crops images before processing, uses disk caching
         Returns base64 encoded image or None if error
         """
         try:
@@ -515,6 +536,12 @@ class JaiStereoDepth(Node):
             if not os.path.exists(frame_folder):
                 return None
 
+            # Check if cached thumbnail exists
+            thumbnail_cache_path = os.path.join(frame_folder, "_thumbnail.jpg")
+            if os.path.exists(thumbnail_cache_path):
+                with open(thumbnail_cache_path, "rb") as f:
+                    return base64.b64encode(f.read()).decode("utf-8")
+
             imgs = os.listdir(frame_folder)
             img_col0_files = [x for x in imgs if "_col0" in x]
             img_col2_files = [x for x in imgs if "_col2" in x]
@@ -522,6 +549,7 @@ class JaiStereoDepth(Node):
             if not img_col0_files or not img_col2_files:
                 return None
 
+            # Read full images (unavoidable - need to decode)
             img_col0 = cv2.imread(
                 os.path.join(frame_folder, img_col0_files[0]), cv2.IMREAD_UNCHANGED
             )
@@ -532,27 +560,119 @@ class JaiStereoDepth(Node):
             if img_col0 is None or img_col2 is None:
                 return None
 
-            # Convert images
-            img_col0_rgb = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
-            img_col2_gray = (img_col2 // 16).astype(np.uint8)
+            # Thumbnail generation: Extract 1080x1440 regions, rotate each, then concatenate
+            # The source images are 4096x3000, but when concatenated they form 4320x1440 sections
+            # We need to extract specific 1080x1440 regions, rotate them 90° to make vertical (1440x1080)
+            # then concatenate horizontally
+
+            # col0 (RGB): take bottom 1440 pixels, width 1080 (y[-1440:, :1080])
+            # col2 (NIR): take middle section y[1080:2160], width 1080 (:1080)
+            img_col0_region = img_col0[-1440:, :1080]  # 1080x1440
+            img_col2_region = img_col2[1080:2520, :1080]  # 1080x1440
+
+            # Convert color for each region
+            img_col0_rgb = cv2.cvtColor(img_col0_region, cv2.COLOR_BayerRG2RGB)
+            img_col2_gray = (img_col2_region // 16).astype(np.uint8)
             img_col2_bgr = cv2.cvtColor(img_col2_gray, cv2.COLOR_GRAY2BGR)
 
-            # Concatenate horizontally
-            img_concat = np.concatenate([img_col0_rgb, img_col2_bgr], axis=1)
+            # Rotate each region 90° counter-clockwise to make vertical (1440x1080)
+            img_col0_rotated = cv2.rotate(img_col0_rgb, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            img_col2_rotated = cv2.rotate(img_col2_bgr, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-            # Resize for thumbnail
-            img_thumbnail = cv2.resize(
-                img_concat,
-                (int(img_concat.shape[1] / 4), int(img_concat.shape[0] / 4)),
-            )
+            # Concatenate the two rotated regions horizontally (1440x1080 + 1440x1080 = 2880x1080)
+            img_concat = np.concatenate([img_col0_rotated, img_col2_rotated], axis=1)
 
-            _, buffer = cv2.imencode(".jpg", img_thumbnail)
+            # Resize for thumbnail (maintain aspect ratio)
+            thumbnail_width = 512
+            thumbnail_height = int(img_concat.shape[0] * thumbnail_width / img_concat.shape[1])
+            img_thumbnail = cv2.resize(img_concat, (thumbnail_width, thumbnail_height))
+
+            # OPTIMIZATION 4: JPEG quality control with progressive encoding
+            encode_param = [
+                int(cv2.IMWRITE_JPEG_QUALITY), 85,
+                int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1
+            ]
+            _, buffer = cv2.imencode(".jpg", img_thumbnail, encode_param)
+
+            # OPTIMIZATION 5: Save thumbnail to disk for caching
+            with open(thumbnail_cache_path, "wb") as f:
+                f.write(buffer.tobytes())
+
             encoded_img = base64.b64encode(buffer.tobytes()).decode("utf-8")
-
             return encoded_img
 
         except Exception as e:
             print(f"Error getting HDR frame thumbnail: {e}")
+            return None
+
+    def get_hdr_frame_full(self, space_id: str, frame_id: str):
+        """
+        Get HDR frame full image (same as live capture but lower resolution)
+        Uses col0 (RGB) + col1 (NIR) like emit_hdr_latest_capture
+        Returns resized full quality image
+        """
+        try:
+            frame_folder = os.path.join(f"tmp/stereo/hdr/{space_id}", frame_id)
+
+            if not os.path.exists(frame_folder):
+                return None
+
+            # Check if cached full image exists
+            full_cache_path = os.path.join(frame_folder, "_full.jpg")
+            if os.path.exists(full_cache_path):
+                with open(full_cache_path, "rb") as f:
+                    return base64.b64encode(f.read()).decode("utf-8")
+
+            imgs = os.listdir(frame_folder)
+            img_col0_files = [x for x in imgs if "_col0" in x]
+            img_col1_files = [x for x in imgs if "_col1" in x]
+
+            if not img_col0_files or not img_col1_files:
+                return None
+
+            # Read full images
+            img_col0 = cv2.imread(
+                os.path.join(frame_folder, img_col0_files[0]), cv2.IMREAD_UNCHANGED
+            )
+            img_col1 = cv2.imread(
+                os.path.join(frame_folder, img_col1_files[0]), cv2.IMREAD_UNCHANGED
+            )
+
+            if img_col0 is None or img_col1 is None:
+                return None
+
+            # Process images (same as emit_hdr_latest_capture)
+            img_col1 = (img_col1 // 16).astype(np.uint8)
+            img_col1 = cv2.cvtColor(img_col1, cv2.COLOR_GRAY2BGR)
+            img_col0 = cv2.cvtColor(img_col0, cv2.COLOR_BayerRG2RGB)
+
+            # Concatenate horizontally
+            img_col_concat = np.concatenate([img_col0, img_col1], axis=1)
+
+            # Resize (same as live capture - 1/4 scale)
+            img_col_concat = cv2.resize(
+                img_col_concat,
+                (int(img_col_concat.shape[1] / 4), int(img_col_concat.shape[0] / 4)),
+            )
+
+            # Rotate 90 degrees counter-clockwise
+            img_col_concat = cv2.rotate(img_col_concat, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+            # Encode as JPEG
+            encode_param = [
+                int(cv2.IMWRITE_JPEG_QUALITY), 90,
+                int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1
+            ]
+            _, buffer = cv2.imencode(".jpg", img_col_concat, encode_param)
+
+            # Cache to disk
+            with open(full_cache_path, "wb") as f:
+                f.write(buffer.tobytes())
+
+            return base64.b64encode(buffer.tobytes()).decode("utf-8")
+
+        except Exception as e:
+            print(f"Error getting HDR frame full image: {e}")
             return None
 
     def delete_hdr_frame(self, space_id: str, frame_id: str):
