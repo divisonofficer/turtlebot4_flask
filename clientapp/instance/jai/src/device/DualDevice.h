@@ -16,6 +16,13 @@ class DualDevice {
   PvStream *getStream(int source);
   std::vector<PvBuffer *> *getBufferList(int source);
 
+  /**
+   * Configure camera Sequencer Mode for HDR burst capture.
+   * Sets up exposure sets based on config->HDR_EXPOSURE values.
+   * Only active when config->ENABLE_SEQUENCER_MODE is true.
+   */
+  void configureSequencer();
+
  private:
   PvDeviceGEV *rgb_device;
   PvStreamGEV *rgb_stream;

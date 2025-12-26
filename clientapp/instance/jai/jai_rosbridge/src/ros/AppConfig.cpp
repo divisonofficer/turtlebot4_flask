@@ -39,4 +39,33 @@ void AppConfig::load_from_json(const std::string& file_path) {
   if (j.find("HDR_TIMEOUT_CNT") != j.end()) {
     HDR_TIMEOUT_CNT = j["HDR_TIMEOUT_CNT"];
   }
+  if (j.find("HDR_PARALLEL_MODE") != j.end()) {
+    HDR_PARALLEL_MODE = j["HDR_PARALLEL_MODE"];
+  }
+
+  // HDR Burst Capture Performance Optimization Settings
+  if (j.find("REQUEST_TIMEOUT") != j.end()) {
+    REQUEST_TIMEOUT = j["REQUEST_TIMEOUT"];
+  }
+  if (j.find("RESEND_DELAY") != j.end()) {
+    RESEND_DELAY = j["RESEND_DELAY"];
+  }
+  if (j.find("TIMESTAMP_TOLERANCE_MS") != j.end()) {
+    TIMESTAMP_TOLERANCE_MS = j["TIMESTAMP_TOLERANCE_MS"];
+  }
+  if (j.find("GEV_SCPD_RGB") != j.end()) {
+    GEV_SCPD_RGB = j["GEV_SCPD_RGB"];
+  }
+  if (j.find("GEV_SCPD_NIR") != j.end()) {
+    GEV_SCPD_NIR = j["GEV_SCPD_NIR"];
+  }
+  if (j.find("RETRY_BASE_DELAY_MS") != j.end()) {
+    RETRY_BASE_DELAY_MS = j["RETRY_BASE_DELAY_MS"];
+  }
+  if (j.find("ENABLE_SEQUENCER_MODE") != j.end()) {
+    ENABLE_SEQUENCER_MODE = j["ENABLE_SEQUENCER_MODE"];
+  }
+  if (j.find("SEQUENCER_LIGHT_ON_COUNT") != j.end()) {
+    SEQUENCER_LIGHT_ON_COUNT = j["SEQUENCER_LIGHT_ON_COUNT"];
+  }
 }

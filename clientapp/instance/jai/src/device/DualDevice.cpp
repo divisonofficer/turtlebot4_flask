@@ -103,21 +103,20 @@ DualDevice::DualDevice(PvString &connection_ID) {
                              1);
 
   /**
-   *
-   * Packet Dealy in Microseconds (not miliseconds!)
+   * Packet Delay in Microseconds (not milliseconds!)
+   * GevSCPD: Stream Channel Packet Delay
+   * Using config values instead of random for consistent HDR burst performance
    */
   Info << "Setting GevStream Parameters";
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 0);
-
   ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
-                         (rand() % 1000));
+                         config->GEV_SCPD_RGB);  // 0 for minimal delay
 
   ParamManager::setParam(rgb_device->GetParameters(),
                          "GevStreamChannelSelector", 1);
-
   ParamManager::setParam(rgb_device->GetParameters(), "GevSCPD",
-                         (rand() % 10 + 1) * 20000);
+                         config->GEV_SCPD_NIR);  // Small delay to avoid collision
 
   if (config->STREAM_BUFFER) {
     streamManager->CreateStreamBuffers(rgb_device, rgb_stream,
@@ -133,6 +132,9 @@ DualDevice::DualDevice(PvString &connection_ID) {
                          "NetworkThroughputSafetyMargin", 50);
   ParamManager::setParamEnum(rgb_device->GetParameters(),
                              "MultiStreamPacketCollisionAvoidMode", 1);
+
+  // Configure Sequencer Mode if enabled
+  configureSequencer();
 }
 
 // PvBuffer *DualDevice::popAndCreateNewBuffer(int source) {
@@ -159,4 +161,81 @@ std::vector<PvBuffer *> *DualDevice::getBufferList(int source) {
   } else {
     return &nir_buffer_list;
   }
+}
+
+void DualDevice::configureSequencer() {
+  if (!config->ENABLE_SEQUENCER_MODE) {
+    return;
+  }
+
+  auto params = rgb_device->GetParameters();
+  Info << "Configuring Sequencer Mode for HDR burst capture (2-burst mode)";
+
+  // 1. Disable sequencer and enter configuration mode
+  ParamManager::setParamEnum(params, "SequencerMode", 0);              // Off
+  ParamManager::setParamEnum(params, "SequencerConfigurationMode", 1); // On
+
+  // 2. Enable ExposureTime feature for sequencer control
+  ParamManager::setParamEnum(params, "SequencerFeatureSelector", 0); // ExposureTime
+  ParamManager::setParam(params, "SequencerFeatureEnable", true);
+
+  // 3. Configure sequencer sets for 2-burst HDR capture
+  // Burst 1 (Light ON):  Set 0,1 -> RGB[0,1], NIR[0,1]
+  // Burst 2 (Light OFF): Set 2,3 -> RGB[2,3], NIR[0,1]
+  int numSets = std::min(static_cast<int>(config->HDR_EXPOSURE.size()), 8);
+  int lightOnCount = config->SEQUENCER_LIGHT_ON_COUNT;
+
+  for (int i = 0; i < numSets; i++) {
+    ParamManager::setParam(params, "SequencerSetSelector", i);
+
+    // Configure RGB channel (Source 0) exposure
+    ParamManager::setParamEnum(params, "SourceSelector", 0);
+    ParamManager::setParam(params, "ExposureTime",
+                           static_cast<float>(config->HDR_EXPOSURE[i]));
+
+    // Configure NIR channel (Source 1) exposure
+    // NIR cycles through its array within each burst
+    ParamManager::setParamEnum(params, "SourceSelector", 1);
+    int nirIdx = i % static_cast<int>(config->HDR_EXPOSURE_NIR.size());
+    ParamManager::setParam(params, "ExposureTime",
+                           static_cast<float>(config->HDR_EXPOSURE_NIR[nirIdx]));
+
+    // Set path to next set within the same burst
+    // Burst 1: 0->1->0 (stop at 1, controlled by AcquisitionFrameCount)
+    // Burst 2: 2->3->2 (stop at 3, controlled by AcquisitionFrameCount)
+    ParamManager::setParam(params, "SequencerPathSelector", 0);
+    if (i < lightOnCount - 1) {
+      // Within burst 1: point to next set
+      ParamManager::setParam(params, "SequencerSetNext", i + 1);
+    } else if (i == lightOnCount - 1) {
+      // End of burst 1: loop back (will be stopped by AcquisitionFrameCount)
+      ParamManager::setParam(params, "SequencerSetNext", 0);
+    } else if (i < numSets - 1) {
+      // Within burst 2: point to next set
+      ParamManager::setParam(params, "SequencerSetNext", i + 1);
+    } else {
+      // End of burst 2: loop back to burst 2 start
+      ParamManager::setParam(params, "SequencerSetNext", lightOnCount);
+    }
+
+    // Trigger on FrameStart
+    ParamManager::setParamEnum(params, "SequencerTriggerSource", 0); // FrameStart
+
+    // Save this set configuration
+    params->ExecuteCommand("SequencerSetSave");
+
+    const char* burstLabel = (i < lightOnCount) ? "LIGHT_ON" : "LIGHT_OFF";
+    Info << "Sequencer Set " << i << " [" << burstLabel << "]: RGB="
+         << config->HDR_EXPOSURE[i] << "us, NIR="
+         << config->HDR_EXPOSURE_NIR[nirIdx] << "us";
+  }
+
+  // 4. Set start set to 0 (burst 1) and enable sequencer
+  // Note: SequencerSetStart will be changed dynamically before each burst
+  ParamManager::setParam(params, "SequencerSetStart", 0);
+  ParamManager::setParamEnum(params, "SequencerConfigurationMode", 0); // Off
+  ParamManager::setParamEnum(params, "SequencerMode", 1);              // On
+
+  Info << "Sequencer Mode enabled: " << lightOnCount << " sets for LIGHT_ON, "
+       << (numSets - lightOnCount) << " sets for LIGHT_OFF";
 }

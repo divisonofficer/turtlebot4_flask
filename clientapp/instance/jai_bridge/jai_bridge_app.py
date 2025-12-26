@@ -915,6 +915,22 @@ def stop_stereo_hdr():
     return depth_node.node_status()
 
 
+@app.route("/stereo/hdr/trigger/force_stop", methods=["POST"])
+def force_stop_stereo_hdr():
+    """Force stop HDR capture - use when normal stop doesn't work"""
+    depth_node.hdr_agent.force_stop()
+    return depth_node.node_status()
+
+
+@app.route("/stereo/hdr/status", methods=["GET"])
+def get_hdr_status():
+    """Get current HDR capture status for UI refresh"""
+    status = depth_node.hdr_agent.get_status()
+    # Also emit via socket for real-time updates
+    socketio.emit("hdr_log", status["progress"])
+    return status
+
+
 @app.route("/stereo/hdr/emit_latest_capture", methods=["POST"])
 def emit_latest_capture():
     depth_node.emit_latest_capture_hdr()

@@ -18,10 +18,17 @@ export namespace JaiHDRLog {
     data: any;
   }
 
+  export interface CaptureTiming {
+    duration_ms: number;
+    duration_sec: number;
+    mode: string;
+  }
+
   export interface Log {
     progress_root: ProgressRoot;
     progress_sub: ProgressSub;
     hdr_error_msgs: Array<Error>;
+    capture_timing: CaptureTiming;
   }
 
   export interface Config {
@@ -99,6 +106,7 @@ class JaiHDRStore {
     this.fetchGetConfig();
     this.fetchHDRSceneList();
     this.fetchCurrentSpace();
+    this.refreshStatus();  // Load initial HDR status
   }
 
   triggerHDR = (useNewSpace: boolean = true) => {
@@ -127,6 +135,23 @@ class JaiHDRStore {
 
   triggerStop = () => {
     httpPost("/jai/stereo/hdr/trigger/stop").fetch();
+  };
+
+  triggerForceStop = () => {
+    httpPost("/jai/stereo/hdr/trigger/force_stop")
+      .onSuccess(() => {
+        // Force refresh status after force stop
+        this.refreshStatus();
+      })
+      .fetch();
+  };
+
+  refreshStatus = () => {
+    httpGet("/jai/stereo/hdr/status")
+      .onSuccess((data: { status: string; is_running: boolean; progress: JaiHDRLog.Log }) => {
+        this.hdr_log = data.progress;
+      })
+      .fetch();
   };
 
   fetchGetConfig = () => {

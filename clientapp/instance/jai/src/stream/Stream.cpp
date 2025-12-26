@@ -53,13 +53,16 @@ void StreamManager::ConfigureStream(PvDevice* aDevice, PvStream* aStream,
     }
   }
 
-  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout", 2000);
+  // Network timeout settings from config for HDR burst optimization
+  ParamManager::setParam(lStreamGEV->GetParameters(), "RequestTimeout",
+                         config->REQUEST_TIMEOUT);
   ParamManager::setParam(lStreamGEV->GetParameters(), "MaximumResendGroupSize",
-                         10);
+                         5);  // Reduced from 10 for faster resend
   ParamManager::setParam(lStreamGEV->GetParameters(), "ResetOnIdle", 0);
-  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay", 1000);
+  ParamManager::setParam(lStreamGEV->GetParameters(), "ResendDelay",
+                         config->RESEND_DELAY);
   ParamManager::setParam(lStreamGEV->GetParameters(),
-                         "MaximumResendRequestRetryByPacket", 10);
+                         "MaximumResendRequestRetryByPacket", 3);  // Reduced from 10
 
   // lDeviceGEV->SetPacketSize(lStreamGEV->Packet, channel);
   //   if (channel == 0)

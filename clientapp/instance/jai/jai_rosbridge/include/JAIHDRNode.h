@@ -69,6 +69,13 @@ class JAIRGBNIRCamera {
   void processStream(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
                      int d, int s, std::vector<cv::Mat>& dst);
 
+  /**
+   * Get device parameters for sequencer control
+   * @param camera_idx Camera index (0 or 1)
+   * @return PvGenParameterArray pointer for device parameter access
+   */
+  PvGenParameterArray* getDeviceParams(int camera_idx = 0);
+
  private:
   int retrieveBuffer(const std::shared_ptr<GoalHandleHDRTrigger> goal_handle,
                      PvStream* stream, PvBuffer** buffer);
@@ -117,6 +124,14 @@ class JAIHDRNode : public rclcpp::Node {
    *  Fast parallel HDR image acquisition
    */
   void collectHdrImagesParallel(
+      const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
+
+  /**
+   *  Sequencer-based HDR image acquisition
+   *  Uses camera's built-in sequencer for fast exposure cycling
+   *  Captures in 2 bursts: Light ON (first N) + Light OFF (remaining)
+   */
+  void collectHdrImagesSequencer(
       const std::shared_ptr<GoalHandleHDRTrigger> goal_handle);
 
   void collectHdrImagesFor(int dn, int sn);

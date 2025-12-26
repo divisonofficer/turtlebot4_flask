@@ -55,6 +55,16 @@ class AppConfig {
                               // 만들어서 queue해줘야됨
   std::vector<double> HDR_EXPOSURE;
   std::vector<double> HDR_EXPOSURE_NIR;
+
+  // HDR Burst Capture Performance Optimization Settings
+  int REQUEST_TIMEOUT = 500;       // GigE packet retrieval timeout (ms)
+  int RESEND_DELAY = 100;          // Delay before resending lost packets (ms)
+  int TIMESTAMP_TOLERANCE_MS = 200;  // Frame acceptance window (ms)
+  int GEV_SCPD_RGB = 0;            // Stream Channel Packet Delay for RGB (us)
+  int GEV_SCPD_NIR = 5000;         // Stream Channel Packet Delay for NIR (us)
+  int RETRY_BASE_DELAY_MS = 50;    // Base delay for retry backoff (ms)
+  bool ENABLE_SEQUENCER_MODE = false;  // Enable camera sequencer for HDR
+  int SEQUENCER_LIGHT_ON_COUNT = 2;  // Number of exposures with light ON (first N)
   void load_from_json(const std::string& file_path);
 
  private:                                           // 생성자를 private으로

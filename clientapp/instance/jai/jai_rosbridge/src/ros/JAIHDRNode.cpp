@@ -1,6 +1,7 @@
 
 #include <JAIHDRNode.h>
 #include <Logger.h>
+#include <ParamManager.h>
 
 #include <algorithm>
 #include <chrono>
@@ -48,6 +49,13 @@ void JAIRGBNIRCamera::connectCamera() {
     cameras.back()->timeStampReset(0, 0);
     ts_cam_bs = systemTimeNano();
   }
+}
+
+PvGenParameterArray* JAIRGBNIRCamera::getDeviceParams(int camera_idx) {
+  if (camera_idx < cameras.size()) {
+    return cameras[camera_idx]->dualDevice->getDevice(0)->GetParameters();
+  }
+  return nullptr;
 }
 
 void JAIRGBNIRCamera::openStreamAll() {
@@ -153,9 +161,10 @@ void JAIRGBNIRCamera::processStream(
                            &buffer);
   if (!(hdr_stream_done_flag[d][s]) && buffer) {
     if (ret == 0) {
-      // Add 100ms tolerance window to accept frames near exposure change
-      // boundary Optimized for 8 FPS (125ms per frame, max exposure 100ms)
-      const __uint64_t TIMESTAMP_TOLERANCE = 100000000;  // 100ms in nanoseconds
+      // Tolerance window to accept frames near exposure change boundary
+      // Using config value for flexibility in HDR burst optimization
+      const __uint64_t TIMESTAMP_TOLERANCE =
+          static_cast<__uint64_t>(config->TIMESTAMP_TOLERANCE_MS) * 1000000;
       if (buffer->GetTimestamp() + ts_cam_bs > ts_exp_ - TIMESTAMP_TOLERANCE) {
         if (s == 0) {
           dst[d * 2 + s] =
@@ -225,10 +234,10 @@ int JAIRGBNIRCamera::readImage(
 
     for (int d = 0; d < cameras.size(); d++) {
       if (!(hdr_stream_done_flag[d][0] && hdr_stream_done_flag[d][1])) {
-        // Exponential backoff: 300ms -> 600ms -> 1200ms
-        int retry_delay = config->HDR_EXPOSURE_DELAY * (1 << retry_count);
+        // Linear backoff: 50ms -> 100ms -> 150ms (using RETRY_BASE_DELAY_MS)
+        int retry_delay = config->RETRY_BASE_DELAY_MS * (retry_count + 1);
         std::this_thread::sleep_for(
-            std::chrono::nanoseconds(retry_delay * 1000000));
+            std::chrono::milliseconds(retry_delay));
         triggerFrameCapture(d);
         all_done = false;
         break;  // 하나라도 실패하면 바로 다음 루프로
@@ -552,6 +561,9 @@ void JAIHDRNode::collectHdrImages(
                 e.what());
   }
 
+  // 스트림을 루프 시작 전에 1회만 열기 (재시작 오버헤드 제거)
+  camera.openStreamAll();
+
   for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
     int t = config->HDR_EXPOSURE[t_idx];
     int t2 = config->HDR_EXPOSURE_NIR[t_idx % config->HDR_EXPOSURE_NIR.size()];
@@ -561,7 +573,9 @@ void JAIHDRNode::collectHdrImages(
     std::future<void> light_control_future;
 
     camera.configureExposureAll(t, t2);
-    camera.openStreamAll();
+    // exposure 변경 후 카메라가 적용할 시간 대기
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(config->HDR_EXPOSURE_DELAY));
     camera.flushStream();
 
     camera.triggerFrameCapture(0);
@@ -665,6 +679,8 @@ void JAIHDRNode::collectHdrImagesParallel(
   std::vector<cv::Mat> images;
   std::vector<__uint64_t> timestamps;
 
+  const int MAX_EXPOSURE_RETRIES = 3;  // 각 exposure당 최대 재시도 횟수
+
   // 미리 조명 상태 설정 (NIR 첫 번째 시퀀스용)
   try {
     dcsChannelControl(0, true);  // 채널 0 켜기
@@ -672,6 +688,9 @@ void JAIHDRNode::collectHdrImagesParallel(
     RCLCPP_WARN(this->get_logger(), "Failed to turn on DCS103e Channel 0: %s",
                 e.what());
   }
+
+  // 스트림을 루프 시작 전에 1회만 열기 (재시작 오버헤드 제거)
+  camera.openStreamAll();
 
   for (int t_idx = 0; t_idx < config->HDR_EXPOSURE.size(); t_idx++) {
     int t = config->HDR_EXPOSURE[t_idx];
@@ -681,41 +700,79 @@ void JAIHDRNode::collectHdrImagesParallel(
     bool should_toggle_light = (t_idx + 1 == config->HDR_EXPOSURE_NIR.size());
     std::future<void> light_control_future;
 
-    sendFeedbackPrintf(
-        goal_handle,
-        "{\"type\" : \"info_collect_hdr_images_parallel\", \"data\" : { "
-        "\"exposure\" : %d,"
-        "\"exp_idx\" : %d}}",
-        t, t_idx);
+    // Retry loop for each exposure
+    std::vector<cv::Mat> imgr;
+    __uint64_t timestamp;
+    bool capture_success = false;
 
-    // 노출 설정과 스트림 준비를 비동기로 처리
-    std::future<void> setup_future =
-        std::async(std::launch::async, [this, t, t2]() {
-          camera.configureExposureAll(t, t2);
-          camera.openStreamAll();
-          camera.flushStream();
-        });
+    for (int retry = 0; retry < MAX_EXPOSURE_RETRIES && !capture_success; retry++) {
+      if (retry > 0) {
+        sendFeedbackPrintf(
+            goal_handle,
+            "{\"type\" : \"info_exposure_retry\", \"data\" : { "
+            "\"exposure\" : %d, \"exp_idx\" : %d, \"retry\" : %d}}",
+            t, t_idx, retry);
+        RCLCPP_WARN(this->get_logger(),
+                    "Retrying exposure %d (attempt %d/%d)", t, retry + 1,
+                    MAX_EXPOSURE_RETRIES);
 
-    // 설정 완료 대기
-    setup_future.wait();
+        // 재시도 시 스트림 완전히 재시작하여 버퍼 문제 해결
+        camera.closeStreamAll();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        camera.openStreamAll();
+      } else {
+        sendFeedbackPrintf(
+            goal_handle,
+            "{\"type\" : \"info_collect_hdr_images_parallel\", \"data\" : { "
+            "\"exposure\" : %d,"
+            "\"exp_idx\" : %d}}",
+            t, t_idx);
+      }
 
-    // 캡처 시작
-    camera.triggerFrameCapture(0);
-    if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
+      // 노출 설정
+      camera.configureExposureAll(t, t2);
+      // exposure 변경 후 카메라가 적용할 시간 대기
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(config->HDR_EXPOSURE_DELAY));
 
-    Debug << "Parallel Collect HDR Images for " << t;
+      // 캡처 시작
+      camera.triggerFrameCapture(0);
+      if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
 
-    // 이미지 읽기와 조명 제어를 병렬로 처리
-    std::future<std::pair<std::vector<cv::Mat>, __uint64_t>> image_future =
-        std::async(std::launch::async, [this, goal_handle]() {
-          std::vector<cv::Mat> imgr;
-          imgr.assign(4, cv::Mat());
-          __uint64_t timestamp;
-          camera.readImage(goal_handle, imgr, timestamp);
-          return std::make_pair(std::move(imgr), timestamp);
-        });
+      Debug << "Parallel Collect HDR Images for " << t << " (attempt " << retry + 1 << ")";
 
-    // 조명 제어를 이미지 읽기와 병렬로 처리
+      // 이미지 읽기
+      imgr.clear();
+      imgr.assign(4, cv::Mat());
+      camera.readImage(goal_handle, imgr, timestamp);
+
+      Debug << "Parallel Image Read Done";
+
+      // Check if any critical image is empty (RGB images at least)
+      bool has_valid_rgb = !imgr[0].empty();  // Device 0 RGB
+      if (!config->HDR_CAPTURE_SINGLE) {
+        has_valid_rgb = has_valid_rgb && !imgr[2].empty();  // Device 1 RGB
+      }
+
+      if (has_valid_rgb) {
+        capture_success = true;
+      } else {
+        Debug << "Missing RGB image at exposure " << t << ", retry " << retry + 1;
+      }
+    }
+
+    if (!capture_success) {
+      sendFeedbackPrintf(
+          goal_handle,
+          "{\"type\" : \"warning_exposure_failed\", \"data\" : { "
+          "\"exposure\" : %d, \"exp_idx\" : %d, \"retries\" : %d}}",
+          t, t_idx, MAX_EXPOSURE_RETRIES);
+      RCLCPP_WARN(this->get_logger(),
+                  "Failed to capture exposure %d after %d retries", t,
+                  MAX_EXPOSURE_RETRIES);
+    }
+
+    // 조명 제어를 이미지 캡처 후에 처리
     if (should_toggle_light) {
       light_control_future = std::async(std::launch::async, [this]() {
         Debug << "Parallel NIR Image Read Done - Turning off DCS103e Channel 0";
@@ -727,11 +784,6 @@ void JAIHDRNode::collectHdrImagesParallel(
         }
       });
     }
-
-    // 이미지 읽기 완료 대기
-    auto [imgr, timestamp] = image_future.get();
-
-    Debug << "Parallel Image Read Done";
 
     // 이미지 데이터 저장 (기존과 동일한 방식 - 빈 이미지도 포함)
     Debug << "Adding images for exposure " << t_idx
@@ -849,6 +901,146 @@ void HDRStorage::storeHDRSequence(std::string space_id,
   }
 }
 
+void JAIHDRNode::collectHdrImagesSequencer(
+    const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
+  std::vector<cv::Mat> images;
+  std::vector<__uint64_t> timestamps;
+
+  int numExposures = config->HDR_EXPOSURE.size();
+  int lightOnCount = config->SEQUENCER_LIGHT_ON_COUNT;
+  int lightOffCount = numExposures - lightOnCount;
+
+  Debug << "Sequencer HDR Capture: " << lightOnCount << " with light ON, "
+        << lightOffCount << " with light OFF";
+
+  // Get camera device parameters for sequencer control
+  auto params = camera.getDeviceParams(0);
+
+  // === BURST 1: Light ON ===
+  try {
+    dcsChannelControl(0, true);  // 채널 0 켜기
+  } catch (const std::exception& e) {
+    RCLCPP_WARN(this->get_logger(), "Failed to turn on DCS103e Channel 0: %s",
+                e.what());
+  }
+
+  // Set sequencer to start from Set 0 (light ON burst)
+  ParamManager::setParam(params, "SequencerSetStart", 0);
+
+  // Set MultiFrame mode with lightOnCount frames
+  ParamManager::setParamEnum(params, "AcquisitionMode", 1);  // MultiFrame
+  ParamManager::setParam(params, "AcquisitionFrameCount", lightOnCount);
+
+  sendFeedbackPrintf(goal_handle,
+                     "{\"type\" : \"info_sequencer_burst\", \"data\" : { "
+                     "\"burst\" : 1, \"light\" : \"ON\", \"frames\" : %d}}",
+                     lightOnCount);
+
+  camera.openStreamAll();
+
+  // Single trigger starts the burst
+  camera.triggerFrameCapture(0);
+  if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
+
+  // Read all frames from burst 1
+  for (int i = 0; i < lightOnCount; i++) {
+    std::vector<cv::Mat> imgr;
+    imgr.assign(4, cv::Mat());
+    __uint64_t timestamp;
+
+    Debug << "Sequencer Burst 1: Reading frame " << i << " (RGB="
+          << config->HDR_EXPOSURE[i] << "us)";
+    camera.readImage(goal_handle, imgr, timestamp);
+
+    for (auto& img : imgr) {
+      images.push_back(std::move(img));
+    }
+    timestamps.push_back(timestamp);
+  }
+
+  camera.closeStreamAll();
+
+  // === BURST 2: Light OFF ===
+  try {
+    dcsChannelControl(0, false);  // 채널 0 끄기
+  } catch (const std::exception& e) {
+    RCLCPP_WARN(this->get_logger(), "Failed to turn off DCS103e Channel 0: %s",
+                e.what());
+  }
+
+  // Set sequencer to start from Set lightOnCount (light OFF burst)
+  ParamManager::setParam(params, "SequencerSetStart", lightOnCount);
+
+  // Set MultiFrame mode with lightOffCount frames
+  ParamManager::setParam(params, "AcquisitionFrameCount", lightOffCount);
+
+  sendFeedbackPrintf(goal_handle,
+                     "{\"type\" : \"info_sequencer_burst\", \"data\" : { "
+                     "\"burst\" : 2, \"light\" : \"OFF\", \"frames\" : %d}}",
+                     lightOffCount);
+
+  camera.openStreamAll();
+
+  // Single trigger starts the burst
+  camera.triggerFrameCapture(0);
+  if (!config->HDR_CAPTURE_SINGLE) camera.triggerFrameCapture(1);
+
+  // Read all frames from burst 2
+  for (int i = 0; i < lightOffCount; i++) {
+    int expIdx = lightOnCount + i;
+    std::vector<cv::Mat> imgr;
+    imgr.assign(4, cv::Mat());
+    __uint64_t timestamp;
+
+    Debug << "Sequencer Burst 2: Reading frame " << i << " (RGB="
+          << config->HDR_EXPOSURE[expIdx] << "us)";
+    camera.readImage(goal_handle, imgr, timestamp);
+
+    for (auto& img : imgr) {
+      images.push_back(std::move(img));
+    }
+    timestamps.push_back(timestamp);
+  }
+
+  camera.closeStreamAll();
+
+  // Turn light back on after capture
+  try {
+    dcsChannelControl(0, true);
+  } catch (const std::exception& e) {
+    RCLCPP_WARN(this->get_logger(), "Failed to turn on DCS103e Channel 0: %s",
+                e.what());
+  }
+
+  // === VALIDATION ===
+  ValidationDetails validation = validateHDRImages(images, numExposures);
+  sendValidationFeedback(goal_handle, validation);
+
+  bool should_store = (validation.result == ValidationResult::SUCCESS);
+
+  if (should_store) {
+    std::thread storage_thread([this, goal_handle,
+                                timestamps = std::move(timestamps),
+                                images = std::move(images)]() mutable {
+      storage.storeHDRSequence(goal_handle->get_goal()->space_id, timestamps,
+                               images);
+      for (auto& img : images) {
+        img.release();
+      }
+      images.clear();
+    });
+    storage_thread.detach();
+  } else {
+    for (auto& img : images) {
+      img.release();
+    }
+    images.clear();
+    timestamps.clear();
+  }
+
+  this->last_validation_result = validation;
+}
+
 rclcpp_action::GoalResponse JAIHDRNode::action_hdr_trigger_handler(
     const rclcpp_action::GoalUUID& uuid,
     std::shared_ptr<const HDRTrigger::Goal> goal) {
@@ -871,12 +1063,43 @@ void JAIHDRNode::action_hdr_trigger_accepted(
     const std::shared_ptr<GoalHandleHDRTrigger> goal_handle) {
   Debug << "HDR Trigger Accepted";
   std::thread([this, goal_handle]() {
-    // 설정에 따라 병렬 또는 순차 처리 선택
-    if (config->HDR_PARALLEL_MODE) {
+    // Record capture start time
+    auto capture_start = std::chrono::high_resolution_clock::now();
+
+    // 설정에 따라 Sequencer, 병렬 또는 순차 처리 선택
+    if (config->ENABLE_SEQUENCER_MODE) {
+      this->collectHdrImagesSequencer(goal_handle);
+    } else if (config->HDR_PARALLEL_MODE) {
       this->collectHdrImagesParallel(goal_handle);
     } else {
       this->collectHdrImages(goal_handle);
     }
+
+    // Calculate capture duration
+    auto capture_end = std::chrono::high_resolution_clock::now();
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           capture_end - capture_start)
+                           .count();
+    double duration_sec = duration_ms / 1000.0;
+
+    // Log capture time
+    const char* mode_str = config->ENABLE_SEQUENCER_MODE ? "sequencer"
+                         : config->HDR_PARALLEL_MODE     ? "parallel"
+                                                         : "sequential";
+    RCLCPP_INFO(this->get_logger(),
+                "=== HDR Capture completed: %.3f sec (%ld ms) [%s mode] ===",
+                duration_sec, duration_ms, mode_str);
+
+    // Send capture timing feedback via socket
+    char timing_json[256];
+    snprintf(timing_json, sizeof(timing_json),
+             "{\"type\":\"capture_timing\",\"data\":{"
+             "\"duration_ms\":%ld,"
+             "\"duration_sec\":%.3f,"
+             "\"mode\":\"%s\"}}",
+             duration_ms, duration_sec, mode_str);
+
+    RCLCPP_INFO(this->get_logger(), "Timing: %s", timing_json);
 
     auto result = std::make_shared<HDRTrigger::Result>();
 
@@ -896,20 +1119,25 @@ void JAIHDRNode::action_hdr_trigger_accepted(
          last_validation_result.result ==
              ValidationResult::ERROR_NIR_LIGHTING_FAILED);
 
+    // Include timing info in result message
+    char timing_suffix[64];
+    snprintf(timing_suffix, sizeof(timing_suffix), " [%.2fs, %s]",
+             duration_sec, mode_str);
+
     if (is_error) {
       // Error case: Set success=false with detailed message
       result->success = false;
-      result->result_message = last_validation_result.error_message;
+      result->result_message = last_validation_result.error_message + timing_suffix;
       goal_handle->succeed(result);  // Still call succeed(), but with success=false
     } else {
       // Success or warning case: Set success=true
       result->success = true;
       if (last_validation_result.result == ValidationResult::SUCCESS) {
-        result->result_message = "HDR Capture Finished";
+        result->result_message = std::string("HDR Capture Finished") + timing_suffix;
       } else {
         // Warning case: Include warning in message
         result->result_message = "HDR Capture Finished (Warning: " +
-                                 last_validation_result.error_message + ")";
+                                 last_validation_result.error_message + ")" + timing_suffix;
       }
       goal_handle->succeed(result);
     }

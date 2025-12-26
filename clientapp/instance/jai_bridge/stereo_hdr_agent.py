@@ -29,6 +29,27 @@ class JaiTimeoutError(Exception):
     pass
 
 
+def safe_spin_once(node, timeout_sec=0.1):
+    """
+    ROS2 spin_once wrapper that handles RCLError and IndexError gracefully.
+
+    The RCLError "wait set index for feedback subscription is out of bounds"
+    can occur during action client feedback processing. This wrapper catches
+    that specific error and retries after a short delay.
+
+    IndexError can also occur in wait_for_ready_callbacks when wait set index
+    is too big - this is a known ROS2 issue with action clients.
+    """
+    try:
+        rclpy.spin_once(node, timeout_sec=timeout_sec)
+    except rclpy._rclpy_pybind11.RCLError:
+        # Wait set index error - wait briefly and continue
+        time.sleep(0.01)
+    except IndexError:
+        # "wait set index too big" error - wait briefly and continue
+        time.sleep(0.01)
+
+
 class RangerTimeoutError(Exception):
     pass
 
@@ -118,6 +139,9 @@ class JaiHDRCaptureAgent:
         )
         progress_sub: dict = field(default_factory=lambda: {"type": "hdr", "idx": 0})
         hdr_error_msgs: List[dict] = field(default_factory=list)
+        capture_timing: dict = field(
+            default_factory=lambda: {"duration_ms": 0, "duration_sec": 0.0, "mode": ""}
+        )
 
     def update_config(self, config: dict):
         if self.hdr_thread is not None and self.hdr_thread.is_alive():
@@ -294,6 +318,62 @@ class JaiHDRCaptureAgent:
     def abort(self):
         self.sig_stop.set()
         self.log.progress_root.status = "abort"
+        self.publish_log()
+
+    def force_stop(self):
+        """
+        Force stop the HDR capture thread.
+        This will:
+        1. Set abort signal
+        2. Wait briefly for graceful shutdown
+        3. If thread still alive, forcefully reset state
+        4. Return Piper arm to home if applicable
+        """
+        self.sig_stop.set()
+        self.log.progress_root.status = "abort"
+        self.publish_log()
+
+        # Wait briefly for graceful shutdown
+        if self.hdr_thread is not None and self.hdr_thread.is_alive():
+            self.hdr_thread.join(timeout=2.0)
+
+        # If still alive, forcefully reset state
+        if self.hdr_thread is not None and self.hdr_thread.is_alive():
+            self.get_logger().warning("HDR thread did not stop gracefully, forcing reset")
+            # Thread is still blocking - reset our state anyway
+            self.log.progress_root.status = "error"
+            self.log.hdr_error_msgs.append({
+                "type": "error_force_stop",
+                "data": {"message": "Thread was forcefully stopped due to blocking"}
+            })
+            self.publish_log()
+
+            # Try to move Piper to home if applicable
+            if self.config.use_piper and self.piper_client is not None:
+                try:
+                    self.piper_client.piper_move_arm_force(0)
+                except Exception as e:
+                    self.get_logger().error(f"Failed to return Piper to home: {e}")
+
+        # Clear signals for next run
+        self.sig_stop.clear()
+        self.sig_pause.clear()
+
+        # Force thread reference to None so next capture can start
+        self.hdr_thread = None
+
+        self.log.progress_root.status = "ready"
+        self.publish_log()
+
+    def get_status(self) -> dict:
+        """Get current HDR capture status"""
+        is_running = self.hdr_thread is not None and self.hdr_thread.is_alive()
+        return {
+            "status": self.log.progress_root.status,
+            "is_running": is_running,
+            "is_paused": self.sig_pause.is_set(),
+            "progress": asdict(self.log),
+        }
 
     def capture_hdr(self, space_id: str, callback: Optional[Callable] = None):
         """
@@ -499,22 +579,27 @@ class JaiHDRCaptureAgent:
         goal.space_id = f"{self.config.ROOT}{space_id}"
 
         def hdr_feedback_callback(call_feedback):
+            raw_msg = call_feedback.feedback.feedback_message
+            print(f"[HDR Feedback] {raw_msg}")
             try:
-                log_json = json.loads(call_feedback.feedback.feedback_message)
+                log_json = json.loads(raw_msg)
             except json.JSONDecodeError:
                 log_json = {
-                    "msg": call_feedback.feedback.feedback_message,
+                    "msg": raw_msg,
                     "type": "msg",
                 }
-            print(call_feedback.feedback.feedback_message)
-            if "error_" in log_json["type"]:
+            msg_type = log_json.get("type", "unknown")
+            if "error_" in msg_type:
                 self.log.hdr_error_msgs.append(log_json)
-            if "warning_" in log_json["type"]:
+            if "warning_" in msg_type:
                 self.log.hdr_error_msgs.append(log_json)
-            if "info_" in log_json["type"]:
-                if log_json["type"] == "info_collect_hdr_images":
+            if "info_" in msg_type:
+                if msg_type == "info_collect_hdr_images":
                     self.log.progress_sub["idx"] = log_json["data"]["exp_idx"]
                     self.log.progress_sub["exposure"] = log_json["data"]["exposure"]
+            if msg_type == "capture_timing":
+                self.log.capture_timing = log_json["data"]
+                print(f"[HDR] ★★★ Capture completed: {log_json['data']['duration_sec']:.2f}s ({log_json['data']['mode']} mode) ★★★")
             self.publish_log()
 
         future: Future[ClientGoalHandle] = (
@@ -524,7 +609,7 @@ class JaiHDRCaptureAgent:
         )
         begin_time = time.time()
         while not future.done():
-            rclpy.spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
         goal_handle = future.result()  # goal이 accepted 되었는지 확인
         if not goal_handle.accepted:
             raise GoalRejectedError("Goal Rejected")
@@ -534,12 +619,27 @@ class JaiHDRCaptureAgent:
 
         # result를 받을 때까지 루프
         while not result_future.done():
-            rclpy.spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise JaiTimeoutError("Action Timeout")
 
         # Check goal result for errors
         result = result_future.result().result
+        print(f"[HDR] ★★★ Result: {result.result_message} ★★★")
+
+        # Parse timing from result_message (format: "... [X.XXs, mode]")
+        import re
+        timing_match = re.search(r'\[(\d+\.\d+)s, (\w+)\]', result.result_message)
+        if timing_match:
+            duration_sec = float(timing_match.group(1))
+            mode = timing_match.group(2)
+            self.log.capture_timing = {
+                "duration_ms": int(duration_sec * 1000),
+                "duration_sec": duration_sec,
+                "mode": mode
+            }
+            self.publish_log()
+
         if not result.success:
             # Error occurred during capture - raise exception to stop sequence
             error_msg = f"HDR Capture Failed: {result.result_message}"
@@ -565,7 +665,7 @@ class JaiHDRCaptureAgent:
         )
         begin_time = time.time()
         while not future.done():
-            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
         goal_handle = future.result()  # goal이 accepted 되었는지 확인
@@ -579,7 +679,7 @@ class JaiHDRCaptureAgent:
 
         # result를 받을 때까지 루프
         while not result_future.done():
-            rclpy.spin_once(self.action_client_hdr_trigger._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
 
@@ -597,7 +697,7 @@ class JaiHDRCaptureAgent:
         )
         begin_time = time.time()
         while not future.done():
-            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
         goal_handle = future.result()
@@ -608,7 +708,7 @@ class JaiHDRCaptureAgent:
             goal_handle.get_result_async()
         )
         while not result_future.done():
-            rclpy.spin_once(self.action_client_rotate._node, timeout_sec=0.1)
+            safe_spin_once(self.action_client_rotate._node, timeout_sec=0.1)
             if time.time() - begin_time > self.config.timeout:
                 raise RangerTimeoutError("Action Timeout")
         time.sleep(0.3)

@@ -27,6 +27,7 @@ import { InfoCard, InfoCardBtn } from "../../design/other/infocard";
 import { jaiHDRStore } from "../../stores/JaiHDRStore";
 import { Camera } from "@phosphor-icons/react/dist/ssr";
 import {
+  ArrowsClockwise,
   CameraRotate,
   GooglePhotosLogo,
   Pause,
@@ -34,6 +35,7 @@ import {
   Steps,
   Stop,
   Trash,
+  Warning,
 } from "@phosphor-icons/react";
 import { Color } from "../../design/color";
 
@@ -50,7 +52,6 @@ const Card = ({ children }: { children: React.ReactNode }) => (
     {children}
   </Box>
 );
-
 
 const JaiOptionSwitch = ({
   option_id,
@@ -244,6 +245,7 @@ const HDRProgressView = observer(() => {
     progress_root: pr,
     progress_sub: ps,
     hdr_error_msgs,
+    capture_timing,
   } = jaiHDRStore.hdr_log || {
     progress_root: {
       idx: 0,
@@ -255,17 +257,18 @@ const HDRProgressView = observer(() => {
       type: "hdr",
     },
     hdr_error_msgs: [],
+    capture_timing: {
+      duration_ms: 0,
+      duration_sec: 0,
+      mode: "",
+    },
   };
 
   const [isMobile] = useMediaQuery("(max-width: 768px)");
   const [useNewSpace, setUseNewSpace] = useState(true);
 
   return (
-    <Grid
-      templateColumns={{ base: "1fr", xl: "1fr 1fr" }}
-      gap={6}
-      width="100%"
-    >
+    <Grid templateColumns={{ base: "1fr", xl: "1fr 1fr" }} gap={6} width="100%">
       {/* Left Column - Controls & Buttons */}
       <VStack spacing={6} align="stretch">
         <Card>
@@ -293,9 +296,17 @@ const HDRProgressView = observer(() => {
                   checked={!useNewSpace}
                   onChange={() => setUseNewSpace(false)}
                   disabled={!jaiHDRStore.current_hdr_space_id}
-                  style={{ cursor: jaiHDRStore.current_hdr_space_id ? "pointer" : "not-allowed" }}
+                  style={{
+                    cursor: jaiHDRStore.current_hdr_space_id
+                      ? "pointer"
+                      : "not-allowed",
+                  }}
                 />
-                <Body2 color={!jaiHDRStore.current_hdr_space_id ? "gray.400" : "inherit"}>
+                <Body2
+                  color={
+                    !jaiHDRStore.current_hdr_space_id ? "gray.400" : "inherit"
+                  }
+                >
                   Continue from: {jaiHDRStore.current_hdr_space_id || "(None)"}
                 </Body2>
               </HStack>
@@ -304,10 +315,7 @@ const HDRProgressView = observer(() => {
         </Card>
 
         {/* Action Buttons */}
-        <Grid
-          templateColumns="repeat(2, 1fr)"
-          gap={3}
-        >
+        <Grid templateColumns="repeat(2, 1fr)" gap={3}>
           {!["running", "pause", "abort"].includes(
             jaiHDRStore.hdr_log?.progress_root.status ?? ""
           ) && (
@@ -332,6 +340,16 @@ const HDRProgressView = observer(() => {
                 title={"Abort"}
                 Icon={Stop}
                 onClick={() => jaiHDRStore.triggerStop()}
+                color={Color.Red}
+              />
+              <InfoCardBtn
+                title={"Force Stop"}
+                Icon={Warning}
+                onClick={() => {
+                  if (window.confirm("강제 종료하시겠습니까? 현재 작업이 중단됩니다.")) {
+                    jaiHDRStore.triggerForceStop();
+                  }
+                }}
                 color={Color.Red}
               />
             </>
@@ -371,10 +389,13 @@ const HDRProgressView = observer(() => {
         </Card>
 
         {/* Status Cards */}
-        <Grid
-          templateColumns="repeat(3, 1fr)"
-          gap={4}
-        >
+        <Grid templateColumns="repeat(4, 1fr)" gap={4}>
+          <InfoCardBtn
+            title="Refresh"
+            Icon={ArrowsClockwise}
+            onClick={() => jaiHDRStore.refreshStatus()}
+            color={Color.Blue}
+          />
           <InfoCard
             title={pr.status}
             value={pr.idx}
@@ -390,7 +411,7 @@ const HDRProgressView = observer(() => {
             }
           />
 
-          {(pr.task === "hdr" || pr.task === "ambient") ? (
+          {pr.task === "hdr" || pr.task === "ambient" ? (
             <InfoCard
               title={"Exposure"}
               value={pr.task}
@@ -400,6 +421,12 @@ const HDRProgressView = observer(() => {
             <InfoCard title="Status" value={pr.idx} />
           )}
 
+          {
+            <InfoCard
+              title={`Capture (${capture_timing.mode})`}
+              value={`${capture_timing.duration_sec.toFixed(2)}s`}
+            />
+          }
         </Grid>
 
         {/* Compact Error/Warning Messages */}
@@ -413,7 +440,11 @@ const HDRProgressView = observer(() => {
                 message = `Stream expired: ${error.data.device}/${error.data.stream} (${error.data.expired_time}ms)`;
                 severity = "warning";
               } else if (error.type === "error_retrieve_buffer") {
-                message = `Buffer retrieve failed: ${error.data.lResult === "OK" ? error.data.aResult : error.data.lResult}`;
+                message = `Buffer retrieve failed: ${
+                  error.data.lResult === "OK"
+                    ? error.data.aResult
+                    : error.data.lResult
+                }`;
                 severity = "warning";
               } else if (error.type === "error_crash") {
                 message = `Crash: ${error.data.cause}`;
@@ -423,9 +454,24 @@ const HDRProgressView = observer(() => {
                 severity = "info";
               }
 
-              const bgColor = severity === "error" ? "red.50" : severity === "warning" ? "yellow.50" : "blue.50";
-              const borderColor = severity === "error" ? "red.400" : severity === "warning" ? "yellow.400" : "blue.400";
-              const textColor = severity === "error" ? "red.700" : severity === "warning" ? "yellow.700" : "blue.700";
+              const bgColor =
+                severity === "error"
+                  ? "red.50"
+                  : severity === "warning"
+                  ? "yellow.50"
+                  : "blue.50";
+              const borderColor =
+                severity === "error"
+                  ? "red.400"
+                  : severity === "warning"
+                  ? "yellow.400"
+                  : "blue.400";
+              const textColor =
+                severity === "error"
+                  ? "red.700"
+                  : severity === "warning"
+                  ? "yellow.700"
+                  : "blue.700";
 
               return (
                 <Box
@@ -438,7 +484,12 @@ const HDRProgressView = observer(() => {
                   py={2}
                 >
                   <HStack spacing={2}>
-                    <Text fontSize="xs" fontWeight="bold" color={textColor} textTransform="uppercase">
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color={textColor}
+                      textTransform="uppercase"
+                    >
                       {severity}
                     </Text>
                     <Text fontSize="xs" color={textColor} flex={1}>
@@ -450,12 +501,10 @@ const HDRProgressView = observer(() => {
             })}
           </VStack>
         )}
-
       </VStack>
     </Grid>
   );
 });
-
 
 const HDRPreview = observer(() => {
   const { image } = jaiHDRStore.hdr_latest_capture;
@@ -464,7 +513,9 @@ const HDRPreview = observer(() => {
     <Box position="relative" width="100%">
       {image ? (
         <Image
-          src={image.startsWith('data:') ? image : `data:image/bmp;base64,${image}`}
+          src={
+            image.startsWith("data:") ? image : `data:image/bmp;base64,${image}`
+          }
           alt="HDR capture"
           objectFit="contain"
           width="100%"
@@ -510,8 +561,11 @@ const HDRPreview = observer(() => {
 
 const HDRStorageBrowser = observer(() => {
   const [scenesExpanded, setScenesExpanded] = useState(true);
-  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(null);
-  const [visibleFrameIndices, setVisibleFrameIndices] = useState<Set<number>>(new Set());
+  const [scrollContainerRef, setScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+  const [visibleFrameIndices, setVisibleFrameIndices] = useState<Set<number>>(
+    new Set()
+  );
 
   // Lazy loading effect - load thumbnails for visible frames
   useEffect(() => {
@@ -521,19 +575,21 @@ const HDRStorageBrowser = observer(() => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = parseInt(entry.target.getAttribute('data-index') || '0');
+            const index = parseInt(
+              entry.target.getAttribute("data-index") || "0"
+            );
             setVisibleFrameIndices((prev) => new Set(prev).add(index));
           }
         });
       },
       {
         root: scrollContainerRef,
-        rootMargin: '200px', // Preload items 200px before they enter viewport
+        rootMargin: "200px", // Preload items 200px before they enter viewport
         threshold: 0.01,
       }
     );
 
-    const items = scrollContainerRef.querySelectorAll('[data-index]');
+    const items = scrollContainerRef.querySelectorAll("[data-index]");
     items.forEach((item) => observer.observe(item));
 
     return () => observer.disconnect();
@@ -558,7 +614,9 @@ const HDRStorageBrowser = observer(() => {
             <IconButton
               icon={<CameraRotate />}
               aria-label="Refresh Scene"
-              onClick={() => jaiHDRStore.fetchSceneFrames(jaiHDRStore.current_scene_id)}
+              onClick={() =>
+                jaiHDRStore.fetchSceneFrames(jaiHDRStore.current_scene_id)
+              }
               size="sm"
               variant="ghost"
             />
@@ -587,24 +645,25 @@ const HDRStorageBrowser = observer(() => {
                   spacing={3}
                   pb={2}
                   css={{
-                    '&::-webkit-scrollbar': {
-                      height: '8px',
+                    "&::-webkit-scrollbar": {
+                      height: "8px",
                     },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1',
-                      borderRadius: '4px',
+                    "&::-webkit-scrollbar-track": {
+                      background: "#f1f1f1",
+                      borderRadius: "4px",
                     },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#888',
-                      borderRadius: '4px',
+                    "&::-webkit-scrollbar-thumb": {
+                      background: "#888",
+                      borderRadius: "4px",
                     },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      background: '#555',
+                    "&::-webkit-scrollbar-thumb:hover": {
+                      background: "#555",
                     },
                   }}
                 >
                   {jaiHDRStore.hdr_scene_list.map((sceneId) => {
-                    const thumbnail = jaiHDRStore.scene_representative_thumbnails.get(sceneId);
+                    const thumbnail =
+                      jaiHDRStore.scene_representative_thumbnails.get(sceneId);
                     const isSelected = jaiHDRStore.current_scene_id === sceneId;
 
                     return (
@@ -653,7 +712,11 @@ const HDRStorageBrowser = observer(() => {
 
                         {/* Scene Info */}
                         <Box p={2} bg={isSelected ? "blue.50" : "white"}>
-                          <Text fontSize="xs" fontWeight={isSelected ? "bold" : "medium"} noOfLines={1}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight={isSelected ? "bold" : "medium"}
+                            noOfLines={1}
+                          >
                             {sceneId}
                           </Text>
                         </Box>
@@ -671,7 +734,8 @@ const HDRStorageBrowser = observer(() => {
         </VStack>
 
         {/* Image Gallery - 3 Rows Horizontal Scroll with Lazy Loading */}
-        {jaiHDRStore.current_scene_id && jaiHDRStore.current_scene_frames.length > 0 ? (
+        {jaiHDRStore.current_scene_id &&
+        jaiHDRStore.current_scene_frames.length > 0 ? (
           <Box>
             <Body2 mb={3} color="gray.600">
               {jaiHDRStore.current_scene_frames.length} images
@@ -682,19 +746,19 @@ const HDRStorageBrowser = observer(() => {
               overflowY="hidden"
               pb={2}
               css={{
-                '&::-webkit-scrollbar': {
-                  height: '10px',
+                "&::-webkit-scrollbar": {
+                  height: "10px",
                 },
-                '&::-webkit-scrollbar-track': {
-                  background: '#f1f1f1',
-                  borderRadius: '4px',
+                "&::-webkit-scrollbar-track": {
+                  background: "#f1f1f1",
+                  borderRadius: "4px",
                 },
-                '&::-webkit-scrollbar-thumb': {
-                  background: '#888',
-                  borderRadius: '4px',
+                "&::-webkit-scrollbar-thumb": {
+                  background: "#888",
+                  borderRadius: "4px",
                 },
-                '&::-webkit-scrollbar-thumb:hover': {
-                  background: '#555',
+                "&::-webkit-scrollbar-thumb:hover": {
+                  background: "#555",
                 },
               }}
             >
@@ -758,7 +822,11 @@ const HDRStorageBrowser = observer(() => {
 
                       {/* Image Info */}
                       <Box p={2} bg={isSelected ? "blue.50" : "white"}>
-                        <Text fontSize="xs" fontWeight={isSelected ? "bold" : "medium"} noOfLines={1}>
+                        <Text
+                          fontSize="xs"
+                          fontWeight={isSelected ? "bold" : "medium"}
+                          noOfLines={1}
+                        >
                           {frameId}
                         </Text>
                         <HStack justify="space-between" mt={1}>
@@ -797,7 +865,12 @@ const HDRStorageBrowser = observer(() => {
             borderColor="gray.300"
             borderRadius="md"
           >
-            <Camera size={48} color="gray" opacity={0.3} style={{ margin: "0 auto" }} />
+            <Camera
+              size={48}
+              color="gray"
+              opacity={0.3}
+              style={{ margin: "0 auto" }}
+            />
             <Text mt={3} color="gray.500">
               No images in this scene
             </Text>
@@ -810,7 +883,12 @@ const HDRStorageBrowser = observer(() => {
             borderColor="gray.300"
             borderRadius="md"
           >
-            <GooglePhotosLogo size={48} color="gray" opacity={0.3} style={{ margin: "0 auto" }} />
+            <GooglePhotosLogo
+              size={48}
+              color="gray"
+              opacity={0.3}
+              style={{ margin: "0 auto" }}
+            />
             <Text mt={3} color="gray.500">
               Select a scene to view images
             </Text>
